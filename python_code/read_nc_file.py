@@ -3,15 +3,14 @@ import numpy as np
 
 
 ### open netcdf file ###
-ds = xr.open_dataset("C:\\Work\\DIVAnd\\Oxygen_maps\\resultat\\nc\\O2\\Oxygen_Autumn_2021_0.4Danl.nc")
+ds = xr.open_dataset("C:/Work/DIVAnd/Oxygen_maps/resultat/nc/O2/Oxygen_Autumn_2021_gebco_30sec_4.nc")
 #print(df)
 ### extract values that are within our limits, save to a new variable and nc-file. ####
 
-var_name = "Oxygen_L2"
-ds["HYPOX"]=xr.where((ds[var_name]<=0.5),ds[var_name]/ds[var_name]*1,ds[var_name]*np.nan,keep_attrs=True)
-#ds["HYPOX"]=xr.where(((ds["HYPOX"]<2) & (ds["HYPOX"]>=0.1)),ds["HYPOX"]/ds["HYPOX"]*2,ds["HYPOX"],keep_attrs=True)
+var_name = "Oxygen"
+ds["ANOX"]=xr.where((ds[var_name]<=0.5),ds[var_name]/ds[var_name]*1,ds[var_name]*np.nan,keep_attrs=True)
+ds["HYPOX"]=xr.where((ds[var_name]<=2),ds[var_name]/ds[var_name]*1,ds[var_name]*np.nan,keep_attrs=True)
 #ds["HYPOX"]=xr.where(((ds["HYPOX"]>=2)),ds["HYPOX"]*np.nan,ds["HYPOX"],keep_attrs=True)
-
 
 ###To do: Stack results from all depts to a map ###
 
