@@ -3,6 +3,11 @@ import numpy as np
 
 ### open netcdf file ###
 ds = xr.open_dataset("resultat/nc/O2/Oxygen_Autumn_1960_gebco_30sec_8.nc")
+# Read the bathymetry file using Xarray
+bath_file = xr.open_dataset("./bathymetry/gebco_30sec_8.nc")
+print(bath_file)
+# Extract the required variables
+b = bath_file["bat"]
 
 ### extract values that are within our limits, save to a new variable and nc-file. ####
 hypox = 2
@@ -32,7 +37,7 @@ from datetime import datetime
 fig, axs = plt.subplots(2, 2, figsize=(10, 8))
 # set common max, min limits for all plots
 vmin = 60
-vmax = 200
+vmax = 125
 # Select a specific time index and depth level
 time_index = 0  # Replace with the desired time index
 # Extract year and month from the time value
@@ -40,6 +45,9 @@ print(repr(ds["time"][time_index].values))
 time_value = ds['time'][time_index].values.astype('datetime64[M]').item()
 year_month = datetime.strftime(time_value, '%Y-%m')
 # 1111111 Plot the data on the 1st subplot
+# Plot land borders
+axs[0, 0].contourf(bath_file["lon"], bath_file["lat"], -b, levels=[-1e5,0], colors="gray")
+# Plot data
 data = ds['min_hypox_depth'].sel(time=ds['time'][time_index])
 data.plot(ax=axs[0, 0], x='lon', y='lat', cmap='viridis', vmin=vmin, vmax=vmax)
 # Add labels to the 1st subplot
@@ -48,6 +56,9 @@ axs[0, 0].set_xlabel('Longitude')
 axs[0, 0].set_ylabel('Latitude')
 
 # 2222222 Plot the data on the 2nd subplot
+# Plot land borders
+axs[0, 1].contourf(bath_file["lon"], bath_file["lat"], -b, levels=[-1e5,0], colors="gray")
+# Plot data
 data = ds['min_anox_depth'].sel(time=ds['time'][time_index])
 data.plot(ax=axs[0, 1], x='lon', y='lat', cmap='viridis', vmin=vmin, vmax=vmax)
 
@@ -64,6 +75,9 @@ time_value = ds['time'][last_time_index].values.astype('datetime64[M]').item()
 year_month = datetime.strftime(time_value, '%Y-%m')
 
 # Plot the data on the 3rd subplot
+# Plot land borders
+axs[1, 0].contourf(bath_file["lon"], bath_file["lat"], -b, levels=[-1e5,0], colors="gray")
+# Plot data
 data = ds['min_hypox_depth'].sel(time=ds['time'][last_time_index])
 data.plot(ax=axs[1, 0], x='lon', y='lat', cmap='viridis', vmin=vmin, vmax=vmax)
 axs[1, 0].set_title(f'minimum depths where oxygen <= {hypox} ml/l')
@@ -71,6 +85,9 @@ axs[1, 0].set_xlabel('Longitude')
 axs[1, 0].set_ylabel('Latitude')
 
 # Plot the data on the 4th subplot
+# Plot land borders
+axs[1, 1].contourf(bath_file["lon"], bath_file["lat"], -b, levels=[-1e5,0], colors="gray")
+# Plot data
 data = ds['min_anox_depth'].sel(time=ds['time'][last_time_index])
 data.plot(ax=axs[1, 1], x='lon', y='lat', cmap='viridis', vmin=vmin, vmax=vmax)
 axs[1, 1].set_title(f'minimum depths where oxygen <= {anox} ml/l')
