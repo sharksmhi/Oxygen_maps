@@ -35,7 +35,6 @@ using Missings
 # %%
 ### Oxygen ###
 
-# 
 varname = "Oxygen"
 savevar = "O2"
 sdnp35 = "SDN:P35::EPC00002"
@@ -53,13 +52,12 @@ end
 figdir = "./resultat/figures/$(savevar)/";
 if !isdir(figdir)
     mkpath(figdir)
-    mkpath("$figdir/temp")
+    mkpath(joinpath(figdir, "test"))
 end
 
-# # Load data from the same file that is used for the old oxygen maps
-# %%
-fname = "data/o2_1960-2022_autumn_only.txt"
-#fname = "C:/Work/DIVAnd/bot_no_header.txt"
+# ## Load data
+fname = "data/bot_no_header.txt"
+
 obsval,obslon,obslat,obsdepth,obstime,obsid = loadbigfile(fname);
 @show(length(obsval));
 #plot(obsdepth, obsval, "ko", markersize=0.5);
@@ -77,7 +75,6 @@ plot(obsdepth[sel], obsval[sel], "ro", markersize=0.5);
 #obsid    = [obsid; obsidns; obsid2];
 
 #Gör ett test på data för att hitta outliers
-# %%
 figure("Data")
 ax = subplot(1,1,1)
 plot(obslon[sel], obslat[sel], "ko", markersize=.1)
@@ -85,6 +82,7 @@ aspectratio = 1/cos(mean(54:0.05:61) * pi/180)
 #ax.tick_params("both",labelsize=6)
 gca().set_aspect(aspectratio)
 figname = "observations.png" 
+@show joinpath("$figdir/temp", figname)
 PyPlot.savefig(joinpath("$figdir/temp", figname), dpi=300);
 PyPlot.close_figs()
 
@@ -95,22 +93,24 @@ dx, dy = 0.05, 0.05  #Karin dx, dy = 0.1, 0.1
 lonr = 10:dx:30
 latr = 54:dy:61
 
-yearlist = [1960,1982,1991,1998,2004,2005,2021];
+yearlist = [1960,1982,1991,1998,2004,2005,2020];
 # yearlist = [2010,2011,2012,2013,2014,2015,2016,2017];
 
-#monthlist = [ [12,1,2], [3,4,5], [6,7,8], [9,10,11] ];
-#seasons=["Winter","Spring","Summer","Autumn"]
-#months=["(Dec-Feb)","(Mar-May)","(June-Aug)","(Sep-Nov)"];
+month_list = [ [12,1,2], [3,4,5], [6,7,8], [9,10,11] ];
+seasons=["Winter","Spring","Summer","Autumn"]
+months=["(Dec-Feb)","(Mar-May)","(June-Aug)","(Sep-Nov)"];
 
-monthlist = [[8,9,10]];
-seasons=["Autumn"]
-months=["(aug-oct)"];
+# month_list = [[8,9,10]];
+# seasons=["Autumn"]
+# months=["(aug-oct)"];
 
 # Time origin for the NetCDF file
 timeorigin = DateTime(1900,1,1,0,0,0);
 aspect_ratio = 1/cos(mean(latr) * pi/180);
-TS = DIVAnd.TimeSelectorYearListMonthList(yearlist,monthlist);
-@show TS;
+
+# This is set just before the DIVAnd call to create one result per season!!!
+# TS = DIVAnd.TimeSelectorYearListMonthList(yearlist,month_list);
+# @show TS;
 
 # ## Metadata and attributes
 # Uppdatera framöver
@@ -248,7 +248,7 @@ lenz =  [lenz_[k] for i = 1:sz[1], j = 1:sz[2], k = 1:sz[3]];
 # # Run DIVA3d
 # ### Background field is calculated in notebook: 
 # filename_background = "Background_file_6y_20230203_$(savevar).nc"
-# TS_back = DIVAnd.TimeSelectorYearListMonthList(yearlist_back, monthlist)
+# TS_back = DIVAnd.TimeSelectorYearListMonthList(yearlist_back, month_list)
 # background = DIVAnd.backgroundfile(filename_background,varname,TS_back)
 
 # %%
@@ -259,20 +259,28 @@ obstime_shifted[Dates.month.(obstime) .== 12] .+= Dates.Year(1)
 # Settings for DIVAnd
 error_thresholds = [("L1", 0.3), ("L2", 0.5)];
 solver = :direct
-epsilon = 0.1; #1.,   0.1, 10
+epsilon = 1; #1., 0.1, 10
+
 # low epsilon means higher noise in data and result is more smoothed
 # high epsilon means lower noise in data and result is less smoothed and each observation is seen more
+
+# sätter min, max för färgskalan i plottarna
+vmin_ = 0
+vmax_ = 400
 # %%
 # One metadata set up per season
 metadata=Array{DataStructures.OrderedDict{String,Any}}(undef,4) ;
 
-for i in 1:length(monthlist)
-    metadatai = OrderedDict(
+for monthlist_index in 1:length(month_list)
+    season = seasons[monthlist_index]
+    @show monthlist_index
+    @show seasons
+    @info("Creating metadata dicitonary for the season $(season)")
+    metadata_season = OrderedDict(
         # set attributes for DVIA run from our settings
-        "season" => seasons[i],
+        "season" => season,
         "epsilon" => "$epsilon",
         "horizontal correlation length m" => "$lx",
-        # "vertical correlation length m" => [for z in lenz]
         # Name of the project (SeaDataCloud, SeaDataNet, EMODNET-chemistry, ...)
         "project" => "EMODNET-chemistry",
 
@@ -281,7 +289,7 @@ for i in 1:length(monthlist)
         "institution_urn" => "SDN:EDMO::545",
 
         # Production group
-        #"production" => "Diva group",
+        "production" => "SMHI",
 
         # Name and emails from authorsseasons
         "Author_e-mail" => ["Martin Hansson <martin.hansson@smhi.se>"],
@@ -290,7 +298,7 @@ for i in 1:length(monthlist)
         "source" => "observational data from SeaDataNet/EMODnet Chemistry Data Network",
 
         # Additional comment
-        "comment" => "Every year of the time dimension corresponds to a 6-year centred average for the $(seasons[i]) season $(months[i]). Horizontal resolution 0.1°.",
+        "comment" => "Every year of the time dimension corresponds to a 1-year centred average for one season.",
 
         # SeaDataNet Vocabulary P35 URN
         # http://seadatanet.maris2.nl/v_bodc_vocab_v2/search.asp?lib=p35
@@ -316,7 +324,7 @@ for i in 1:length(monthlist)
         # see, e.g.
         # * EMODnet Bathymetry Consortium (2016): EMODnet Digital Bathymetry (DTM).
         # https://doi.org/10.12770/c7b53704-999d-4721-b1a3-04ec60c87238
-        # 
+        #
         # taken from
         # http://www.emodnet-bathymetry.eu/data-products/acknowledgement-in-publications
         #
@@ -352,19 +360,16 @@ for i in 1:length(monthlist)
         "DIVAnd_version" => "2.7.5",
         "DIVA_code_doi" => "10.5281/zenodo.4715361",
         "DIVA_references" => "Barth, A.; Beckers, J.-M.; Troupin, C.; Alvera-Azcárate, A. & Vandenbulcke, L.
-divand-1.0: n-dimensional variational data analysis for ocean observations
-Geoscientific Model Development, 2014, 7, 225-241. DOI: :10.5194/gmd-7-225-2014"); 
+    divand-1.0: n-dimensional variational data analysis for ocean observations
+    Geoscientific Model Development, 2014, 7, 225-241. DOI: :10.5194/gmd-7-225-2014"); 
 
-        metadata[i]=metadatai
-end
+    metadata[monthlist_index]=metadata_season
 
-# sätter main, max för färgskalan i plottarna
-vmin_ = 0
-vmax_ = 8
+    # end
 
-for i in 1:length(monthlist)
+    # for monthlist_index in 1:length(month_list)
 
-    @info("starting DIVAnd computations for $(seasons[i])")
+    @info("starting DIVAnd computations for $(seasons[monthlist_index])")
     @info(Dates.now())
 
     function plotres(timeindex,selected,fit,erri)
@@ -376,13 +381,14 @@ for i in 1:length(monthlist)
 
         selected_depth = 70.
         depth_index = findall(depthr .== selected_depth)
+        @info("making figures for $(year) in $(season) including months $(month_list[monthlist_index]) $(selected_depth) m")
         #tmp[erri .> rel_error] .= NaN;
         figure(figsize = (10,8))
         title("test")
 
         #Plot1
         subplot(2,2,1)
-        title("$(year),$(seasons[i]),$(selected_depth)m")
+        title("$(year),$(season),$(selected_depth)m")
 
         # select the data in a depthrange of +/- 5 m from selected depth
         sel_obs = selected .& (obsdepth .> selected_depth-5) .& (obsdepth .< selected_depth+5)
@@ -401,7 +407,7 @@ for i in 1:length(monthlist)
         gca().set_aspect(aspect_ratio)
         # Observationer
         scatter(obslon[sel_obs],obslat[sel_obs],6,obsval[sel_obs];
-                vmin = vmin_, vmax = vmax_, cmap="jet")  #"PuBuGn","viridis"
+                vmin = vmin_, vmax = vmax_, cmap="jet_r")  #"PuBuGn","viridis"
         colorbar(extend="max")
 
         # plot2 the analysis
@@ -412,7 +418,7 @@ for i in 1:length(monthlist)
         #title("L=$(L)[m], lenx=$(lx)[m], leny=$(ly)[m]")
         @show depth_index[1]
         pcolor(lonr,latr,permutedims(tmp[:,:,depth_index[1]],[2,1]);
-            vmin = vmin_, vmax = vmax_, cmap="jet")
+            vmin = vmin_, vmax = vmax_, cmap="jet_r")
         colorbar(extend="max")
         #Land
         contourf(bx,by,permutedims(b,[2,1]), levels = [-1e5,0],colors = [[.5,.5,.5]])
@@ -425,7 +431,7 @@ for i in 1:length(monthlist)
         tmp_L2=copy(tmp)
         tmp_L2[erri .< L2] .= NaN
         pcolor(lonr,latr,permutedims(tmp_L2[:,:,depth_index[1]],[2,1]);
-            vmin = vmin_, vmax = vmax_, cmap="jet")
+            vmin = vmin_, vmax = vmax_, cmap="jet_r")
         colorbar(extend="max")
         #Land
         contourf(bx,by,permutedims(b,[2,1]), levels = [-1e5,0],colors = [[.5,.5,.5]])
@@ -439,32 +445,33 @@ for i in 1:length(monthlist)
         tmp_L1=copy(tmp)
         tmp_L1[erri .< L1] .= NaN
         pcolor(lonr,latr,permutedims(tmp_L1[:,:,depth_index[1]],[2,1]);
-            vmin = vmin_, vmax = vmax_, cmap="jet")
+            vmin = vmin_, vmax = vmax_, cmap="jet_r")
         colorbar(extend="max")
         #Land
         contourf(bx,by,permutedims(b,[2,1]), levels = [-1e5,0],colors = [[.5,.5,.5]])
         gca().set_aspect(aspect_ratio)
 
         # save the figure
-        figname = savevar * @sprintf("_%04d", year) *  seasons[i] * @sprintf("_%d",selected_depth) * 
-        @sprintf("_%f",epsilon) * @sprintf("_%05d",lx) * @sprintf("_%d",lenz[1,1,depth_index[1]]) *
+        figname = savevar * @sprintf("_%04d_", year) * season * @sprintf("_%d",selected_depth) * 
+        @sprintf("_%.2f",epsilon) * @sprintf("_%05d",lx) * @sprintf("_%d",lenz[1,1,depth_index[1]]) *
         @sprintf("_%03d.png",timeindex)
         PyPlot.savefig(joinpath(figdir, figname), dpi=300, bbox_inches="tight");
         PyPlot.close_figs()
     end
 
-    # Time selection for the analyse. This was already defined together with yearlist, monthlist, seasons
-    # TS = DIVAnd.TimeSelectorYearListMonthList(yearlist,monthlist[i:i])
+    # Time selection for the analyse. This was already defined together with yearlist, month_list, seasons
+    TS = DIVAnd.TimeSelectorYearListMonthList(yearlist,month_list[monthlist_index:monthlist_index])
+    @show TS;
 
-    # File name based on the variable (but all spaces are replaced by _)  
-    filename = joinpath(outputdir, "$(replace(varname,' '=>'_'))_$(seasons[i])_$(yearlist[i])_$(epsilon)_$(bath_file_name)")
+    # File name based on the variable (but all spaces are replaced by _)
+    filename = joinpath(outputdir, "$(replace(varname,' '=>'_'))_$(minimum(yearlist))-$(maximum(yearlist))_$(season)_$(epsilon)_$(bath_file_name)")
 
     if isfile(filename)
        rm(filename) # delete the previous analysis
     end
     @info("Will write results in $filename")
     # create attributes for the netcdf file (need an internet connexion)
-    ncglobalattrib,ncvarattrib = SDNMetadata(metadata[i],filename,varname,lonr,latr)
+    ncglobalattrib,ncvarattrib = SDNMetadata(metadata_season,filename,varname,lonr,latr)
 
     @time dbinfo = diva3d((lonr,latr,depthr,TS),
               (obslon,obslat,obsdepth,obstime_shifted),
@@ -478,7 +485,7 @@ for i in 1:length(monthlist)
               ncvarattrib = ncvarattrib,
               ncglobalattrib = ncglobalattrib,
               timeorigin = timeorigin,
-              transform = Anam.loglin(epsilon),   
+              transform = Anam.loglin(epsilon),
               mask = new_mask,
               solver = solver,
               niter_e = 1,
