@@ -73,8 +73,8 @@ dx, dy = 0.05, 0.05  #Karin dx, dy = 0.1, 0.1
 lonr = 9.:dx:31.
 latr = 53.5:dy:61.
 
-yearlist = [1991];
-#yearlist = [1960,1982,1991,1998,2004,2005,2018];
+#yearlist = [1991];
+yearlist = [1960,1982,1991,1998,2004,2005,2018];
 month_list = [ [12,1,2], [3,4,5], [6,7,8], [9,10,11] ];
 seasons=["Winter","Spring","Summer","Autumn"]
 months=["(Dec-Feb)","(Mar-May)","(June-Aug)","(Sep-Nov)"];
