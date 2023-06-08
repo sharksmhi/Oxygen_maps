@@ -1,22 +1,9 @@
-# %% [markdown]
 # ### Oxygen maps
 # ### 2023
 # ### Lena Viktorsson & Martin Hansson
-# ### Copy from Karin Wesslander
+# ### Based on copy from Karin Wesslander and DIVA workshop notebooks
 
-# %% [markdown]
 # #### Add necessary packages
-
-# %%
-#import Pkg
-#Pkg.add("Pkg")
-#Pkg.update("NCDatasets")
-#import Pkg; 
-#Pkg.add("DataStructures")
-#Pkg.add("Missings")
-#@show NCDatasets("version")
-
-# %%
 using DIVAnd
 using PyPlot
 using NCDatasets
@@ -27,14 +14,9 @@ using DataStructures
 using Printf
 using Missings
 
-# %% [markdown]
 # ## Configuration
-# * Define the horizontal, vertical and temporal resolutions.
-# * Select the variable
-
-# %%
+# * Define variabel and set horizontal, vertical and temporal resolutions.
 ### Oxygen ###
-
 varname = "Oxygen"
 savevar = "O2"
 sdnp35 = "SDN:P35::EPC00002"
@@ -42,13 +24,14 @@ sdnp02 = "SDN:P02::DOXY"
 doi = "10.6092/B5BB9EA1-4BDA-48A1-92B6-03645AC12FAE"
 unit = "umol/l";
 
-# ## Where to save the result...
+# ## Where to save the result. Create path if not there.
 # File name based on the variable (but all spaces are replaced by _) _varlenz
+# NC-files
 outputdir = "./resultat/nc/$(savevar)/" ;
 if !isdir(outputdir)
     mkpath(outputdir)
 end
-
+# Figures
 figdir = "./resultat/figures/$(savevar)/";
 if !isdir(figdir)
     mkpath(figdir)
@@ -57,7 +40,6 @@ end
 
 # ## Load data
 fname = "data/bot_no_header.txt"
-
 obsval,obslon,obslat,obsdepth,obstime,obsid = loadbigfile(fname);
 @show(length(obsval));
 #plot(obsdepth, obsval, "ko", markersize=0.5);
@@ -65,7 +47,6 @@ sel = (Dates.year.(obstime) .== 2021) .& (Dates.month.(obstime) .>= 8) .& (Dates
 @show(length(obsval[sel]))
 plot(obsdepth[sel], obsval[sel], "ro", markersize=0.5);
 
-# %%
 #Så här kan man lägga ihop olika dataset
 #obsval   = [obsval; obsvalns; obsval2];
 #obslon   = [obslon; obslonns; obslon2];
@@ -87,22 +68,16 @@ PyPlot.savefig(joinpath("$figdir/temp", figname), dpi=300);
 PyPlot.close_figs()
 
 # Sätt horisontell uppplösning
-# Vår kod
 #dx, dy = 0.125, 0.125  #Karin dx, dy = 0.1, 0.1
 dx, dy = 0.05, 0.05  #Karin dx, dy = 0.1, 0.1
-lonr = 10:dx:30
-latr = 54:dy:61
+lonr = 9.:dx:31.
+latr = 53.5:dy:61.
 
-yearlist = [1960,1982,1991,1998,2004,2005,2020];
-# yearlist = [2010,2011,2012,2013,2014,2015,2016,2017];
-
+yearlist = [1991];
+#yearlist = [1960,1982,1991,1998,2004,2005,2018];
 month_list = [ [12,1,2], [3,4,5], [6,7,8], [9,10,11] ];
 seasons=["Winter","Spring","Summer","Autumn"]
 months=["(Dec-Feb)","(Mar-May)","(June-Aug)","(Sep-Nov)"];
-
-# month_list = [[8,9,10]];
-# seasons=["Autumn"]
-# months=["(aug-oct)"];
 
 # Time origin for the NetCDF file
 timeorigin = DateTime(1900,1,1,0,0,0);
@@ -110,16 +85,14 @@ aspect_ratio = 1/cos(mean(latr) * pi/180);
 
 # This is set just before the DIVAnd call to create one result per season!!!
 # TS = DIVAnd.TimeSelectorYearListMonthList(yearlist,month_list);
-# @show TS;
 
-# ## Metadata and attributes
-# Uppdatera framöver
-#
+# ## Metadata and attributes - Uppdatera framöver
 # Edit the different fields according to the project, the authors etc.
 # This is used for the netCDF file but also for the XML needed for the Sextant catalog.
 
 # #### Set negativ oxygen to 0
-# Sätter alla syrevärden som är noll eller mindre än noll till ngt väldigt nära noll, dock ej noll. Om syre är noll eller negativt får vi inte ut några värden till analysen. Lite knepigt att den inte klarar noll dock. 
+# Sätter alla syrevärden som är noll eller mindre än noll till ngt väldigt nära noll, dock ej noll.
+# Om syre är noll eller negativt får vi inte ut några värden till analysen. Lite knepigt att den inte klarar noll dock.
 # Kanske fråga Charles när vi har tid. 
 
 # %%
@@ -131,15 +104,13 @@ checkobs((obslon,obslat,obsdepth,obstime),obsval,obsid)
 
 # ## Extract the bathymetry
 # It is used to delimit the domain where the interpolation is performed.
-#
-# ### Choice of bathymetry
 # Modify bathname according to the resolution required.
 
-# %%
 bathname = "./bathymetry/gebco_30sec_4.nc"
 bath_file_name = split(bathname,"/")[end]
 bathisglobal = true;
 bx,by,b = DIVAnd.extract_bath(bathname,bathisglobal,lonr,latr);
+#Används ovan????????????????????????????????????
 
 # ## MASK
 # #### 1) Create a mask from bathymetry and your selected depth vector
@@ -159,30 +130,51 @@ xmask,ymask,mmask = load_mask(bathname,true,lonr,latr,depthr);
 
 # #### 3) Create a new mask
 # which means it will have the value true only in the main sea area, not on land or in the small isolated pixels.
-# I also attach a plot with the 2 masks (before and after the floodfill). You can see that your problem with the pixel in the middle of the island has disappeared. Note also that the northwesternmost part of the domain has also been masked, as this area was the 2nd largest sea area.
+# I also attach a plot with the 2 masks (before and after the floodfill). You can see that your problem
+# with the pixel in the middle of the island has disappeared. Note also that the northwesternmost part of the
+# domain has also been masked, as this area was the 2nd largest sea area.
 label = DIVAnd.floodfill(mmask);
 new_mask = (label .== 1);
 
+# #### 4) To do: Add a mask for Skagerrak and Bothnian Sea? Will make result better and save time?
+grid_bx = [i for i in xmask, j in ymask];
+grid_by = [j for i in xmask, j in ymask];
+mask_edit = copy(new_mask);
+sel_mask1 = (grid_by .>= 57.75) .& (grid_bx .<= 12.2);
+sel_mask2 = (grid_by .>= 57.4) .& (grid_by .< 57.75) .& (grid_bx .<= 10.4);
+sel_mask3 = (grid_by .>= 57.) .& (grid_by .< 57.4) .& (grid_bx .<= 10.);
+new_mask = mask_edit .* .!sel_mask1 .* .!sel_mask2 .* .!sel_mask3;
+
+fig=figure(1)
+ax = subplot(1,1,1)
+ax.tick_params("both",labelsize=6)
+#pyplot.plot(xmask, ymask, new_mask[:,:,1]');
+pcolor(xmask, ymask, new_mask[:,:,1]');
+gca().set_aspect(aspectratio)
+gcf()
+
 # #### Plot
-# Maybe it is not so clear, so you can just plot label  and you will obtain something like the attached figure. The colored pixels are the "sea" pixels not connected with the main sea area.
+# Maybe it is not so clear, so you can just plot label  and you will obtain something like the attached figure.
+# The colored pixels are the "sea" pixels not connected with the main sea area.
 # pcolor(xmask, ymask, label[:,:,1]');  # the 1 means the 1st depth level
 
-pcolor(xmask, ymask, mmask[:,:,1]'); 
-#pcolor(xmask, ymask, new_mask[:,:,2]'); 
+#pcolor(xmask, ymask, mmask[:,:,1]');
+pcolor(xmask, ymask, new_mask[:,:,1]');
+#pcolor(xmask, ymask, new_mask[:,:,2]');
 #pcolor(xmask, ymask,(new_mask[:,:,1].*rl)'); 
 colorbar(orientation="horizontal")
 gca().set_aspect(1/cos(mean([ylim()...]) * pi/180)) # fixes the aspect ratio
 figname = "mask.png" 
 PyPlot.savefig(joinpath("$figdir/temp", figname), dpi=300);
 PyPlot.close_figs()
+gcf()
 
-# %% [markdown]
 # ## Analysis parameters
-
 # ## Horizontal correlation length
 # From https://github.com/gher-uliege/DIVAnd.jl/issues/121 
 #
-# Here is a piece of code (from Emodnet Chemistry), which could be used to create a correlation length lenfilled decreasing to a fifth of the normal value lenf when approaching a cost.
+# Here is a piece of code (from Emodnet Chemistry), which could be used to create a correlation length lenfilled
+# decreasing to a fifth of the normal value lenf when approaching a cost.
 # The distance at which the change happens is defined by slen (here in meters, so metrics pmn are in /m). sz is size(mask)
 #
 # The mask is 2D.
@@ -190,7 +182,9 @@ PyPlot.close_figs()
 # Ökas slen så minskas avståndet från kusten där len är mindre.
 
 # lenf should be the normal value for horizontal correlation length
-lenf = 78_000.
+# Sätt korrelationslängd (m)
+lenf = 25_000. #78_000, 50_000
+
 # Create a new mask
 mask,pmn = DIVAnd.domain(bathname,bathisglobal,lonr,latr);
 sz_mask = size(mask)
@@ -231,7 +225,6 @@ lenz =  [lenz_[k] for i = 1:sz[1], j = 1:sz[2], k = 1:sz[3]];
 # NCDatasets.NetCDFError(13, "Permission denied")
 # ```
 
-# %% [markdown]
 # ### Plotting function
 # Define a plotting function that will be applied for each time index and depth level.     
 # All the figures will be saved in a selected directory.
@@ -239,9 +232,7 @@ lenz =  [lenz_[k] for i = 1:sz[1], j = 1:sz[2], k = 1:sz[3]];
 
 # If you do not want to generate plots but print the time index at every time slice
 # you can use the function `plotres_timeindex`.
-
-# %%
-#function plotres_timeindex(timeindex,sel,fit,erri)
+# function plotres_timeindex(timeindex,sel,fit,erri)
 #    @show timeindex
 #end
 
@@ -251,15 +242,14 @@ lenz =  [lenz_[k] for i = 1:sz[1], j = 1:sz[2], k = 1:sz[3]];
 # TS_back = DIVAnd.TimeSelectorYearListMonthList(yearlist_back, month_list)
 # background = DIVAnd.backgroundfile(filename_background,varname,TS_back)
 
-# %%
 # To include December from previous year in the analyse
 obstime_shifted = copy(obstime)
 obstime_shifted[Dates.month.(obstime) .== 12] .+= Dates.Year(1)
 
-# Settings for DIVAnd
+# Settings for DIVAnd-------------------------------------------------------------------------------
 error_thresholds = [("L1", 0.3), ("L2", 0.5)];
 solver = :direct
-epsilon = 1; #1., 0.1, 10
+epsilon = 10; #1., 0.1, 10
 
 # low epsilon means higher noise in data and result is more smoothed
 # high epsilon means lower noise in data and result is less smoothed and each observation is seen more
@@ -283,20 +273,15 @@ for monthlist_index in 1:length(month_list)
         "horizontal correlation length m" => "$lx",
         # Name of the project (SeaDataCloud, SeaDataNet, EMODNET-chemistry, ...)
         "project" => "EMODNET-chemistry",
-
         # URN code for the institution EDMO registry,
         # e.g. SDN:EDMO::1579
         "institution_urn" => "SDN:EDMO::545",
-
         # Production group
         "production" => "SMHI",
-
         # Name and emails from authorsseasons
         "Author_e-mail" => ["Martin Hansson <martin.hansson@smhi.se>"],
-
         # Source of the observation
         "source" => "observational data from SeaDataNet/EMODnet Chemistry Data Network",
-
         # Additional comment
         "comment" => "Every year of the time dimension corresponds to a 1-year centred average for one season.",
 
@@ -315,9 +300,7 @@ for monthlist_index in 1:length(month_list)
         # http://seadatanet.maris2.nl/v_bodc_vocab_v2/search.asp?lib=C19
         # example: ["SDN:C19::3_1"]
         "area_keywords_urn" => ["SDN:C19::2"],
-
         "product_version" => "2.0",
-
         "product_code" => "SMHI-Baltic Sea-$(replace(varname,' '=>'_'))-v2023-ANA",
 
         # bathymetry source acknowledgement
@@ -339,9 +322,7 @@ for monthlist_index in 1:length(month_list)
         # http://cfconventions.org/Data/cf-standard-names/current/build/cf-standard-name-table.html
         # example "standard_name" = "sea_water_temperature",
         "netcdf_standard_name" => "$(replace(varname,' '=>'_'))",
-
         "netcdf_long_name" => "$varname",
-
         "netcdf_units" => "$unit",
 
         # Abstract for the product
@@ -350,7 +331,6 @@ for monthlist_index in 1:length(month_list)
         # This option provides a place to acknowledge various types of support for the
         # project that produced the data
         "acknowledgement" => "Aggregated data products are generated by EMODnet Chemistry under the support of DG MARE Call for Tenders EASME/EMFF/2016/006-lot4, EASME/2019/OP/0003-lot4.",
-
         "documentation" => "https://doi.org/10.6092/A8CFB472-10DB-4225-9737-5A60DA9AF523",
 
         # Digital Object Identifier of the data product
@@ -365,10 +345,6 @@ for monthlist_index in 1:length(month_list)
 
     metadata[monthlist_index]=metadata_season
 
-    # end
-
-    # for monthlist_index in 1:length(month_list)
-
     @info("starting DIVAnd computations for $(seasons[monthlist_index])")
     @info(Dates.now())
 
@@ -379,7 +355,9 @@ for monthlist_index in 1:length(month_list)
         L2 = 0.5
         L1 = 0.3
 
+        #Välj djup som skall plottas
         selected_depth = 70.
+
         depth_index = findall(depthr .== selected_depth)
         @info("making figures for $(year) in $(season) including months $(month_list[monthlist_index]) $(selected_depth) m")
         #tmp[erri .> rel_error] .= NaN;
@@ -464,7 +442,7 @@ for monthlist_index in 1:length(month_list)
     @show TS;
 
     # File name based on the variable (but all spaces are replaced by _)
-    filename = joinpath(outputdir, "$(replace(varname,' '=>'_'))_$(minimum(yearlist))-$(maximum(yearlist))_$(season)_$(epsilon)_$(bath_file_name)")
+    filename = joinpath(outputdir, "$(replace(varname,' '=>'_'))_$(minimum(yearlist))-$(maximum(yearlist))_$(season)_$(epsilon)_$(lx)_$(bath_file_name)")
 
     if isfile(filename)
        rm(filename) # delete the previous analysis
@@ -498,45 +476,4 @@ for monthlist_index in 1:length(month_list)
     # Save the observation metadata in the NetCDF file
     DIVAnd.saveobs(filename,(obslon,obslat,obsdepth,obstime),obsid,used = dbinfo[:used])
 
-    ## Deepest value
-    #deep_filename = joinpath(outputdir, "$(replace(varname,' '=>'_'))_$(seasons[i])_deep.4Danl.nc")
-    #DIVAnd.derived(filename,varname,deep_filename,error_thresholds = error_thresholds)
-
-    ## cut net cdf and then plot profiles 
-    #cut_filename = joinpath(outputdir, "$(replace(varname,' '=>'_'))_$(seasons[i]).4Danl.nc")
-    #DIVAnd.cut(deep_filename,varname,cut_filename,polygon_lon,polygon_lat)
-
-    #residual = dbinfo[:residuals]
-    #res = get(dbinfo, :residuals, 0)
-    #@show extrema(res);
-    #dataresiduals=divand_residualobs(s,fi)
-
 end
-
-# %%
-# s = 1
-# file = joinpath(outputdir, "$(replace(varname,' '=>'_'))_$(seasons[s]).4Danl.nc")
-# ds = Dataset(filename)
-# ds_name =  ("$(varname)_L2") 
-# #ds_name = varname
-# @show ds_name 
-# #sel = NCDatasets.@select(ds[ds_name], lon == 20.2 && lat == 57.)
-# #sel = NCDatasets.@select(ds[ds_name], lon == 19.5 && lat == 57.)
-# #sel = NCDatasets.@select(ds[ds_name], Oxygen >)
-# #sel = NCDatasets.@select(ds[ds_name], lon == 20. && lat == 61.3)
-# for k=1:length(yearlist)
-#     toplo = nomissing(sel[:,:,:,k],NaN)
-#     @show sel[:,:,:,k]
-#     @show -depthr
-#     toplot = vec(toplo)
-#     plot(toplot,-depthr,label=string(yearlist[k]))
-# end
-# ylim(-175,5)
-# legend();
-# grid("on")
-# #title("$(yearlist[k][1]):$(yearlist[k][end])")
-# title("$(savevar) $(seasons[s])")
-# close(ds)
-# @show file
-
-
