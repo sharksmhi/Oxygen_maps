@@ -47,6 +47,51 @@ sel = (Dates.year.(obstime) .== 2021) .& (Dates.month.(obstime) .>= 8) .& (Dates
 @show(length(obsval[sel]))
 plot(obsdepth[sel], obsval[sel], "ro", markersize=0.5);
 
+# ## Load data from Emodnet Kattegatt
+#ncfile_kattegat = "C:/Work/DIVAnd/Oxygen_maps/data/data_from_Eutrophication_NorthSea_non-nutrient_profiles_2022_unrestricted_1960_2022_02.nc"
+#@time obsval_kat, obslon_kat, obslat_kat, obsdepth_kat, obstime_kat = NCODV.load(Float64, ncfile, "Water body dissolved oxygen concentration");
+
+# ## Remove duplicates
+# ## Criteria (can be adapted according to the application):
+# Horizontal distance: 0.01 degree (about 1km)
+# Vertical separation: 0.01 m depth
+# Time separation: 1 minute.
+# Salinity difference: 0.01 psu.??
+
+#@time dupl = DIVAnd.Quadtrees.checkduplicates(
+#    (obslon,obslat,obsdepth,obstime), obsval,
+#    (obslonwod,obslatwod, obsdepthwod, obstimewod), obsvalwod,
+#    (0.01,0.01,0.01,1/(24*60)),0.01);
+# ## Find the indices of the possible duplicates:
+#index = findall(.!isempty.(dupl));
+#ndupl = length(index);
+#pcdupl = round(ndupl / length(obslon) * 100; digits=2);
+#@info("Number of possible duplicates: $ndupl")
+#@info("Percentage of duplicates: $pcdupl%")
+# ## If you decide to combine the 2 (or more) datasets:
+#newpoints = isempty.(dupl);
+#@info("Number of new points: $(sum(newpoints)))")
+#obslon = [obslon; obslonwod[newpoints]];
+#obslat = [obslat; obslatwod[newpoints]];
+#obsdepth = [obsdepth; obsdepthwod[newpoints]];
+#obstime = [obstime; obstimewod[newpoints]];
+#obsval = [obsval; obsvalwod[newpoints]];
+#obsid = [obsid; obsidwod[newpoints]];
+# ## Create a plot showing the additional data points:
+#figure("Adriatic-Additional-Data")
+#ax = subplot(1,1,1)
+#ax.tick_params("both",labelsize=6)
+#ylim(39.0, 46.0);
+#xlim(11.5, 20.0);
+#contourf(bx, by, permutedims(Float64.(mask_edit[:,:,1]),[2,1]),
+#    levels=[-1e5,0],cmap="binary");
+#plot(obslon, obslat, "bo", markersize=.2, label="SeaDataNet")
+#plot(obslonwod[newpoints], obslatwod[newpoints], "go",
+#    markersize=.2, label="Additional data\nfrom World Ocean Database")
+#legend(loc=3, fontsize=4)
+#gca().set_aspect(aspectratio)
+
+
 #Så här kan man lägga ihop olika dataset
 #obsval   = [obsval; obsvalns; obsval2];
 #obslon   = [obslon; obslonns; obslon2];
@@ -54,6 +99,10 @@ plot(obsdepth[sel], obsval[sel], "ro", markersize=0.5);
 #obsdepth = [obsdepth; obsdepthns; obsdepth2];
 #obstime  = [obstime; obstimens; obstime2];
 #obsid    = [obsid; obsidns; obsid2];
+
+
+
+
 
 #Gör ett test på data för att hitta outliers
 figure("Data")
