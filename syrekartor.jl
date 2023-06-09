@@ -39,17 +39,43 @@ if !isdir(figdir)
 end
 
 # ## Load data
-fname = "data/bot_no_header.txt"
-obsval,obslon,obslat,obsdepth,obstime,obsid = loadbigfile(fname);
-@show(length(obsval));
+#fname = "data/bot_no_header.txt"
+#obsval,obslon,obslat,obsdepth,obstime,obsid = loadbigfile(fname);
+#@show(length(obsval));
 #plot(obsdepth, obsval, "ko", markersize=0.5);
-sel = (Dates.year.(obstime) .== 2021) .& (Dates.month.(obstime) .>= 8) .& (Dates.month.(obstime) .<= 10) .& (obsdepth .== 125.)
-@show(length(obsval[sel]))
-plot(obsdepth[sel], obsval[sel], "ro", markersize=0.5);
+#sel = (Dates.year.(obstime) .== 2021) .& (Dates.month.(obstime) .>= 8) .& (Dates.month.(obstime) .<= 10) .& (obsdepth .== 125.)
+#@show(length(obsval[sel]))
+#plot(obsdepth[sel], obsval[sel], "ro", markersize=0.5);
+
+datafile_1 = "C:/Work/DIVAnd/Oxygen_maps/data/emodnet_02_1960_2022.txt"
+@time obsval_1,obslon_1,obslat_1,obsdepth_1,obstime_1,obsid_1 = ODVspreadsheet.load(Float64,[datafile_1],
+                           ["Water body dissolved oxygen concentration"]; nametype = :localname );
+
+datafile_2 = "C:/Work/DIVAnd/Oxygen_maps/data/emodnet_kat_02_1960_2022.txt"
+@time obsval_2,obslon_2,obslat_2,obsdepth_2,obstime_2,obsid_2 = ODVspreadsheet.load(Float64,[datafile_2],
+                           ["Water body dissolved oxygen concentration"]; nametype = :localname );
 
 # ## Load data from Emodnet Kattegatt
-#ncfile_kattegat = "C:/Work/DIVAnd/Oxygen_maps/data/data_from_Eutrophication_NorthSea_non-nutrient_profiles_2022_unrestricted_1960_2022_02.nc"
-#@time obsval_kat, obslon_kat, obslat_kat, obsdepth_kat, obstime_kat = NCODV.load(Float64, ncfile, "Water body dissolved oxygen concentration");
+#ncfile_1 = "C:/Work/DIVAnd/Oxygen_maps/data/data_from_Eutrophication_NorthSea_non-nutrient_profiles_2022_unrestricted_1960_2022_02.nc"
+#@time obsval_1, obslon_1, obslat_1, obsdepth_1, obstime_1 = NCODV.load(Float64, ncfile_1, "Water body dissolved oxygen concentration");
+## ## Load data from Emodnet Eg. Ö (tre filer för ODV kunde inte exportera allt...)
+#ncfile_2 = "C:/Work/DIVAnd/Oxygen_maps/data/data_from_Eutrophication_Baltic_profiles_2022_unrestricted_O2_1960_1980.nc"
+#@time obsval_2, obslon_2, obslat_2, obsdepth_2, obstime_2 = NCODV.load(Float64, ncfile_2, "Water body dissolved oxygen concentration");
+#ncfile_3 = "C:/Work/DIVAnd/Oxygen_maps/data/data_from_Eutrophication_Baltic_profiles_2022_unrestricted_O2_1981_2000.nc"
+#@time obsval_3 , obslon_3 , obslat_3, obsdepth_3, obstime_3 = NCODV.load(Float64, ncfile_3, "Water body dissolved oxygen concentration");
+#ncfile_4 = "C:/Work/DIVAnd/Oxygen_maps/data/data_from_Eutrophication_Baltic_profiles_2022_unrestricted_O2_2001_2005.nc"
+#@time obsval_4 , obslon_4 , obslat_4, obsdepth_4, obstime_4 = NCODV.load(Float64, ncfile_4, "Water body dissolved oxygen concentration");
+#ncfile_5 = "C:/Work/DIVAnd/Oxygen_maps/data/data_from_Eutrophication_Baltic_profiles_2022_unrestricted_O2_2006_2008.nc"
+#@time obsval_5 , obslon_5 , obslat_5, obsdepth_5, obstime_5 = NCODV.load(Float64, ncfile_5, "Water body dissolved oxygen concentration");
+
+# ## Slå ihop alla edmodnetdata till ett dataset för att sedan kolla dubbletter.
+#obsval_emod   = [obsval_1; obsval_2; obsval_3; obsval_4; obsval_5];
+#obslon_emod   = [obslon_1; obslon_2; obslon_3; obslon_4; obslon_5];
+#obslat_emod   = [obslat_1; obslat_2; obslat_3; obslat_4; obslat_5];
+#obsdepth_emod = [obsdepth_1; obsdepth_2; obsdepth_3; obsdepth_4; obsdepth_5];
+#obstime_emod  = [obstime_1; obstime_2; obstime_3; obstime_4; obstime_5];
+#obsid    = [obsid; obsidns; obsid2];
+
 
 # ## Remove duplicates
 # ## Criteria (can be adapted according to the application):
@@ -122,8 +148,8 @@ dx, dy = 0.05, 0.05  #Karin dx, dy = 0.1, 0.1
 lonr = 9.:dx:31.
 latr = 53.5:dy:61.
 
-#yearlist = [1991];
-yearlist = [1960,1982,1991,1998,2004,2005,2018];
+yearlist = [1991];
+#yearlist = [1960,1982,1991,1998,2004,2005,2018];
 month_list = [ [12,1,2], [3,4,5], [6,7,8], [9,10,11] ];
 seasons=["Winter","Spring","Summer","Autumn"]
 months=["(Dec-Feb)","(Mar-May)","(June-Aug)","(Sep-Nov)"];
