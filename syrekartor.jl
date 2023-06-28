@@ -38,22 +38,113 @@ if !isdir(figdir)
     mkpath(joinpath(figdir, "test"))
 end
 
-# ## Load data
+# ## Load data big files
+# bot_no_header.txt är all data från ICES - 1960 till 2018 den använder vi inte!
+# sharkweb_btlctd_O2 är alla data från SHARK 1960-2022
+# emodnet BTL + CTD
+
 #fname = "data/bot_no_header.txt"
-#obsval,obslon,obslat,obsdepth,obstime,obsid = loadbigfile(fname);
+#@time obsval,obslon,obslat,obsdepth,obstime,obsid = loadbigfile(fname);
 #@show(length(obsval));
+
+fname_shark = "C:/Work/DIVAnd/Oxygen_maps/data/sharkweb_btlctd_02.txt"
+@time obsval_shark,obslon_shark,obslat_shark,obsdepth_shark,obstime_shark,obsid_shark = loadbigfile(fname_shark);
+
 #plot(obsdepth, obsval, "ko", markersize=0.5);
 #sel = (Dates.year.(obstime) .== 2021) .& (Dates.month.(obstime) .>= 8) .& (Dates.month.(obstime) .<= 10) .& (obsdepth .== 125.)
 #@show(length(obsval[sel]))
 #plot(obsdepth[sel], obsval[sel], "ro", markersize=0.5);
 
-datafile_1 = "C:/Work/DIVAnd/Oxygen_maps/data/emodnet_02_1960_2022.txt"
-@time obsval_1,obslon_1,obslat_1,obsdepth_1,obstime_1,obsid_1 = ODVspreadsheet.load(Float64,[datafile_1],
+datafile_emod_btl = "C:/Work/DIVAnd/Oxygen_maps/data/emodnet_02_1960_2023_BTL.txt"
+@time obsval_emod_btl,obslon_emod_btl,obslat_emod_btl,obsdepth_emod_btl,obstime_emod_btl,obsid_emod_btl = ODVspreadsheet.load(Float64,[datafile_emod_btl],
                            ["Water body dissolved oxygen concentration"]; nametype = :localname );
 
-datafile_2 = "C:/Work/DIVAnd/Oxygen_maps/data/emodnet_kat_02_1960_2022.txt"
-@time obsval_2,obslon_2,obslat_2,obsdepth_2,obstime_2,obsid_2 = ODVspreadsheet.load(Float64,[datafile_2],
+datafile_emod_ctd = "C:/Work/DIVAnd/Oxygen_maps/data/emodnet_02_1960_2023_CTD.txt"
+@time obsval_emod_ctd,obslon_emod_ctd,obslat_emod_ctd,obsdepth_emod_ctd,obstime_emod_ctd,obsid_emod_ctd = ODVspreadsheet.load(Float64,[datafile_emod_ctd],
                            ["Water body dissolved oxygen concentration"]; nametype = :localname );
+@show(length(obsval_emod_btl));
+@show(length(obsval_emod_ctd));
+@show(length(obsval_shark));
+
+# ## Slå ihop alla edmodnetdata till ett dataset för att sedan kolla dubbletter.
+#obsval_emod   = [obsval_1; obsval_2];
+#obslon_emod   = [obslon_1; obslon_2];
+#obslat_emod   = [obslat_1; obslat_2];
+#obsdepth_emod = [obsdepth_1; obsdepth_2];
+#obstime_emod  = [obstime_1; obstime_2];
+#obsid_emod    = [obsid_1; obsid_2];
+
+# ## Remove duplicates
+# ## Criteria (can be adapted according to the application):
+# Horizontal distance: 0.01 degree (about 1km)
+# Vertical separation: 0.01 m depth
+# Time separation: 1 minute.
+# obsval difference: 0.1?
+
+@time dupl = DIVAnd.Quadtrees.checkduplicates(
+    (obslon_emod_btl,obslat_emod_btl,obsdepth_emod_btl,obstime_emod_btl), obsval_emod_btl,
+    (obslon_emod_ctd,obslat_emod_ctd,obsdepth_emod_ctd,obstime_emod_ctd),obsval_emod_ctd,
+    (0.01,0.01,0.01,1/(24*60)),0.1);
+# ## Find the indices of the possible duplicates:
+index = findall(.!isempty.(dupl));
+ndupl = length(index);
+pcdupl = round(ndupl / length(obslon_emod_ctd) * 100; digits=2);
+@info("Number of possible duplicates emodnet BTL/CTD: $ndupl")
+@info("Percentage of duplicates: $pcdupl%")
+# ## If you decide to combine the 2 (or more) datasets:
+newpoints = isempty.(dupl);
+@info("Number of new points: $(sum(newpoints)))")
+
+obslon_emod = [obslon_emod_btl; obslon_emod_ctd[newpoints]];
+obslat_emod = [obslat_emod_btl; obslat_emod_ctd[newpoints]];
+obsdepth_emod = [obsdepth_emod_btl; obsdepth_emod_ctd[newpoints]];
+obstime_emod = [obstime_emod_btl; obstime_emod_ctd[newpoints]];
+obsval_emod = [obsval_emod_btl; obsval_emod_ctd[newpoints]];
+obsid_emod = [obsid_emod_btl; obsid_emod_ctd[newpoints]];
+
+
+# ##Now check for duplicates between emodnet and SHARKweb
+# ## Remove duplicates
+# ## Criteria (can be adapted according to the application):
+# Horizontal distance: 0.01 degree (about 1km)
+# Vertical separation: 0.01 m depth
+# Time separation: 1 minute.
+# obsval difference: 0.1?
+
+@time dupl = DIVAnd.Quadtrees.checkduplicates(
+    (obslon_emod,obslat_emod,obsdepth_emod,obstime_emod), obsval_emod,
+    (obslon_shark,obslat_shark,obsdepth_shark,obstime_shark),obsval_shark,
+    (0.01,0.01,0.01,1/(24*60)),0.1);
+# ## Find the indices of the possible duplicates:
+index = findall(.!isempty.(dupl));
+ndupl = length(index);
+pcdupl = round(ndupl / length(obslon_shark) * 100; digits=2);
+@info("Number of possible duplicates in emodnet/SHARKweb: $ndupl")
+@info("Percentage of duplicates: $pcdupl%")
+# ## If you decide to combine the 2 (or more) datasets:
+newpoints = isempty.(dupl);
+@info("Number of new points: $(sum(newpoints)))")
+
+obslon = [obslon_emod; obslon_shark[newpoints]];
+obslat = [obslat_emod; obslat_shark[newpoints]];
+obsdepth = [obsdepth_emod; obsdepth_shark[newpoints]];
+obstime = [obstime_emod; obstime_shark[newpoints]];
+obsval = [obsval_emod; obsval_shark[newpoints]];
+obsid = [obsid_emod; obsid_shark[newpoints]];
+
+# ## Create a plot showing the additional data points:
+#figure("Additional-Data")
+#ax = subplot(1,1,1)
+#ax.tick_params("both",labelsize=6)
+#ylim(39.0, 46.0);
+#xlim(11.5, 20.0);
+#contourf(bx, by, permutedims(Float64.(mask_edit[:,:,1]),[2,1]),
+#    levels=[-1e5,0],cmap="binary");
+#plot(obslon, obslat, "bo", markersize=.2, label="SeaDataNet")
+#plot(obslonwod[newpoints], obslatwod[newpoints], "go",
+#   markersize=.2, label="Additional data\nfrom World Ocean Database")
+#legend(loc=3, fontsize=4)
+#gca().set_aspect(aspectratio)
 
 # ## Load data from Emodnet Kattegatt
 #ncfile_1 = "C:/Work/DIVAnd/Oxygen_maps/data/data_from_Eutrophication_NorthSea_non-nutrient_profiles_2022_unrestricted_1960_2022_02.nc"
@@ -75,47 +166,6 @@ datafile_2 = "C:/Work/DIVAnd/Oxygen_maps/data/emodnet_kat_02_1960_2022.txt"
 #obsdepth_emod = [obsdepth_1; obsdepth_2; obsdepth_3; obsdepth_4; obsdepth_5];
 #obstime_emod  = [obstime_1; obstime_2; obstime_3; obstime_4; obstime_5];
 #obsid    = [obsid; obsidns; obsid2];
-
-
-# ## Remove duplicates
-# ## Criteria (can be adapted according to the application):
-# Horizontal distance: 0.01 degree (about 1km)
-# Vertical separation: 0.01 m depth
-# Time separation: 1 minute.
-# Salinity difference: 0.01 psu.??
-
-#@time dupl = DIVAnd.Quadtrees.checkduplicates(
-#    (obslon,obslat,obsdepth,obstime), obsval,
-#    (obslonwod,obslatwod, obsdepthwod, obstimewod), obsvalwod,
-#    (0.01,0.01,0.01,1/(24*60)),0.01);
-# ## Find the indices of the possible duplicates:
-#index = findall(.!isempty.(dupl));
-#ndupl = length(index);
-#pcdupl = round(ndupl / length(obslon) * 100; digits=2);
-#@info("Number of possible duplicates: $ndupl")
-#@info("Percentage of duplicates: $pcdupl%")
-# ## If you decide to combine the 2 (or more) datasets:
-#newpoints = isempty.(dupl);
-#@info("Number of new points: $(sum(newpoints)))")
-#obslon = [obslon; obslonwod[newpoints]];
-#obslat = [obslat; obslatwod[newpoints]];
-#obsdepth = [obsdepth; obsdepthwod[newpoints]];
-#obstime = [obstime; obstimewod[newpoints]];
-#obsval = [obsval; obsvalwod[newpoints]];
-#obsid = [obsid; obsidwod[newpoints]];
-# ## Create a plot showing the additional data points:
-#figure("Adriatic-Additional-Data")
-#ax = subplot(1,1,1)
-#ax.tick_params("both",labelsize=6)
-#ylim(39.0, 46.0);
-#xlim(11.5, 20.0);
-#contourf(bx, by, permutedims(Float64.(mask_edit[:,:,1]),[2,1]),
-#    levels=[-1e5,0],cmap="binary");
-#plot(obslon, obslat, "bo", markersize=.2, label="SeaDataNet")
-#plot(obslonwod[newpoints], obslatwod[newpoints], "go",
-#    markersize=.2, label="Additional data\nfrom World Ocean Database")
-#legend(loc=3, fontsize=4)
-#gca().set_aspect(aspectratio)
 
 
 #Så här kan man lägga ihop olika dataset

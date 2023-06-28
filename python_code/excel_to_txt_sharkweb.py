@@ -44,9 +44,10 @@ df["DOXY_ml"] = df.apply(get_doxy, axis=1)
 # Convert O2 ml/l to µmol/l-> 1ml/l = 44.661 µmol/l
 #df['DOXY_umol'] = df['DOXY_ml'].multiply(44.661)
 df['DOXY_umol'] = df['DOXY_ml'].apply(lambda x: x*44.661)
-
+print(df.dtypes)
 # Filter out rows with missing data
-df_filtered = df.loc[df["DOXY_umol"] != np.nan]
+#df_filtered = df.loc[df["DOXY_umol"] != np.nan]
+df_filtered = df.dropna(subset=["DOXY_umol"])
 
 # Define the order of columns for the output files
 #column_list = ["Longdeg", "Latdeg", "DOXY(umol/l)", "Pressure(Dbars)", "TEMP", "PSAL", "H2SX(umol/l)", "St_No", "Year", "date_time", "ID", "Mnth", "Dy", "Hr"]
