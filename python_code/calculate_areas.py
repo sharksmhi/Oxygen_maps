@@ -1,6 +1,8 @@
 import xarray as xr
 import numpy as np
 import math
+import pandas as pd
+import matplotlib.pyplot as plt 
 
 ### Program to find anox and hypox gridcells
 ### Also to get the depth and min depth for anox and hypox cells
@@ -52,52 +54,71 @@ def calculate_grid_areas(latitudes, longitudes):
             areas[i, j] = area
 
     return areas
-
-### Todo: add a loop over seasons
-
-### open netcdf file ###
-netcdf_filename = "Oxygen_1960-2018_Autumn_1_50000.0_gebco_30sec_4"
-location = ".." # or other location, like havgem path
-ds = xr.open_dataset(f"{location}/resultat/nc/O2/{netcdf_filename}.nc")
-
-### extract values that are within our limits, save to a new variable and nc-file. ####
-# 1 ml/l of O2 is approximately 43.570 µmol/kg
-# (assumes a molar volume of O2 of 22.392 l/mole and 
-# a constant seawater potential density of 1025 kg/m3).
-# https://www.nodc.noaa.gov/OC5/WOD/wod18-notes.html
-hypox = 90
-anox = 4.357      # Detta är kanske för lågt? borde vara kanske ~4 µmol/l = 0.1 ml/l?
-unit = 'umol/l'
-
-var_name = "Oxygen"
-#Find anox gridcells and set them to 1 all others to NaN
-ds["ANOX"]=xr.where((ds[var_name]<=anox),ds[var_name]/ds[var_name]*1,ds[var_name]*np.nan,keep_attrs=True)
-ds["HYPOX"]=xr.where((ds[var_name]<=hypox),ds[var_name]/ds[var_name]*1,ds[var_name]*np.nan,keep_attrs=True)
-
-threshold = hypox  # Define the threshold value
-ds["hypox_depth"]=xr.where((ds[var_name]<=hypox),ds['depth'],ds[var_name]*np.nan,keep_attrs=True)
-# Find the minimum threshold depth at each (time, lon, lat) coordinate
-ds['min_hypox_depth']=ds['hypox_depth'].min(dim='depth', skipna=True)
-threshold = anox  # Define the threshold value
-ds["anox_depth"]=xr.where((ds[var_name]<=anox),ds['depth'],ds[var_name]*np.nan,keep_attrs=True)
-# Find the minimum threshold depth at each (time, lon, lat) coordinate
-ds['min_anox_depth']=ds['anox_depth'].min(dim='depth', skipna=True)
-
-# Get the latitude and longitude coordinates
-# varför med meshgrid?
-lon, lat = np.meshgrid(ds['lon'], ds['lat'])
-
-grid_areas = calculate_grid_areas(latitudes=lat, longitudes=lon)
-
-print(grid_areas.shape)
-
-# assign the calculated areas to the dataset and return the updated dataset
-ds = ds.assign(grid_area = (('lat', 'lon'), grid_areas))
-
-### Todo: Add summing of anox and hypox areas per season
-ds["HYPOX_area"]=xr.where((ds['min_hypox_depth']>=0),ds['grid_area'],ds['min_hypox_depth']*np.nan,keep_attrs=True).sum(dim=['lat', 'lon'], skipna=True)
+    
 
 
-# save the updated dataset
-ds.to_netcdf(f'{location}/resultat/nc/processed/{netcdf_filename}.nc') # rewrite to netcdf
-print(f'{location}/resultat/nc/processed/{netcdf_filename}.nc has been modified')
+location = "//winfs-proj/proj/havgem/DIVA/syrekartor/" # or other location, like havgem path
+df = pd.DataFrame()
+fig, axs = plt.subplots(1, 1, figsize=(10, 8))
+fig2, axs2 = plt.subplots(1, 1, figsize=(10, 8))
+for season in ['Winter', 'Spring', 'Summer', 'Autumn']:
+    ### open netcdf file ###
+    netcdf_filename = f"Oxygen_1960-2018_{season}_1_39000.0_gebco_30sec_4"
+    ds = xr.open_dataset(f"{location}/resultat/nc/O2/{netcdf_filename}.nc")
+
+    ### extract values that are within our limits, save to a new variable and nc-file. ####
+    # 1 ml/l of O2 is approximately 43.570 µmol/kg
+    # (assumes a molar volume of O2 of 22.392 l/mole and 
+    # a constant seawater potential density of 1025 kg/m3).
+    # https://www.nodc.noaa.gov/OC5/WOD/wod18-notes.html
+    hypox = 90
+    anox = 4.357      # Detta är kanske för lågt? borde vara kanske ~4 µmol/l = 0.1 ml/l?
+    unit = 'umol/l'
+
+    var_name = "Oxygen"
+    ### Find anox gridcells and set them to 1 all others to NaN
+    ds["ANOX"]=xr.where((ds[var_name]<=anox),ds[var_name]/ds[var_name]*1,ds[var_name]*np.nan,keep_attrs=True)
+    ds["HYPOX"]=xr.where((ds[var_name]<=hypox),ds[var_name]/ds[var_name]*1,ds[var_name]*np.nan,keep_attrs=True)
+
+    threshold = hypox  # Define the threshold value
+    ds["hypox_depth"]=xr.where((ds[var_name]<=hypox),ds['depth'],ds[var_name]*np.nan,keep_attrs=True)
+    # Find the minimum threshold depth at each (time, lon, lat) coordinate
+    ds['min_hypox_depth']=ds['hypox_depth'].min(dim='depth', skipna=True)
+    ds['min_hypox_depth_relerr']=ds['hypox_depth'].min(dim='depth', skipna=True)
+    threshold = anox  # Define the threshold value
+    ds["anox_depth"]=xr.where((ds[var_name]<=anox),ds['depth'],ds[var_name]*np.nan,keep_attrs=True)
+    # Find the minimum threshold depth at each (time, lon, lat) coordinate
+    ds['min_anox_depth']=ds['anox_depth'].min(dim='depth', skipna=True)
+
+    ### Calculate area of all grid cells
+    # Get the latitude and longitude coordinates
+    lon, lat = np.meshgrid(ds['lon'], ds['lat'])
+    grid_areas = calculate_grid_areas(latitudes=lat, longitudes=lon)
+    # assign the calculated areas to the dataset and return the updated dataset
+    ds = ds.assign(grid_area = (('lat', 'lon'), grid_areas))
+
+    ### Sum anox and hypox areas per season
+    ds["HYPOX_area"]=xr.where((ds['min_hypox_depth']>=0),ds['grid_area'],ds['min_hypox_depth']*np.nan,keep_attrs=True).sum(dim=['lat', 'lon'], skipna=True)
+    ds["HYPOX_area_relerr"]=xr.where(((ds['depth']==ds['min_hypox_depth'])),ds['Oxygen_relerr'],ds['min_hypox_depth']*np.nan,keep_attrs=True).sum(dim=['lat', 'lon'], skipna=True)
+
+    ### plot the resulting timeseries
+    # ds["HYPOX_area"].plot(ax=axs, label = season)
+    ds["HYPOX_area"].plot(ax=axs, label = season)
+    ds["HYPOX_area_relerr"].plot(ax=axs2, label = season)
+    df[season] = ds["HYPOX_area"]
+    # df[f"{season}_relerr"] = ds["HYPOX_area_relerr"]
+    # save the updated dataset
+    ds.to_netcdf(f'{location}/resultat/nc/processed/{netcdf_filename}.nc') # rewrite to netcdf
+    print(f'{location}/resultat/nc/processed/{netcdf_filename}.nc has been modified')
+
+df.set_index(ds.time.values, inplace=True)
+
+axs.set_xlabel('Year')
+axs.set_ylabel('Area [km3]')
+axs.legend()
+plt.gca().savefig(f'{location}resultat/figures/hypox_area.png')
+plt.gca().savefig(f'{location}resultat/figures/hypox_area_relerr.png')
+
+fig, axs = plt.subplots(1, 1, figsize=(10, 8))
+df.plot.bar(ax = axs,)
+plt.savefig(f'{location}resultat/figures/hypox_area_barchart.png')

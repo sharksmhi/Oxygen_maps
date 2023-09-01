@@ -37,6 +37,7 @@ unit = "umol/l";
 # ## Where to save the result. Create path if not there.
 # File name based on the variable (but all spaces are replaced by _) _varlenz
 # NC-files
+location = "//winfs-proj/proj/havgem/DIVA/syrekartor/data"
 outputdir = "./resultat/nc/$(savevar)/" ;
 if !isdir(outputdir)
     mkpath(outputdir)
@@ -57,7 +58,7 @@ end
 #@time obsval,obslon,obslat,obsdepth,obstime,obsid = loadbigfile(fname);
 #@show(length(obsval));
 
-fname_shark = "C:/Work/DIVAnd/Oxygen_maps/data/sharkweb_btlctd_02.txt"
+fname_shark = joinpath(location "/sharkweb_btlctd_02.txt")
 @time obsval_shark,obslon_shark,obslat_shark,obsdepth_shark,obstime_shark,obsid_shark = loadbigfile(fname_shark);
 
 #plot(obsdepth, obsval, "ko", markersize=0.5);
@@ -65,11 +66,11 @@ fname_shark = "C:/Work/DIVAnd/Oxygen_maps/data/sharkweb_btlctd_02.txt"
 #@show(length(obsval[sel]))
 #plot(obsdepth[sel], obsval[sel], "ro", markersize=0.5);
 
-datafile_emod_btl = "C:/Work/DIVAnd/Oxygen_maps/data/emodnet_02_1960_2023_BTL.txt"
+datafile_emod_btl = joinpath(location, "/emodnet_02_1960_2023_BTL.txt")
 @time obsval_emod_btl,obslon_emod_btl,obslat_emod_btl,obsdepth_emod_btl,obstime_emod_btl,obsid_emod_btl = ODVspreadsheet.load(Float64,[datafile_emod_btl],
                            ["Water body dissolved oxygen concentration"]; nametype = :localname );
 
-datafile_emod_ctd = "C:/Work/DIVAnd/Oxygen_maps/data/emodnet_02_1960_2023_CTD.txt"
+datafile_emod_ctd = joinpath(location, "/emodnet_02_1960_2023_CTD.txt")
 @time obsval_emod_ctd,obslon_emod_ctd,obslat_emod_ctd,obsdepth_emod_ctd,obstime_emod_ctd,obsid_emod_ctd = ODVspreadsheet.load(Float64,[datafile_emod_ctd],
                            ["Water body dissolved oxygen concentration"]; nametype = :localname );
 @show(length(obsval_emod_btl));

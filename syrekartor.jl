@@ -27,7 +27,8 @@ unit = "umol/l";
 # ## Where to save the result. Create path if not there.
 # File name based on the variable (but all spaces are replaced by _) _varlenz
 # NC-files
-outputdir = "./resultat/nc/$(savevar)/" ;
+location = "//winfs-proj/proj/havgem/DIVA/syrekartor/"
+outputdir = joinpath(location, "/resultat/nc/$(savevar)/");
 if !isdir(outputdir)
     mkpath(outputdir)
 end
@@ -39,8 +40,8 @@ if !isdir(figdir)
 end
 
 # ## Load data big files created by program "syrekartor_data_proc"
-fname = "C:/Work/DIVAnd/Oxygen_maps/resultat/nc/O2/SHARK_EMODNET.txt"
-@time obsval,obslon,obslat,obsdepth,obstime,obsid = loadbigfile(fname);
+fname = "SHARK_EMODNET.txt"
+@time obsval,obslon,obslat,obsdepth,obstime,obsid = loadbigfile(joinpath(location, "data/$fname"));
 
 # Sätt horisontell uppplösning
 #dx, dy = 0.125, 0.125  #Karin dx, dy = 0.1, 0.1
@@ -49,7 +50,7 @@ lonr = 9.:dx:31.
 latr = 53.5:dy:61.
 
 #yearlist = [1991];
-yearlist = [2004,2005,2018];
+yearlist = [1960,1982,1990,1991,1993,1998,2003,2004,2005,2014,2015,2018];
 month_list = [ [12,1,2], [3,4,5], [6,7,8], [9,10,11] ];
 seasons=["Winter","Spring","Summer","Autumn"]
 months=["(Dec-Feb)","(Mar-May)","(June-Aug)","(Sep-Nov)"];
@@ -81,7 +82,7 @@ checkobs((obslon,obslat,obsdepth,obstime),obsval,obsid)
 # It is used to delimit the domain where the interpolation is performed.
 # Modify bathname according to the resolution required.
 
-bathname = "./bathymetry/gebco_30sec_4.nc"
+bathname = joinpath(location, "/bathymetry/gebco_30sec_4.nc")
 bath_file_name = split(bathname,"/")[end]
 bathisglobal = true;
 bx,by,b = DIVAnd.extract_bath(bathname,bathisglobal,lonr,latr);
