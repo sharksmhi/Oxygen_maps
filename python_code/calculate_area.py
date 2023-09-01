@@ -132,14 +132,14 @@ def calculate_grid_area_geopy(lat1, lon1, lat2, lon2):
 print(calculate_grid_area_geopy(lat1, lon1, lat2, lon2))
 
 # Read the bathymetry file using Xarray
-bath_file = xr.open_dataset("./bathymetry/gebco_30sec_8.nc")
+bath_file = xr.open_dataset("../bathymetry/gebco_30sec_8.nc")
 print(bath_file)
 # Extract the required variables
 b = bath_file["bat"]
 
 ## or....
 ### open netcdf file ###
-ds = xr.open_dataset('resultat/nc/modified_test.nc')
+ds = xr.open_dataset('../resultat/nc/modified_Oxygen_1960-2018_Autumn_1_50000.0_gebco_30sec_4.nc')
 print(ds)
 
 # Get the latitude and longitude coordinates
@@ -177,4 +177,4 @@ print(ds2)
 
 # save the updated dataset
 location = "." # or other location like havgem
-ds2.to_netcdf(f'{location}/resultat/nc/modified_modified_with_area.nc') # rewrite to netcdf
+ds2.to_netcdf(f'{location}./resultat/nc/modified_modified_Oxygen_1960-2018_Autumn_1_50000.0_gebco_30sec_4.nc') # rewrite to netcdf

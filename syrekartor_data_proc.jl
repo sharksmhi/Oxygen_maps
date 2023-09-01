@@ -10,6 +10,7 @@ Removes duplicates etc.
 # ### Lena Viktorsson & Martin Hansson
 =#
 
+
 # #### Add necessary packages
 using DIVAnd
 using PyPlot
@@ -20,6 +21,8 @@ using DelimitedFiles
 using DataStructures
 using Printf
 using Missings
+using DataFrames
+using CSV
 
 # ## Configuration
 # * Define variabel and set horizontal, vertical and temporal resolutions.
@@ -142,6 +145,7 @@ obsid = [obsid_emod; obsid_shark[newpoints]];
 
 # ## Create a plot showing the additional data points:
 figure("Additional-Data")
+aspectratio = 1/cos(mean(54:0.05:61) * pi/180)
 ax = subplot(1,1,1)
 ax.tick_params("both",labelsize=6)
 ylim(53, 65);
@@ -191,16 +195,29 @@ PyPlot.close_figs()
 
 
 
-
-
 #Gör ett test på data för att hitta outliers
-figure("Data")
-ax = subplot(1,1,1)
-plot(obslon[sel], obslat[sel], "ko", markersize=.1)
-aspectratio = 1/cos(mean(54:0.05:61) * pi/180)
+#figure("Data")
+#ax = subplot(1,1,1)
+#plot(obslon[sel], obslat[sel], "ko", markersize=.1)
 #ax.tick_params("both",labelsize=6)
-gca().set_aspect(aspectratio)
-figname = "observations.png"
-@show joinpath("$figdir/temp", figname)
-PyPlot.savefig(joinpath("$figdir/temp", figname), dpi=300);
-PyPlot.close_figs()
+#gca().set_aspect(aspectratio)
+#figname = "observations.png"
+#@show joinpath("$figdir/temp", figname)
+#PyPlot.savefig(joinpath("$figdir/temp", figname), dpi=300);
+#PyPlot.close_figs()
+
+#Output we create a bigfile sort of....
+# order of columns in the outputfiler have to be:
+# 0 lon
+# 1 lat
+# 2 value
+# 3 depth
+# index 4 to 8 can contain any data, but cannot be left empty
+# 9 date
+# 10 id
+
+df  = DataFrame(obslon=obslon,obslat=obslat,obsval=obsval,obsdepth=obsdepth,obsdepth1=obsdepth,obsdepth2=obsdepth,obsdepth3=obsdepth,obsdepth4=obsdepth,obsdepth5=obsdepth,obstime=obstime,obsid=obsid)
+filename = "SHARK_EMODNET"
+CSV.write(joinpath("$outputdir", filename, ".txt"), df, delim="\t", writeheader=false)
+
+DIVAnd.saveobs(joinpath("$outputdir", filename, ".nc" ),varname, obsval, (obslon,obslat,obsdepth,obstime),obsid)
