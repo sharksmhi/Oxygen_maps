@@ -54,8 +54,6 @@ def calculate_grid_areas(latitudes, longitudes):
             areas[i, j] = area
 
     return areas
-    
-
 
 location = "//winfs-proj/proj/havgem/DIVA/syrekartor/" # or other location, like havgem path
 df = pd.DataFrame()
@@ -99,7 +97,10 @@ for season in ['Winter', 'Spring', 'Summer', 'Autumn']:
 
     ### Sum anox and hypox areas per season
     ds["HYPOX_area"]=xr.where((ds['min_hypox_depth']>=0),ds['grid_area'],ds['min_hypox_depth']*np.nan,keep_attrs=True).sum(dim=['lat', 'lon'], skipna=True)
-    ds["HYPOX_area_relerr"]=xr.where(((ds['depth']==ds['min_hypox_depth'])),ds['Oxygen_relerr'],ds['min_hypox_depth']*np.nan,keep_attrs=True).sum(dim=['lat', 'lon'], skipna=True)
+    ds["HYPOX_area_relerr"]=xr.where(((ds['depth']==ds['min_hypox_depth'])),ds['Oxygen_relerr'],ds['min_hypox_depth']*np.nan,keep_attrs=True).sum(dim=['depth'], skipna=True)
+    #ds["HYPOX_area_relerr"]=xr.where(((ds['depth']<=ds['min_hypox_depth'])),ds['Oxygen_relerr'],ds['min_hypox_depth']*np.nan,keep_attrs=True).sum(dim=['lat', 'lon'], skipna=True)
+    ds["HYPOX_area_relerr_1"] = xr.where(((ds[var_name] <= hypox)), ds['Oxygen_relerr'],ds['min_hypox_depth'] * np.nan, keep_attrs=True)
+    ds["HYPOX_area_relerr_1"] = xr.where(((ds[var_name] <= hypox)), ds['Oxygen_relerr'],ds['min_hypox_depth'] * np.nan, keep_attrs=True)
 
     ### plot the resulting timeseries
     # ds["HYPOX_area"].plot(ax=axs, label = season)
@@ -116,8 +117,7 @@ df.set_index(ds.time.values, inplace=True)
 axs.set_xlabel('Year')
 axs.set_ylabel('Area [km3]')
 axs.legend()
-plt.gca().savefig(f'{location}resultat/figures/hypox_area.png')
-plt.gca().savefig(f'{location}resultat/figures/hypox_area_relerr.png')
+plt.savefig(f'{location}resultat/figures/hypox_area.png')
 
 fig, axs = plt.subplots(1, 1, figsize=(10, 8))
 df.plot.bar(ax = axs,)
