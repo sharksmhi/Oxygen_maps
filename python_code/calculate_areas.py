@@ -115,8 +115,7 @@ for season in ['Winter', 'Spring', 'Summer', 'Autumn']:
     ds["Anoxic_relerr_area"] = xr.where((ds['Anoxic_relerr_per_grid'] >= 0.5), ds['grid_area'],
                                          ds['Min_depth_anoxia'] * np.nan, keep_attrs=True).sum(dim=['lat', 'lon'],
                                                                                                 skipna=True)
-
-
+    
     ### plot the resulting timeseries
     # ds["HYPOX_area"].plot(ax=axs, label = season)
     ds["Hypoxic_area"].plot(ax=axs, label = season)
