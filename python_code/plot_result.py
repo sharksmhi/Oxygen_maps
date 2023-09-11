@@ -2,6 +2,7 @@ import xarray as xr
 import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
+import pandas as pd
 
 ### open netcdf file ### //winfs-proj/proj/havgem/DIVA/syrekartor/
 netcdf_filename = "Oxygen_1960-2020_Autumn_1_gebco_30sec_4"
@@ -38,12 +39,19 @@ time_index = 0  # Replace with the desired time index
 print(repr(ds["time"][time_index].values))
 time_value = ds['time'][time_index].values.astype('datetime64[M]').item()
 year_month = datetime.strftime(time_value, '%Y-%m')
+ds['obsyear'] = ds['obstime'].values.astype('datetime64[Y]')
+
 # 1111111 Plot the data on the 1st subplot
 # Plot land borders
 axs[0, 0].contourf(bath_file["lon"], bath_file["lat"], -b, levels=[-1e5,0], colors="gray")
 # Plot data
 data = ds['min_hypox_depth'].sel(time=ds['time'][time_index])
+df = pd.DataFrame({'obsyear': ds['obsyear'], 'obslon': ds['obslon'], 'obslat': ds['obslat']})
+lon = df.loc[df.obsyear == datetime.strftime(time_value, '%Y'), 'obslon']
+lat = df.loc[df.obsyear == datetime.strftime(time_value, '%Y'), 'obslat']
+# lat = xr.where(ds['obs_year']==datetime.strftime(time_value, '%Y'), ds['obslat'], np.nan)
 data.plot(ax=axs[0, 0], x='lon', y='lat', cmap='bone_r', vmin=vmin, vmax=vmax)
+axs[0,0].scatter(x=lon, y=lat, s = 5, c = 'black', facecolor = 'none')
 # Add labels to the 1st subplot
 axs[0, 0].set_title(f'minimum depths where oxygen <={hypox} {unit}')
 axs[0, 0].set_xlabel('Longitude')
@@ -103,4 +111,4 @@ fig.tight_layout(rect=[0, 0, 1, 0.95])
 fig.suptitle(f'maps of hypoxia and anoxia')
 
 # Save the plot
-plt.savefig(f'resultat/figures/oct-nov_hypox_1960_2005.png')
+plt.savefig(f'resultat/figures/oct-nov_hypox_1960_2005.png', dpi = 300)
