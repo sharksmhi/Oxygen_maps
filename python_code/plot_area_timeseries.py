@@ -60,7 +60,7 @@ ax[0].yaxis.set_minor_locator(ticker.MultipleLocator(10000))
 ax[0].xaxis.set_major_locator(ticker.MultipleLocator(5))
 ax[0].xaxis.set_minor_locator(ticker.MultipleLocator(1))
 
-df_merged = pd.merge(df.loc[df['season']=='Autumn'], df_matlab, on='year', suffixes=['_DIVAnd', '_matlab'])
+df_merged = pd.merge(df.loc[df['season']=='Autumn'], df_matlab, on='year', how='outer', suffixes=['_DIVAnd', '_matlab'], sort=True)
 # plot hypoxic bars
 df_merged.plot.bar(ax=ax[0], x='year', y='Hypoxic_area_km2_matlab', width = 1, color = 'red', label='matlab')
 df_merged.plot.bar(ax=ax[0], x='year', y='Hypoxic_area_km2_DIVAnd', width = 1, color = 'none', hatch='/////', edgecolor = 'black', linewidth = 0.5, label='DIVAnd')
@@ -69,8 +69,8 @@ ax[0].set_title('Hypoxia')
 ax[0].set_ylabel('area km$^2$') 
 ax[0].grid(which = 'both')
 # plot anoxic bars
-df_merged.plot.bar(ax=ax[1], x='year', y='Anoxic_area_km2_DIVAnd', width = 1, color = 'r', label='matlab')
-df_merged.plot.bar(ax=ax[1], x='year', y='Anoxic_area_km2_matlab', width = 1, color = 'none', hatch='/////', edgecolor = 'black', linewidth = 0.5, label='DIVAnd')
+df_merged.plot.bar(ax=ax[1], x='year', y='Anoxic_area_km2_DIVAnd', width = 1, color = 'r', label='DIVAnd')
+df_merged.plot.bar(ax=ax[1], x='year', y='Anoxic_area_km2_matlab', width = 1, color = 'none', hatch='/////', edgecolor = 'black', linewidth = 0.5, label='matlab')
 # set title, ylabel, grid on
 ax[1].set_title('Anoxia')
 ax[1].set_ylabel('area km$^2$') 
