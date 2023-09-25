@@ -28,7 +28,7 @@ unit = "umol/l";
 # File name based on the variable (but all spaces are replaced by _) _varlenz
 # NC-files
 location = "//winfs-proj/proj/havgem/DIVA/syrekartor/"
-outputdir = joinpath(location, "/resultat/nc/$(savevar)/");
+outputdir = joinpath(location, "resultat/nc/$(savevar)/");
 if !isdir(outputdir)
     mkpath(outputdir)
 end
@@ -50,7 +50,8 @@ lonr = 9.:dx:31.
 latr = 53.5:dy:61.
 
 #yearlist = [1991];
-yearlist = [1960,1982,1990,1991,1993,1998,2003,2004,2005,2014,2015,2018];
+#yearlist = [1960,1961,1963,1965,1970,1975,1980,1982,1985,1989,1990,1991,1993,1994,1995,1998,2000,2003,2004,2005,2010,2014,2015,2018,2020,2021];
+yearlist = [1994,1995,1998,2000,2003,2004,2005,2010,2014,2015,2018,2020,2021];
 month_list = [ [12,1,2], [3,4,5], [6,7,8], [9,10,11] ];
 seasons=["Winter","Spring","Summer","Autumn"]
 months=["(Dec-Feb)","(Mar-May)","(June-Aug)","(Sep-Nov)"];
@@ -73,8 +74,8 @@ aspect_ratio = 1/cos(mean(latr) * pi/180);
 
 # %%
 if varname == "Oxygen"
-    sel_q = (obsval .<= 0.);
-    obsval[sel_q] .= 0.1;
+    sel_q = (obsval .<= 5.);
+    obsval[sel_q] .= 5;
 end
 checkobs((obslon,obslat,obsdepth,obstime),obsval,obsid)
 
@@ -82,7 +83,7 @@ checkobs((obslon,obslat,obsdepth,obstime),obsval,obsid)
 # It is used to delimit the domain where the interpolation is performed.
 # Modify bathname according to the resolution required.
 
-bathname = joinpath(location, "/bathymetry/gebco_30sec_4.nc")
+bathname = joinpath(location, "bathymetry/gebco_30sec_4.nc")
 bath_file_name = split(bathname,"/")[end]
 bathisglobal = true;
 bx,by,b = DIVAnd.extract_bath(bathname,bathisglobal,lonr,latr);
@@ -451,7 +452,7 @@ for monthlist_index in 1:length(month_list)
        );
 
     # Save the observation metadata in the NetCDF file
-    DIVAnd.saveobs(filename,(obslon,obslat,obsdepth,obstime),obsid,used = dbinfo[:used])
-    DIVAnd.saveobs(filename,varname, obsval, (obslon,obslat,obsdepth,obstime),obsid, used = dbinfo[:used])
+    #DIVAnd.saveobs(filename,(obslon,obslat,obsdepth,obstime),obsid,used = dbinfo[:used])
+    DIVAnd.saveobs(filename,"Oxygen_data", obsval, (obslon,obslat,obsdepth,obstime),obsid, used = dbinfo[:used])
 
 end
