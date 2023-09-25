@@ -56,7 +56,7 @@ def calculate_grid_areas(latitudes, longitudes):
     return areas
 
 location = "//winfs-proj/proj/havgem/DIVA/syrekartor/" # or other location, like havgem path
-df = pd.DataFrame()
+area_results = []
 fig, axs = plt.subplots(1, 1, figsize=(10, 8))
 fig2, axs2 = plt.subplots(1, 1, figsize=(10, 8))
 for season in ['Winter', 'Spring', 'Summer', 'Autumn']:
@@ -121,14 +121,25 @@ for season in ['Winter', 'Spring', 'Summer', 'Autumn']:
     # ds["HYPOX_area"].plot(ax=axs, label = season)
     ds["Hypoxic_area"].plot(ax=axs, label = season)
     ds["Hypoxic_relerr_area"].plot(ax=axs2, label = season)
-    df[season] = ds["Hypoxic_area"]
 
-    df[f"{season}_relerr"] = ds["Hypoxic_relerr_area"]
+    {"year"	"season"	"hypoxic area total"	"hypoxic area relerr"	"anoxic area total"	"anoxic area relerr"}
+    df = pd.DataFrame()
+    df["Hypoxic_area_km2"] = ds["Hypoxic_area"].round(3)
+    df["Hypoxic_relerr_area_km2"] = ds["Hypoxic_relerr_area"].round(3)
+    df["Anoxic_area_km2"] = ds["Anoxic_area"].round(3)
+    df["Anoxic_relerr_area_km2"] = ds["Anoxic_relerr_area"].round(3)
+    df["year"] = ds.time.values.astype('datetime64[Y]').astype(int) + 1970
+    df["season"] = season
+    area_results.append(df)
+
+    # df[f"{season}_relerr"] = ds["Hypoxic_relerr_area"]
     # save the updated dataset
+    print(f"saving {season}...")
     ds.to_netcdf(f'{location}/resultat/nc/processed/{netcdf_filename}.nc') # rewrite to netcdf
     print(f'{location}/resultat/nc/processed/{netcdf_filename}.nc has been modified')
 
-df.set_index(ds.time.values, inplace=True)
+# df.set_index(ds.time.values, inplace=True)
+pd.concat(area_results).to_csv(f'{location}resultat/figures/area_data.txt', sep='\t', index=False)
 df.to_csv(f'{location}resultat/figures/hypox_area_data.txt', sep='\t')
 
 axs.set_xlabel('Year')
