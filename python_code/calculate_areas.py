@@ -62,7 +62,8 @@ fig2, axs2 = plt.subplots(1, 1, figsize=(10, 8))
 for season in ['Winter', 'Spring', 'Summer', 'Autumn']:
     ### open netcdf file ###
     #Oxygen_1994-2021_Autumn_1_50000.0_gebco_30sec_4.nc
-    netcdf_filename = f"Oxygen_1994-2021_{season}_1_50000.0_gebco_30sec_4"
+    #Oxygen_2003-2021_Winter_1_50000.0_gebco_30sec_4.nc
+    netcdf_filename = f"Oxygen_2003-2021_{season}_1_50000.0_gebco_30sec_4"
     ds = xr.open_dataset(f"{location}/resultat/nc/O2/{netcdf_filename}.nc")
 
     ### Calculate area of all grid cells
@@ -78,7 +79,7 @@ for season in ['Winter', 'Spring', 'Summer', 'Autumn']:
     # a constant seawater potential density of 1025 kg/m3).
     # https://www.nodc.noaa.gov/OC5/WOD/wod18-notes.html
     hypox = 90
-    anox = 4.357      # Detta är kanske för lågt? borde vara kanske ~4 µmol/l = 0.1 ml/l?
+    anox = 9      # Detta är kanske för lågt? borde vara kanske ~4 µmol/l = 0.1 ml/l?
     unit = 'umol/l'
 
     var_name = "Oxygen"

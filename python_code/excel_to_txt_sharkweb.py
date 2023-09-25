@@ -17,8 +17,7 @@ df = pd.read_table(file_path+file_name, delimiter="\t")
 #df.rename(columns={"Sampling platform (code)": "ID"}, inplace=True)
 
 # Replace invalid hours with '0000'
-df.loc[df["Sampling time (start)"].isin(['-9', '2400']), "Sampling time (start)"] = '00:00'
-print(list(df.columns.values))
+df.loc[df["Sampling time (start)"].isin(['-9', '2400', '',np.nan]), "Sampling time (start)"] = '00:00'
 
 # Get day from "Samling date"
 df['Day'] = df["Sampling date"].apply(lambda x: x.split("-")[2])
@@ -33,6 +32,8 @@ df['date_time'] = df["Sampling date"].astype(str) + "T" + df["Sampling time (sta
 # Make a new combined O2 variable.
 # Base new variable on O2 bottle and add O2 CTD when O2 bottle is missing.
 def get_doxy(row):
+    if row["Hydrogen sulphide H2S (umol/l)"] and not np.isnan(row["Hydrogen sulphide H2S (umol/l)"]):
+        return row["Hydrogen sulphide H2S (umol/l)"] * -0.04488
     if row['Dissolved oxygen O2 bottle (ml/l)'] and not np.isnan(row['Dissolved oxygen O2 bottle (ml/l)']):
         return row['Dissolved oxygen O2 bottle (ml/l)']
     if row['Dissolved oxygen O2 CTD (ml/l)'] and not np.isnan(row['Dissolved oxygen O2 CTD (ml/l)']):
