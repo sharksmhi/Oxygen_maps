@@ -139,8 +139,8 @@ for season in ['Winter', 'Spring', 'Summer', 'Autumn']:
     print(f'{location}/resultat/nc/processed/{netcdf_filename}.nc has been modified')
 
 # df.set_index(ds.time.values, inplace=True)
-pd.concat(area_results).to_csv(f'{location}resultat/figures/area_data.txt', sep='\t', index=False)
-df.to_csv(f'{location}resultat/figures/hypox_area_data.txt', sep='\t')
+pd.concat(area_results).to_csv(f'{location}resultat/area_data.txt', sep='\t', index=False)
+df.to_csv(f'{location}resultat/hypox_area_data.txt', sep='\t')
 
 axs.set_xlabel('Year')
 axs.set_ylabel('Area [km3]')
