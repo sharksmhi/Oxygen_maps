@@ -49,9 +49,9 @@ dx, dy = 0.05, 0.05  #Karin dx, dy = 0.1, 0.1
 lonr = 9.:dx:31.
 latr = 53.5:dy:61.
 
-#yearlist = [1991];
+#yearlist = [2003,2018,2021];
 #yearlist = [1960,1961,1963,1965,1970,1975,1980,1982,1985,1989,1990,1991,1993,1994,1995,1998,2000,2003,2004,2005,2010,2014,2015,2018,2020,2021];
-yearlist = [1994,1995,1998,2000,2003,2004,2005,2010,2014,2015,2018,2020,2021];
+yearlist = [1965,1970,1980,1994,1995,1998,2000,2003,2004,2005,2010,2014,2015,2018,2020,2021];
 month_list = [ [12,1,2], [3,4,5], [6,7,8], [9,10,11] ];
 seasons=["Winter","Spring","Summer","Autumn"]
 months=["(Dec-Feb)","(Mar-May)","(June-Aug)","(Sep-Nov)"];
@@ -72,10 +72,10 @@ aspect_ratio = 1/cos(mean(latr) * pi/180);
 # Om syre är noll eller negativt får vi inte ut några värden till analysen. Lite knepigt att den inte klarar noll dock.
 # Kanske fråga Charles när vi har tid. 
 
-# %%
+# %% <0.2 ml/l är från SMHIs ctd för syrefritt vilket motsvarar 8.93 µmol/l.
 if varname == "Oxygen"
-    sel_q = (obsval .<= 5.);
-    obsval[sel_q] .= 5;
+    sel_q = (obsval .<= 0);
+    obsval[sel_q] .= 0.01;
 end
 checkobs((obslon,obslat,obsdepth,obstime),obsval,obsid)
 
