@@ -61,7 +61,8 @@ fig, axs = plt.subplots(1, 1, figsize=(10, 8))
 fig2, axs2 = plt.subplots(1, 1, figsize=(10, 8))
 for season in ['Winter', 'Spring', 'Summer', 'Autumn']:
     ### open netcdf file ###
-    netcdf_filename = f"Oxygen_1960-2018_{season}_1_39000.0_gebco_30sec_4"
+    #Oxygen_1994-2021_Autumn_1_50000.0_gebco_30sec_4.nc
+    netcdf_filename = f"Oxygen_1994-2021_{season}_1_50000.0_gebco_30sec_4"
     ds = xr.open_dataset(f"{location}/resultat/nc/O2/{netcdf_filename}.nc")
 
     ### Calculate area of all grid cells
@@ -115,7 +116,7 @@ for season in ['Winter', 'Spring', 'Summer', 'Autumn']:
     ds["Anoxic_relerr_area"] = xr.where((ds['Anoxic_relerr_per_grid'] >= 0.5), ds['grid_area'],
                                          ds['Min_depth_anoxia'] * np.nan, keep_attrs=True).sum(dim=['lat', 'lon'],
                                                                                                 skipna=True)
-    
+
     ### plot the resulting timeseries
     # ds["HYPOX_area"].plot(ax=axs, label = season)
     ds["Hypoxic_area"].plot(ax=axs, label = season)
