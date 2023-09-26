@@ -36,17 +36,26 @@ unit = "umol/l";
 
 # ## Where to save the result. Create path if not there.
 # File name based on the variable (but all spaces are replaced by _) _varlenz
-# NC-files
-location = "//winfs-proj/proj/havgem/DIVA/syrekartor/data"
-outputdir = "./resultat/nc/$(savevar)/" ;
+# data-files
+location = "//winfs-proj/proj/havgem/DIVA/syrekartor/"
+outputdir = joinpath(location,"data/");
 if !isdir(outputdir)
     mkpath(outputdir)
 end
 # Figures
-figdir = "./resultat/figures/$(savevar)/";
+figdir = joinpath(location,"resultat/figures/$(savevar)/");
+#@show(figdir)
+#@show(outputdir)
+#filename = "SHARK_EMODNET"
+#test=joinpath(outputdir, "$(filename).txt")
+#figname = "additional_data.png"
+#test = joinpath(figdir,"temp/$(figname)")
+#@show(test)
+#exit()
+
 if !isdir(figdir)
     mkpath(figdir)
-    mkpath(joinpath(figdir, "test"))
+    #mkpath(joinpath(figdir, "test"))
 end
 
 # ## Load data big files
@@ -58,7 +67,7 @@ end
 #@time obsval,obslon,obslat,obsdepth,obstime,obsid = loadbigfile(fname);
 #@show(length(obsval));
 
-fname_shark = joinpath(location "/sharkweb_btlctd_02.txt")
+fname_shark = joinpath(location, "data/sharkweb_btlctd_02.txt")
 @time obsval_shark,obslon_shark,obslat_shark,obsdepth_shark,obstime_shark,obsid_shark = loadbigfile(fname_shark);
 
 #plot(obsdepth, obsval, "ko", markersize=0.5);
@@ -66,11 +75,11 @@ fname_shark = joinpath(location "/sharkweb_btlctd_02.txt")
 #@show(length(obsval[sel]))
 #plot(obsdepth[sel], obsval[sel], "ro", markersize=0.5);
 
-datafile_emod_btl = joinpath(location, "/emodnet_02_1960_2023_BTL.txt")
+datafile_emod_btl = joinpath(location, "data/emodnet_02_1960_2023_BTL.txt")
 @time obsval_emod_btl,obslon_emod_btl,obslat_emod_btl,obsdepth_emod_btl,obstime_emod_btl,obsid_emod_btl = ODVspreadsheet.load(Float64,[datafile_emod_btl],
                            ["Water body dissolved oxygen concentration"]; nametype = :localname );
 
-datafile_emod_ctd = joinpath(location, "/emodnet_02_1960_2023_CTD.txt")
+datafile_emod_ctd = joinpath(location, "data/emodnet_02_1960_2023_CTD.txt")
 @time obsval_emod_ctd,obslon_emod_ctd,obslat_emod_ctd,obsdepth_emod_ctd,obstime_emod_ctd,obsid_emod_ctd = ODVspreadsheet.load(Float64,[datafile_emod_ctd],
                            ["Water body dissolved oxygen concentration"]; nametype = :localname );
 @show(length(obsval_emod_btl));
@@ -159,8 +168,8 @@ plot(obslon_shark[newpoints], obslat_shark[newpoints], "go",
 legend(loc=3, fontsize=4)
 gca().set_aspect(aspectratio)
 figname = "additional_data.png"
-@show joinpath("$figdir/temp", figname)
-PyPlot.savefig(joinpath("$figdir/temp", figname), dpi=300);
+@show joinpath(figdir,"temp/$(figname)")
+PyPlot.savefig(joinpath(figdir,"temp/$(figname)"), dpi=300);
 PyPlot.close_figs()
 
 
@@ -219,6 +228,5 @@ PyPlot.close_figs()
 
 df  = DataFrame(obslon=obslon,obslat=obslat,obsval=obsval,obsdepth=obsdepth,obsdepth1=obsdepth,obsdepth2=obsdepth,obsdepth3=obsdepth,obsdepth4=obsdepth,obsdepth5=obsdepth,obstime=obstime,obsid=obsid)
 filename = "SHARK_EMODNET"
-CSV.write(joinpath("$outputdir", filename, ".txt"), df, delim="\t", writeheader=false)
-
-DIVAnd.saveobs(joinpath("$outputdir", filename, ".nc" ),varname, obsval, (obslon,obslat,obsdepth,obstime),obsid)
+CSV.write(joinpath(outputdir, "$(filename).txt"), df, delim="\t", writeheader=false)
+DIVAnd.saveobs(joinpath(outputdir, "$(filename).nc"),varname, obsval, (obslon,obslat,obsdepth,obstime),obsid)
