@@ -4,6 +4,9 @@
 # ### Based on copy from Karin Wesslander and DIVA workshop notebooks
 
 # #### Add necessary packages
+#using Pkg
+#Pkg.add("JLD")
+
 using DIVAnd
 using PyPlot
 using NCDatasets
@@ -13,6 +16,7 @@ using DelimitedFiles
 using DataStructures
 using Printf
 using Missings
+using JLD
 
 # ## Configuration
 # * Define variabel and set horizontal, vertical and temporal resolutions.
@@ -40,21 +44,23 @@ if !isdir(figdir)
 end
 
 # ## Load data big files created by program "syrekartor_data_proc"
-fname = "SHARK_EMODNET.txt"
-@time obsval,obslon,obslat,obsdepth,obstime,obsid = loadbigfile(joinpath(location, "data/$fname"));
+#fname = "SHARK_EMODNET.txt"
+data_fname = "EMODNET_SHARK_ICES.txt"
+@time obsval,obslon,obslat,obsdepth,obstime,obsid = loadbigfile(joinpath(location, "data/$data_fname"));
 
 # Sätt horisontell uppplösning
 #dx, dy = 0.125, 0.125  #Karin dx, dy = 0.1, 0.1
-dx, dy = 0.05, 0.05  #Karin dx, dy = 0.1, 0.1
+dx, dy = 0.1, 0.1  #Karin dx, dy = 0.1, 0.1
 lonr = 9.:dx:31.
 latr = 53.5:dy:61.
 
-#yearlist = [2003,2018,2021];
-#yearlist = [1960,1961,1963,1965,1970,1975,1980,1982,1985,1989,1990,1991,1993,1994,1995,1998,2000,2003,2004,2005,2010,2014,2015,2018,2020,2021];
-yearlist = [1965,1970,1980,1994,1995,1998,2000,2003,2004,2005,2010,2014,2015,2018,2020,2021];
-month_list = [ [12,1,2], [3,4,5], [6,7,8], [9,10,11] ];
+#yearlist=[1960:1:2021]
+yearlist = [2009];
+#yearlist = [1960,1961,1962,1963,1964,1965,1966,1967,1968,1969,1970,1971,1972,1973,1974,1975,1976,1977,1978,1979,1980,1981,1982,1983,1984,1985,1986,1987,1988,1989,1990,1991,1992,1993,1994,1995,1996,1997,1998,1999,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021];
+#yearlist = [1965,1970,1980,1994,1995,1998,2000,2003,2004,2005,2010,2014,2015,2018,2020,2021];
+month_list = [ [11,12,1,2], [3,4,5], [6,7,8], [8,9,10]];
 seasons=["Winter","Spring","Summer","Autumn"]
-months=["(Dec-Feb)","(Mar-May)","(June-Aug)","(Sep-Nov)"];
+months=["(Nov-Feb)","(Mar-May)","(June-Aug)","(Aug-Oct)"];
 
 # Time origin for the NetCDF file
 timeorigin = DateTime(1900,1,1,0,0,0);
@@ -73,11 +79,13 @@ aspect_ratio = 1/cos(mean(latr) * pi/180);
 # Kanske fråga Charles när vi har tid. 
 
 # %% <0.2 ml/l är från SMHIs ctd för syrefritt vilket motsvarar 8.93 µmol/l.
-if varname == "Oxygen"
-    sel_q = (obsval .<= 0);
-    obsval[sel_q] .= 0.01;
-end
-checkobs((obslon,obslat,obsdepth,obstime),obsval,obsid)
+
+#if varname == "Oxygen"
+#    sel_q = (obsval .<= -10.);
+#    obsval[sel_q] .= -10.;
+#end
+
+#checkobs((obslon,obslat,obsdepth,obstime),obsval,obsid)
 
 # ## Extract the bathymetry
 # It is used to delimit the domain where the interpolation is performed.
@@ -93,10 +101,11 @@ bx,by,b = DIVAnd.extract_bath(bathname,bathisglobal,lonr,latr);
 # #### 1) Create a mask from bathymetry and your selected depth vector
 
 # First set the depth resolotion, this will be the depths used in DIVArun
-depthr = [0., 5., 10., 15., 20., 50., 55., 60., 65., 70.,75., 80., 85., 90., 95., 100., 125., 150.];
 # Then set the horizontal correlation length (should be twice the resolution)
-lenz_ = [10.,10.,10.,10.,10.,10., 10.,10.,10.,10.,
-        10.,10.,10.,10.,10.,10.,50.,50.];
+depthr = [40., 50., 55., 60., 65., 70., 75., 80., 85., 90., 95., 100., 105., 110., 125., 150.,200.];
+lenz_ =  [20., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10.,  10.,   10.,  30.,  50., 50.];
+@show([depthr;lenz_])
+# Hur blir hoppet till 50m? Annan korrlength?
 
 xmask,ymask,mmask = load_mask(bathname,true,lonr,latr,depthr);
 
@@ -121,6 +130,9 @@ sel_mask1 = (grid_by .>= 57.75) .& (grid_bx .<= 12.2);
 sel_mask2 = (grid_by .>= 57.4) .& (grid_by .< 57.75) .& (grid_bx .<= 10.4);
 sel_mask3 = (grid_by .>= 57.) .& (grid_by .< 57.4) .& (grid_bx .<= 10.);
 new_mask = mask_edit .* .!sel_mask1 .* .!sel_mask2 .* .!sel_mask3;
+
+
+#Lägg till en mask för B-viken
 
 aspectratio = 1/cos(mean(54:0.05:61) * pi/180)
 fig=figure(1)
@@ -161,7 +173,7 @@ gcf()
 
 # lenf should be the normal value for horizontal correlation length
 # Sätt korrelationslängd (m)
-lenf = 50_000. #78_000, 50_000 25_000
+lenf = 40_000. #78_000, 50_000 25_000
 
 # Create a new mask
 mask,pmn = DIVAnd.domain(bathname,bathisglobal,lonr,latr);
@@ -227,11 +239,42 @@ obstime_shifted[Dates.month.(obstime) .== 12] .+= Dates.Year(1)
 # Settings for DIVAnd-------------------------------------------------------------------------------
 error_thresholds = [("L1", 0.3), ("L2", 0.5)];
 solver = :direct
-epsilon = 1; #1., 0.1, 10
+epsilon = 0.1; #1., 0.1, 10
 
 # low epsilon means higher noise in data and result is more smoothed
 # high epsilon means lower noise in data and result is less smoothed and each observation is seen more
 
+# Modify data weight
+# ⌛⌛⌛
+# Compute the new weights that takes into account close points.
+# If the dataset is large, this can take a few minutes.
+# The maximal and mean values provide an indication of the spatial proximity between the data.
+# If you apply this technique, you need to adapt epsilon2:
+
+#Make a test with different values for depth and days.
+# 60m och 30 dagar
+# 5m och 7 dagar
+
+w_depth = 60
+w_days = 30
+
+
+rdiag_jldfile = joinpath(location, "data/$(data_fname)_weighted_$(w_depth)_$(w_days).jld")
+
+if isfile(rdiag_jldfile)
+    @load rdiag_jldfile rdiag
+    @info "Loading saved rdiag file"
+else
+    @info "Calculating rdiag!"
+    @time rdiag = 1 ./ DIVAnd.weight_RtimesOne((obslon,obslat,obsdepth,float.(Dates.dayofyear.(obstime))),(0.10,0.10,w_depth,w_days));
+    @save rdiag_jldfile rdiag
+end
+
+@show maximum(rdiag),mean(rdiag)
+
+epsilon_weighted = epsilon * rdiag;
+
+#---------------------------------------------------------------------------------------------------
 # sätter min, max för färgskalan i plottarna
 vmin_ = 0
 vmax_ = 400
@@ -420,7 +463,7 @@ for monthlist_index in 1:length(month_list)
     @show TS;
 
     # File name based on the variable (but all spaces are replaced by _)
-    filename = joinpath(outputdir, "$(replace(varname,' '=>'_'))_$(minimum(yearlist))-$(maximum(yearlist))_$(season)_$(epsilon)_$(lx)_$(bath_file_name)")
+    filename = joinpath(outputdir, "$(replace(varname,' '=>'_'))_$(minimum(yearlist))-$(maximum(yearlist))_$(season)_$(epsilon)_$(lx)_$(lenx)_$(w_depth)_$(w_days)_$(bath_file_name)")
 
     if isfile(filename)
        rm(filename) # delete the previous analysis
@@ -433,7 +476,7 @@ for monthlist_index in 1:length(month_list)
               (obslon,obslat,obsdepth,obstime_shifted),
               obsval,
               (lenx,leny,lenz),
-              epsilon,
+              epsilon_weighted,
               filename, varname,
               bathname = bathname,
               bathisglobal = bathisglobal,
@@ -441,7 +484,8 @@ for monthlist_index in 1:length(month_list)
               ncvarattrib = ncvarattrib,
               ncglobalattrib = ncglobalattrib,
               timeorigin = timeorigin,
-              transform = Anam.loglin(epsilon),
+              #transform = Anam.loglin(epsilon),
+              #transform = Anam.loglin(-5.),
               mask = new_mask,
               solver = solver,
               niter_e = 1,
