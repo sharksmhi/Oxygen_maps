@@ -7,21 +7,28 @@ import pandas as pd
 ### open netcdf file ### 
 location = "//winfs-proj/proj/havgem/DIVA/syrekartor/"
 netcdf_filename = "test_B_Oxygen_2007-2009_Autumn_1_49000.0_0.1_5.0_2.0_TEST_B_gebco_30sec_4"
-A = 'test_A_test_A_Oxygen_2007-2009_Autumn_0.1_49000.0_5.0_2.0_gebco_30sec_4'
-B = 'test_B_Oxygen_2007-2009_Autumn_1_49000.0_0.1_5.0_2.0_TEST_B_gebco_30sec_4'
-C = 'test_C_Oxygen_2007-2009_Autumn_1_49000.0_0.1_5.0_2.0_TEST_C_gebco_30sec_4'
-D = 'test_D_test_D_Oxygen_2007-2009_Autumn_0.1_49000.0_5.0_2.0_gebco_30sec_4'
-netcdf_filename = D
-test_name = 'D'
+A = 'test_A_test_A_Oxygen_2007-2009_Autumn_0.1_49000.0_5.0_2.0_gebco_30sec_4' # floodfill och nearcoast, inga syre <9
+B = 'test_B_Oxygen_2007-2009_Autumn_1_49000.0_0.1_5.0_2.0_TEST_B_gebco_30sec_4' # ingen floodfill eller nearcoast
+C = 'test_C_Oxygen_2007-2009_Autumn_1_49000.0_0.1_5.0_2.0_TEST_C_gebco_30sec_4' # ingen floodfill eller nearcoast
+D = 'test_D_test_D_Oxygen_2007-2009_Autumn_0.1_49000.0_5.0_2.0_gebco_30sec_4' # som A men dx = 0.05
+E = 'test_E_test_E_Oxygen_2007-2009_Autumn_0.1_49000.0_5.0_2.0_gebco_30sec_4' # som D men med 0, 10, 30 m i depthr
+F = 'test_F_Oxygen_2007-2009_Autumn_1_49000.0_0.1_5.0_2.0_TEST_F_gebco_30sec_4'
+G = 'test_G_TEST_G_Oxygen_2007-2009_Autumn_1_49000.0_0.1_5.0_2.0_gebco_30sec_4'
+H = 'test_H_TEST_H_Oxygen_2007-2009_Autumn_1_49000.0_0.1_5.0_2.0_gebco_30sec_4'
+I = 'test_I_TEST_I_Oxygen_2007-2009_Autumn_1_49000.0_0.1_5.0_2.0_gebco_30sec_4'
+J = 'test_J_TEST_J_Oxygen_2007-2009_Autumn_1_49000.0_0.1_5.0_2.0_gebco_30sec_4'
+K = 'test_K_TEST_K_Oxygen_2007-2009_Autumn_1_49000.0_0.1_5.0_2.0_gebco_30sec_4'
+L = 'test_L_TEST_L_Oxygen_2007-2009_Autumn_1_49000.0_0.1_5.0_2.0_gebco_30sec_4'
+test_name = 'L'
+print(f'test {test_name}')
 # choose depth
 show_depth = 70
 # choose year
 show_year = 2009
 
-ds = xr.open_dataset(f'{location}/resultat/nc/processed/{netcdf_filename}.nc')
+ds = xr.open_dataset(f'{location}/resultat/nc/processed/{L}.nc')
 
 bath_file = xr.open_dataset("./bathymetry/gebco_30sec_4.nc")
-print(bath_file)
 # Extract the required variables
 b = bath_file["bat"]
 
