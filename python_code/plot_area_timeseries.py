@@ -69,8 +69,11 @@ ax[0].set_title('Hypoxia')
 ax[0].set_ylabel('area km$^2$') 
 ax[0].grid(which = 'both')
 # plot anoxic bars
-df_merged.plot.bar(ax=ax[1], x='year', y='Anoxic_area_km2_DIVAnd', width = 1, color = 'r', label='DIVAnd')
-df_merged.plot.bar(ax=ax[1], x='year', y='Anoxic_area_km2_matlab', width = 1, color = 'none', hatch='/////', edgecolor = 'black', linewidth = 0.5, label='matlab')
+df_merged.plot.bar(ax=ax[1], x='year', y='Anoxic_area_km2_matlab', width = 1, color = 'red', label='matlab')
+df_merged.plot.bar(ax=ax[1], x='year', y='Anoxic_area_km2_DIVAnd', width = 1, color = 'none', hatch='/////', edgecolor = 'black', linewidth = 0.5, label='DIVAnd')
+#df_merged.plot.bar(ax=ax[1], x='year', y='Anoxic_area_km2_DIVAnd', width = 1, color = 'r', label='DIVAnd')
+#df_merged.plot.bar(ax=ax[1], x='year', y='Anoxic_area_km2_matlab', width = 1, color = 'none', hatch='/////', edgecolor = 'black', linewidth = 0.5, label='matlab')
+
 # set title, ylabel, grid on
 ax[1].set_title('Anoxia')
 ax[1].set_ylabel('area km$^2$') 
