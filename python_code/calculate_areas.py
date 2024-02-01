@@ -63,7 +63,8 @@ for season in ['Winter', 'Spring', 'Summer', 'Autumn']:
     ### open netcdf file ###
     #Oxygen_1994-2021_Autumn_1_50000.0_gebco_30sec_4.nc
     #Oxygen_2003-2021_Winter_1_50000.0_gebco_30sec_4.nc
-    netcdf_filename = f"Oxygen_2003-2021_{season}_1_50000.0_gebco_30sec_4"
+    #Oxygen_1960-2021_Spring_1_49000.0_0.05_5.0_2.0_with_backgroundfield_moredepths_gebco_30sec_4
+    netcdf_filename = f"Oxygen_1960-2021_{season}_1_49000.0_0.05_5.0_2.0_with_backgroundfield_moredepths_gebco_30sec_4"
     ds = xr.open_dataset(f"{location}/resultat/nc/O2/{netcdf_filename}.nc")
 
     ### Calculate area of all grid cells
@@ -79,7 +80,8 @@ for season in ['Winter', 'Spring', 'Summer', 'Autumn']:
     # a constant seawater potential density of 1025 kg/m3).
     # https://www.nodc.noaa.gov/OC5/WOD/wod18-notes.html
     hypox = 90
-    anox = 9      # Detta är kanske för lågt? borde vara kanske ~4 µmol/l = 0.1 ml/l?
+    anox = 9      # Detta är kanske för lågt? borde vara kanske 9 µmol/l = ~0.2 ml/l? 18 = ~0.4 ml/l
+    relerr_lim = 0.5
     unit = 'umol/l'
 
     var_name = "Oxygen"
@@ -100,10 +102,12 @@ for season in ['Winter', 'Spring', 'Summer', 'Autumn']:
     #HRelativt fel på alla grundaste djup som har hypoxi.
     ds["Hypoxic_relerr_per_depth"] = xr.where(((ds['depth'] == ds['Min_depth_hypoxia'])), ds['Oxygen_relerr'],
                                        ds['Min_depth_hypoxia'] * np.nan, keep_attrs=True)
+    ds["Hypoxic_relerr_per_grid_at_min_hypox_depth"] = xr.where(((ds['depth'] == ds['Min_depth_hypoxia'])), ds['Oxygen_relerr'],
+                                              ds['Min_depth_hypoxia'] * np.nan, keep_attrs=True).sum(dim= 'depth', skipna=True)
     #Summerar relativt felet över alla djup till en platt matris, dvs relativt fel, per gridcell och år.
     #ds["Hypoxic_relerr_per_grid"]=xr.where(((ds['depth']==ds['Min_depth_hypoxia'])),ds['Oxygen_relerr'],ds['Min_depth_hypoxia']*np.nan,keep_attrs=True).sum(dim=['depth'], skipna=True)
     ds["Hypoxic_relerr_per_grid"] = ds["Hypoxic_relerr_per_depth"].sum(dim=['depth'], skipna=True)
-    ds["Hypoxic_relerr_area"] = xr.where((ds['Hypoxic_relerr_per_grid']>=0.5),ds['grid_area'],ds['Min_depth_hypoxia']*np.nan,keep_attrs=True).sum(dim=['lat', 'lon'], skipna=True)
+    ds["Hypoxic_relerr_area"] = xr.where((ds['Hypoxic_relerr_per_grid']>=relerr_lim),ds['grid_area'],ds['Min_depth_hypoxia']*np.nan,keep_attrs=True).sum(dim=['lat', 'lon'], skipna=True)
 
     ### Sum anoxic areas per season
     ds["Anoxic_area"] = xr.where((ds['Min_depth_anoxia'] >= 0), ds['grid_area'], ds['Min_depth_anoxia'] * np.nan,
@@ -111,17 +115,21 @@ for season in ['Winter', 'Spring', 'Summer', 'Autumn']:
     # HRelativt fel på alla grundaste djup som har anoxi.
     ds["Anoxic_relerr_per_depth"] = xr.where(((ds['depth'] == ds['Min_depth_anoxia'])), ds['Oxygen_relerr'],
                                               ds['Min_depth_anoxia'] * np.nan, keep_attrs=True)
+    ds["Anoxic_relerr_per_grid_at_min_anox_depth"] = xr.where(((ds['depth'] == ds['Min_depth_anoxia'])),
+                                                                ds['Oxygen_relerr'],
+                                                                ds['Min_depth_anoxia'] * np.nan, keep_attrs=True).sum(
+        dim='depth', skipna=True)
     # Summerar relativt felet över alla djup till en platt matris, dvs relativt fel, per gridcell och år.
     # ds["Anoxic_relerr_per_grid"]=xr.where(((ds['depth']==ds['Min_depth_hypoxia'])),ds['Oxygen_relerr'],ds['Min_depth_hypoxia']*np.nan,keep_attrs=True).sum(dim=['depth'], skipna=True)
     ds["Anoxic_relerr_per_grid"] = ds["Anoxic_relerr_per_depth"].sum(dim=['depth'], skipna=True)
-    ds["Anoxic_relerr_area"] = xr.where((ds['Anoxic_relerr_per_grid'] >= 0.5), ds['grid_area'],
+    ds["Anoxic_relerr_area"] = xr.where((ds['Anoxic_relerr_per_grid'] >= relerr_lim), ds['grid_area'],
                                          ds['Min_depth_anoxia'] * np.nan, keep_attrs=True).sum(dim=['lat', 'lon'],
                                                                                                 skipna=True)
 
     ### plot the resulting timeseries
     # ds["HYPOX_area"].plot(ax=axs, label = season)
-    ds["Hypoxic_area"].plot(ax=axs, label = season)
-    ds["Hypoxic_relerr_area"].plot(ax=axs2, label = season)
+    #ds["Hypoxic_area"].plot(ax=axs, label = season)
+    #ds["Hypoxic_relerr_area"].plot(ax=axs2, label = season)
 
     {"year"	"season"	"hypoxic area total"	"hypoxic area relerr"	"anoxic area total"	"anoxic area relerr"}
     df = pd.DataFrame()
