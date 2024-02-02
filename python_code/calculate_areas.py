@@ -64,7 +64,8 @@ for season in ['Winter', 'Spring', 'Summer', 'Autumn']:
     #Oxygen_1994-2021_Autumn_1_50000.0_gebco_30sec_4.nc
     #Oxygen_2003-2021_Winter_1_50000.0_gebco_30sec_4.nc
     #Oxygen_1960-2021_Spring_1_49000.0_0.05_5.0_2.0_with_backgroundfield_moredepths_gebco_30sec_4
-    netcdf_filename = f"Oxygen_1960-2021_{season}_1_49000.0_0.05_5.0_2.0_with_backgroundfield_moredepths_gebco_30sec_4"
+    netcdf_filename = f"Oxygen_1992-1992_{season}_0.2_80000.0_0.05_5.0_2.0_with_backgroundfield_moredepths_gebco_30sec_4"
+    print(netcdf_filename)
     ds = xr.open_dataset(f"{location}/resultat/nc/O2/{netcdf_filename}.nc")
 
     ### Calculate area of all grid cells
@@ -151,12 +152,12 @@ for season in ['Winter', 'Spring', 'Summer', 'Autumn']:
 pd.concat(area_results).to_csv(f'{location}resultat/area_data.txt', sep='\t', index=False)
 df.to_csv(f'{location}resultat/hypox_area_data.txt', sep='\t')
 
-axs.set_xlabel('Year')
-axs.set_ylabel('Area [km3]')
-axs.legend()
-fig.savefig(f'{location}resultat/figures/hypox_area.png')
-fig2.savefig(f'{location}resultat/figures/hypox_relerr_area.png')
+#axs.set_xlabel('Year')
+#axs.set_ylabel('Area [km3]')
+#axs.legend()
+#fig.savefig(f'{location}resultat/figures/hypox_area.png')
+#fig2.savefig(f'{location}resultat/figures/hypox_relerr_area.png')
 
-fig, axs = plt.subplots(1, 1, figsize=(10, 8))
-df.plot.bar(ax = axs,)
-plt.savefig(f'{location}resultat/figures/hypox_area_barchart.png')
+#fig, axs = plt.subplots(1, 1, figsize=(10, 8))
+#df.plot.bar(ax = axs,)
+#plt.savefig(f'{location}resultat/figures/hypox_area_barchart.png')

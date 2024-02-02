@@ -66,16 +66,16 @@ lonr = 9.:dx:31.
 latr = 53.5:dy:61.
 
 #New lists for analysis
-#yearlist = [2007,2009];
-yearlist = [1960,1961,1962,1963,1964,1965,1966,1967,1968,1969,1970,1971,1972,1973,1974,1975,1976,1977,1978,1979,1980,1981,1982,1983,1984,1985,1986,1987,1988,1989,1990,1991,1992,1993,1994,1995,1996,1997,1998,1999,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021];
+yearlist = [1992];
+#yearlist = [1960,1961,1962,1963,1964,1965,1966,1967,1968,1969,1970,1971,1972,1973,1974,1975,1976,1977,1978,1979,1980,1981,1982,1983,1984,1985,1986,1987,1988,1989,1990,1991,1992,1993,1994,1995,1996,1997,1998,1999,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021];
 #yearlist = [1960,1965,1970,1975,1980,1994,1995,1998,2000,2003,2004,2005,2010,2014,2015,2018,2020,2021];
-#month_list = [ [11,12,1,2], [3,4,5], [6,7,8], [8,9,10]];
-#seasons=["Winter","Spring","Summer","Autumn"]
-#months=["(Nov-Feb)","(Mar-May)","(June-Aug)","(Aug-Oct)"];
+month_list = [ [11,12,1,2], [3,4,5], [6,7,8], [8,9,10]];
+seasons=["Winter","Spring","Summer","Autumn"]
+months=["(Nov-Feb)","(Mar-May)","(June-Aug)","(Aug-Oct)"];
 
-month_list = [[6,7,8], [8,9,10]];
-seasons=["Summer","Autumn"]
-months=["(June-Aug)","(Aug-Oct)"];
+#month_list = [[6,7,8], [8,9,10]];
+#seasons=["Summer","Autumn"]
+#months=["(June-Aug)","(Aug-Oct)"];
 
 #month_list = [[3,4,5]];
 #seasons=["Spring"]
@@ -167,7 +167,7 @@ gcf()
 # lenf should be the normal value for horizontal correlation length
 # Sätt korrelationslängd (m)
 # Vi bör köra med lite längre lenf troligen 80_000km då vi har ca 40nm mellan våra station i eg.Östersjön
-lenf = 49_000. #78_000, 50_000 25_000
+lenf = 80_000.#49_000. #78_000, 50_000 25_000
 
 sz = (length(lonr),length(latr),length(depthr));
 lenx = fill(lenf,sz)   # 100 km
@@ -197,7 +197,9 @@ ly = lenf #78_000.
 
 # To include December from previous year in the analyse
 obstime_shifted = copy(obstime)
-obstime_shifted[Dates.month.(obstime) .== 12] .+= Dates.Year(1)
+# Get all dates with dec and nov and add one year to these specific dates.
+# Winter period will be jan-feb + nov-dec from previous year.
+obstime_shifted[Dates.month.(obstime) .== 12 .| Dates.month.(obstime) .== 11] .+= Dates.Year(1)
 
 # Settings for DIVAnd-------------------------------------------------------------------------------
 error_thresholds = [("L1", 0.3), ("L2", 0.5)];
