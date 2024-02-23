@@ -3,6 +3,8 @@ julia julia_code\oxygen_analysis.jl, år, säsong, DIVAsettings
 python python_code\calculata_areas.py, år, säsong, DIVASettings
 """
 import subprocess
+from sys import stdout
+
 """# year: list, seasons: list, DIVAsettings: dict
 # location = "//winfs-proj/proj/havgem/DIVA/syrekartor/"
 # outputdir = joinpath(location, "resultat/nc/$(savevar)/");
@@ -17,22 +19,13 @@ import subprocess
 # depthr = [0.,  10., 20., 25., 30., 35., 40., 50., 55., 60., 65., 70.,  75., 80., 85., 90., 95., 100., 105., 110., 115., 120., 125., 130., 135., 140., 145.,150.,175.,200.,250.,300.];
 """
 
-def run_julia_function(function_name, outputdir):
+def run_julia_function(args):
     try:
         # Run Julia script using subprocess and pass function name and arguments
         # process = subprocess.Popen(['julia', 'julia_code/my_julia.jl', function_name, arg1, arg2], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         # ropa på vår oxygen analysis funktion i oxygen analysis juila scriptet. 
         # Lägg till fler argument efter outputdir med komma mellan
-        process = subprocess.Popen(['julia', 'julia_code\oxygen_analysis.jl', 'run_oxygen', outputdir], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        stdout, stderr = process.communicate()
-        
-        if process.returncode != 0:
-            print("Error occurred while executing Julia script:")
-            print(stderr)
-        else:
-            print("Julia script executed successfully.")
-            print("Output:")
-            print(stdout)
+        subprocess.run(args, check=True)
     except FileNotFoundError:
         print("Julia executable not found. Make sure Julia is installed and added to the system PATH.")
         
@@ -43,12 +36,11 @@ if __name__ == "__main__":
     # argument1 = "value1"
     # argument2 = "value2"
 
-    function_name = "run_oxygen"
-    location = "//winfs-proj/proj/havgem/DIVA/syrekartor/"
-    argument2 = "outputdir.txt"
-
+    input_dir = "data"
+    results_dir = "//winfs-proj/proj/havgem/DIVA/syrekartor/resultat/nc/O2"
+    args = ['julia', 'julia_code/oxygen_analysis.jl', input_dir, results_dir]
     # Call the function
-    run_julia_function(function_name, location)
+    run_julia_function(args)
 
 
 
