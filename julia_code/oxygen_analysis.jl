@@ -9,7 +9,7 @@
 
 # #### Add necessary packages
 #using Pkg
-#Pkg.add("JLD")
+#Pkg.add("PyCall")
 
 using DIVAnd
 using PyPlot
@@ -21,10 +21,16 @@ using DataStructures
 using Printf
 using Missings
 using JLD
+using JSON
+using PyCall
 
 args= ARGS
 input_dir = args[1]
-result_dir = args[2]
+results_dir = args[2]
+data_fname = args[3]
+year_list = JSON.parse(args[4])
+month_list = JSON.parse(args[5])
+seasons = JSON.parse(args[6])
 
 # ## Configuration
 # * Define variabel and set horizontal, vertical and temporal resolutions.
@@ -48,16 +54,15 @@ if !isdir(figdir)
 end
 
 # ## Load data big files created by program "syrekartor_data_proc"
-#fname = "SHARK_EMODNET.txt"
-data_fname = "EMODNET_SHARK_ICES"
-@time obsval,obslon,obslat,obsdepth,obstime,obsid = loadbigfile(joinpath(input_dir, "$(data_fname).txt"))
+#data_fname = "EMODNET_SHARK_ICES"
+@time obsval,obslon,obslat,obsdepth,obstime,obsid = loadbigfile(joinpath(input_dir, "$(data_fname)"))
 
 #Load background field
 filenamebackground = joinpath(input_dir, "$(replace(varname,' '=>'_'))_background_weighted_0.05_field.nc")
+
 # year and month-list for background analysis
-yearlist = [1960:1969,1970:1979,1980:1989,1990:1999,2000:2009,2010:2021];
-month_list = [ [11,12,1,2], [3,4,5], [6,7,8], [8,9,10]];  # Seasonal climatology
-TSbackground = DIVAnd.TimeSelectorYearListMonthList(yearlist,month_list);
+year_list_background = [1960:1969,1970:1979,1980:1989,1990:1999,2000:2009,2010:2021];
+TSbackground = DIVAnd.TimeSelectorYearListMonthList(year_list_background,month_list);
 
 # Sätt horisontell uppplösning
 #dx, dy = 0.125, 0.125  #Karin dx, dy = 0.1, 0.1
@@ -66,20 +71,9 @@ lonr = 9.:dx:31.
 latr = 53.5:dy:61.
 
 #New lists for analysis
-yearlist = [1993];
-#yearlist = [1960,1961,1962,1963,1964,1965,1966,1967,1968,1969,1970,1971,1972,1973,1974,1975,1976,1977,1978,1979,1980,1981,1982,1983,1984,1985,1986,1987,1988,1989,1990,1991,1992,1993,1994,1995,1996,1997,1998,1999,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021];
-#yearlist = [1960,1965,1970,1975,1980,1994,1995,1998,2000,2003,2004,2005,2010,2014,2015,2018,2020,2021];
-month_list = [ [11,12,1,2], [3,4,5], [6,7,8], [8,9,10]];
-seasons=["Winter","Spring","Summer","Autumn"]
-months=["(Nov-Feb)","(Mar-May)","(June-Aug)","(Aug-Oct)"];
-
-#month_list = [[6,7,8], [8,9,10]];
-#seasons=["Summer","Autumn"]
-#months=["(June-Aug)","(Aug-Oct)"];
-
-#month_list = [[3,4,5]];
-#seasons=["Spring"]
-#months=["(Mar-May)"];
+#year_list = [1993];
+#year_list = [1960,1961,1962,1963,1964,1965,1966,1967,1968,1969,1970,1971,1972,1973,1974,1975,1976,1977,1978,1979,1980,1981,1982,1983,1984,1985,1986,1987,1988,1989,1990,1991,1992,1993,1994,1995,1996,1997,1998,1999,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021];
+#year_list = [1960,1965,1970,1975,1980,1994,1995,1998,2000,2003,2004,2005,2010,2014,2015,2018,2020,2021];
 
 # Time origin for the NetCDF file
 timeorigin = DateTime(1900,1,1,0,0,0);
@@ -190,10 +184,6 @@ ly = lenf #78_000.
 #end
 
 # # Run DIVA3d
-# ### Background field is calculated in notebook: 
-# filename_background = "Background_file_6y_20230203_$(savevar).nc"
-# TS_back = DIVAnd.TimeSelectorYearListMonthList(yearlist_back, month_list)
-# background = DIVAnd.backgroundfile(filename_background,varname,TS_back)
 
 # To include December from previous year in the analyse
 obstime_shifted = copy(obstime)
@@ -228,7 +218,9 @@ epsilon = 0.2; #1., 0.1, 10
 w_depth = 5.
 w_days = 2.
 
-rdiag_jldfile = joinpath(input_dir, "$(data_fname)_weighted_$(w_depth)_$(w_days).jld")
+@show data_fname
+@show split(data_fname,".")[1]
+rdiag_jldfile = joinpath(input_dir, "$(split(data_fname,".")[1])_weighted_$(w_depth)_$(w_days).jld")
 
 if isfile(rdiag_jldfile)
     @load rdiag_jldfile rdiag
@@ -252,6 +244,8 @@ vmax_ = 400
 metadata=Array{DataStructures.OrderedDict{String,Any}}(undef,4) ;
 
 
+#A list of created files
+ file_list = []
 
 for monthlist_index in 1:length(month_list)
     season = seasons[monthlist_index]
@@ -341,7 +335,7 @@ for monthlist_index in 1:length(month_list)
     @info(Dates.now())
 
     function plotres(timeindex,selected,fit,erri)
-        year=yearlist[timeindex]
+        year=year_list[timeindex]
         @show timeindex
         tmp = copy(fit)
         L2 = 0.5
@@ -430,12 +424,15 @@ for monthlist_index in 1:length(month_list)
     end
 
     # Time selection for the analyse. This was already defined together with yearlist, month_list, seasons
-    TS = DIVAnd.TimeSelectorYearListMonthList(yearlist,month_list[monthlist_index:monthlist_index])
+    TS = DIVAnd.TimeSelectorYearListMonthList(year_list,month_list[monthlist_index:monthlist_index])
     @show TS;
 
     # File name based on the variable (but all spaces are replaced by _)
-    nc_filename = "$(replace(varname,' '=>'_'))_$(minimum(yearlist))-$(maximum(yearlist))_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_with_backgroundfield_moredepths_$(bath_file_name).nc"
-    nc_filepath = joinpath(result_dir, nc_filename)
+    nc_filename = "$(replace(varname,' '=>'_'))_$(minimum(year_list))-$(maximum(year_list))_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_with_backgroundfield_moredepths_$(bath_file_name).nc"
+    nc_filepath = joinpath("$(results_dir)nc/O2", nc_filename)
+
+    #Append the created files to file_list
+    push!(file_list, nc_filename)
 
     if isfile(nc_filepath)
        rm(nc_filepath) # delete the previous analysis
@@ -472,4 +469,11 @@ for monthlist_index in 1:length(month_list)
     #DIVAnd.saveobs(nc_filepath,(obslon,obslat,obsdepth,obstime),obsid,used = dbinfo[:used])
     DIVAnd.saveobs(nc_filepath,"Oxygen_data", obsval, (obslon,obslat,obsdepth,obstime),obsid, used = dbinfo[:used])
 
+end
+
+# Serialize the list of filenames to JSON and print it
+json_string = JSON.json(file_list)
+# Write the JSON string to a file
+open(joinpath(results_dir, "file_list.json"), "w") do file
+    write(file, json_string)
 end

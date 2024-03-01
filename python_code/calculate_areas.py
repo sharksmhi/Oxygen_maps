@@ -55,109 +55,79 @@ def calculate_grid_areas(latitudes, longitudes):
 
     return areas
 
-location = "//winfs-proj/proj/havgem/DIVA/syrekartor/" # or other location, like havgem path
-area_results = []
-fig, axs = plt.subplots(1, 1, figsize=(10, 8))
-fig2, axs2 = plt.subplots(1, 1, figsize=(10, 8))
-for season in ['Winter', 'Spring', 'Summer', 'Autumn']:
-    ### open netcdf file ###
-    #Oxygen_1994-2021_Autumn_1_50000.0_gebco_30sec_4.nc
-    #Oxygen_2003-2021_Winter_1_50000.0_gebco_30sec_4.nc
-    #Oxygen_1960-2021_Spring_1_49000.0_0.05_5.0_2.0_with_backgroundfield_moredepths_gebco_30sec_4
-    netcdf_filename = f"Oxygen_1992-1992_{season}_0.2_80000.0_0.05_5.0_2.0_with_backgroundfield_moredepths_gebco_30sec_4"
-    print(netcdf_filename)
-    ds = xr.open_dataset(f"{location}/resultat/nc/O2/{netcdf_filename}.nc")
+def calculate_areas(results_dir, file_list):
 
-    ### Calculate area of all grid cells
-    # Get the latitude and longitude coordinates
-    lon, lat = np.meshgrid(ds['lon'], ds['lat'])
-    grid_areas = calculate_grid_areas(latitudes=lat, longitudes=lon)
-    # assign the calculated areas to the dataset and return the updated dataset
-    ds = ds.assign(grid_area=(('lat', 'lon'), grid_areas))
+    area_results = []
+    fig, axs = plt.subplots(1, 1, figsize=(10, 8))
+    fig2, axs2 = plt.subplots(1, 1, figsize=(10, 8))
+    for netcdf_filename in file_list:
 
-    ### extract values that are within our limits, save to a new variable and nc-file. ####
-    # 1 ml/l of O2 is approximately 43.570 µmol/kg
-    # (assumes a molar volume of O2 of 22.392 l/mole and 
-    # a constant seawater potential density of 1025 kg/m3).
-    # https://www.nodc.noaa.gov/OC5/WOD/wod18-notes.html
-    hypox = 90
-    anox = 9      # Detta är kanske för lågt? borde vara kanske 9 µmol/l = ~0.2 ml/l? 18 = ~0.4 ml/l
-    relerr_lim = 0.5
-    unit = 'umol/l'
+        print(netcdf_filename)
+        ds = xr.open_dataset(f"{results_dir}nc/O2/{netcdf_filename}")
+        ### Calculate area of all grid cells
+        # Get the latitude and longitude coordinates
+        lon, lat = np.meshgrid(ds['lon'], ds['lat'])
+        grid_areas = calculate_grid_areas(latitudes=lat, longitudes=lon)
+        # assign the calculated areas to the dataset and return the updated dataset
+        ds = ds.assign(grid_area=(('lat', 'lon'), grid_areas))
 
-    var_name = "Oxygen"
-    ### Find anox gridcells and set them to 1 all others to NaN
-    ds["Anoxia_mask"]=xr.where((ds[var_name]<=anox),ds[var_name]/ds[var_name]*1,ds[var_name]*np.nan,keep_attrs=True)
-    ds["Hypoxia_mask"]=xr.where((ds[var_name]<=hypox),ds[var_name]/ds[var_name]*1,ds[var_name]*np.nan,keep_attrs=True)
+        ### extract values that are within our limits, save to a new variable and nc-file. ####
+        # 1 ml/l of O2 is approximately 43.570 µmol/kg
+        # (assumes a molar volume of O2 of 22.392 l/mole and
+        # a constant seawater potential density of 1025 kg/m3).
+        # https://www.nodc.noaa.gov/OC5/WOD/wod18-notes.html
+        hypox = 90
+        anox = 9      # Detta är kanske för lågt? borde vara kanske 9 µmol/l = ~0.2 ml/l? 18 = ~0.4 ml/l
+        relerr_lim = 0.5
+        unit = 'umol/l'
 
-    ds["Depth_hypoxia"]=xr.where((ds[var_name]<=hypox),ds['depth'],ds[var_name]*np.nan,keep_attrs=True)
-    # Find the minimum threshold depth at each (time, lon, lat) coordinate
-    ds['Min_depth_hypoxia']=ds['Depth_hypoxia'].min(dim='depth', skipna=True)
+        var_name = "Oxygen"
+        ### Find anox gridcells and set them to 1 all others to NaN
+        #To do: Ändra så att vi kan skicka in en lista på gränsvärden.
 
-    ds["Depth_anoxia"]=xr.where((ds[var_name]<=anox),ds['depth'],ds[var_name]*np.nan,keep_attrs=True)
-    # Find the minimum threshold depth at each (time, lon, lat) coordinate
-    ds['Min_depth_anoxia']=ds['Depth_anoxia'].min(dim='depth', skipna=True)
+        ds["Anoxia_mask"]=xr.where((ds[var_name]<=anox),ds[var_name]/ds[var_name]*1,ds[var_name]*np.nan,keep_attrs=True)
+        ds["Hypoxia_mask"]=xr.where((ds[var_name]<=hypox),ds[var_name]/ds[var_name]*1,ds[var_name]*np.nan,keep_attrs=True)
 
-    ### Sum hypox areas per season
-    ds["Hypoxic_area"]=xr.where((ds['Min_depth_hypoxia']>=0),ds['grid_area'],ds['Min_depth_hypoxia']*np.nan,keep_attrs=True).sum(dim=['lat', 'lon'], skipna=True)
-    #HRelativt fel på alla grundaste djup som har hypoxi.
-    ds["Hypoxic_relerr_per_depth"] = xr.where(((ds['depth'] == ds['Min_depth_hypoxia'])), ds['Oxygen_relerr'],
-                                       ds['Min_depth_hypoxia'] * np.nan, keep_attrs=True)
-    ds["Hypoxic_relerr_per_grid_at_min_hypox_depth"] = xr.where(((ds['depth'] == ds['Min_depth_hypoxia'])), ds['Oxygen_relerr'],
-                                              ds['Min_depth_hypoxia'] * np.nan, keep_attrs=True).sum(dim= 'depth', skipna=True)
-    #Summerar relativt felet över alla djup till en platt matris, dvs relativt fel, per gridcell och år.
-    #ds["Hypoxic_relerr_per_grid"]=xr.where(((ds['depth']==ds['Min_depth_hypoxia'])),ds['Oxygen_relerr'],ds['Min_depth_hypoxia']*np.nan,keep_attrs=True).sum(dim=['depth'], skipna=True)
-    ds["Hypoxic_relerr_per_grid"] = ds["Hypoxic_relerr_per_depth"].sum(dim=['depth'], skipna=True)
-    ds["Hypoxic_relerr_area"] = xr.where((ds['Hypoxic_relerr_per_grid']>=relerr_lim),ds['grid_area'],ds['Min_depth_hypoxia']*np.nan,keep_attrs=True).sum(dim=['lat', 'lon'], skipna=True)
+        ds["Depth_hypoxia"]=xr.where((ds[var_name]<=hypox),ds['depth'],ds[var_name]*np.nan,keep_attrs=True)
+        # Find the minimum threshold depth at each (time, lon, lat) coordinate
+        ds['Min_depth_hypoxia']=ds['Depth_hypoxia'].min(dim='depth', skipna=True)
 
-    ### Sum anoxic areas per season
-    ds["Anoxic_area"] = xr.where((ds['Min_depth_anoxia'] >= 0), ds['grid_area'], ds['Min_depth_anoxia'] * np.nan,
-                                  keep_attrs=True).sum(dim=['lat', 'lon'], skipna=True)
-    # HRelativt fel på alla grundaste djup som har anoxi.
-    ds["Anoxic_relerr_per_depth"] = xr.where(((ds['depth'] == ds['Min_depth_anoxia'])), ds['Oxygen_relerr'],
-                                              ds['Min_depth_anoxia'] * np.nan, keep_attrs=True)
-    ds["Anoxic_relerr_per_grid_at_min_anox_depth"] = xr.where(((ds['depth'] == ds['Min_depth_anoxia'])),
-                                                                ds['Oxygen_relerr'],
-                                                                ds['Min_depth_anoxia'] * np.nan, keep_attrs=True).sum(
-        dim='depth', skipna=True)
-    # Summerar relativt felet över alla djup till en platt matris, dvs relativt fel, per gridcell och år.
-    # ds["Anoxic_relerr_per_grid"]=xr.where(((ds['depth']==ds['Min_depth_hypoxia'])),ds['Oxygen_relerr'],ds['Min_depth_hypoxia']*np.nan,keep_attrs=True).sum(dim=['depth'], skipna=True)
-    ds["Anoxic_relerr_per_grid"] = ds["Anoxic_relerr_per_depth"].sum(dim=['depth'], skipna=True)
-    ds["Anoxic_relerr_area"] = xr.where((ds['Anoxic_relerr_per_grid'] >= relerr_lim), ds['grid_area'],
-                                         ds['Min_depth_anoxia'] * np.nan, keep_attrs=True).sum(dim=['lat', 'lon'],
-                                                                                                skipna=True)
+        ds["Depth_anoxia"]=xr.where((ds[var_name]<=anox),ds['depth'],ds[var_name]*np.nan,keep_attrs=True)
+        # Find the minimum threshold depth at each (time, lon, lat) coordinate
+        ds['Min_depth_anoxia']=ds['Depth_anoxia'].min(dim='depth', skipna=True)
 
-    ### plot the resulting timeseries
-    # ds["HYPOX_area"].plot(ax=axs, label = season)
-    #ds["Hypoxic_area"].plot(ax=axs, label = season)
-    #ds["Hypoxic_relerr_area"].plot(ax=axs2, label = season)
+        ### Sum hypox areas per season
+        ds["Hypoxic_area"]=xr.where((ds['Min_depth_hypoxia']>=0),ds['grid_area'],ds['Min_depth_hypoxia']*np.nan,keep_attrs=True).sum(dim=['lat', 'lon'], skipna=True)
+        #HRelativt fel på alla grundaste djup som har hypoxi.
+        ds["Hypoxic_relerr_per_depth"] = xr.where(((ds['depth'] == ds['Min_depth_hypoxia'])), ds['Oxygen_relerr'],
+                                           ds['Min_depth_hypoxia'] * np.nan, keep_attrs=True)
+        ds["Hypoxic_relerr_per_grid_at_min_hypox_depth"] = xr.where(((ds['depth'] == ds['Min_depth_hypoxia'])), ds['Oxygen_relerr'],
+                                                  ds['Min_depth_hypoxia'] * np.nan, keep_attrs=True).sum(dim= 'depth', skipna=True)
+        #Summerar relativt felet över alla djup till en platt matris, dvs relativt fel, per gridcell och år.
+        #ds["Hypoxic_relerr_per_grid"]=xr.where(((ds['depth']==ds['Min_depth_hypoxia'])),ds['Oxygen_relerr'],ds['Min_depth_hypoxia']*np.nan,keep_attrs=True).sum(dim=['depth'], skipna=True)
+        ds["Hypoxic_relerr_per_grid"] = ds["Hypoxic_relerr_per_depth"].sum(dim=['depth'], skipna=True)
+        ds["Hypoxic_relerr_area"] = xr.where((ds['Hypoxic_relerr_per_grid']>=relerr_lim),ds['grid_area'],ds['Min_depth_hypoxia']*np.nan,keep_attrs=True).sum(dim=['lat', 'lon'], skipna=True)
 
-    {"year"	"season"	"hypoxic area total"	"hypoxic area relerr"	"anoxic area total"	"anoxic area relerr"}
-    df = pd.DataFrame()
-    df["Hypoxic_area_km2"] = ds["Hypoxic_area"].round(3)
-    df["Hypoxic_relerr_area_km2"] = ds["Hypoxic_relerr_area"].round(3)
-    df["Anoxic_area_km2"] = ds["Anoxic_area"].round(3)
-    df["Anoxic_relerr_area_km2"] = ds["Anoxic_relerr_area"].round(3)
-    df["year"] = ds.time.values.astype('datetime64[Y]').astype(int) + 1970
-    df["season"] = season
-    area_results.append(df)
+        ### Sum anoxic areas per season
+        ds["Anoxic_area"] = xr.where((ds['Min_depth_anoxia'] >= 0), ds['grid_area'], ds['Min_depth_anoxia'] * np.nan,
+                                      keep_attrs=True).sum(dim=['lat', 'lon'], skipna=True)
+        # HRelativt fel på alla grundaste djup som har anoxi.
+        ds["Anoxic_relerr_per_depth"] = xr.where(((ds['depth'] == ds['Min_depth_anoxia'])), ds['Oxygen_relerr'],
+                                                  ds['Min_depth_anoxia'] * np.nan, keep_attrs=True)
+        ds["Anoxic_relerr_per_grid_at_min_anox_depth"] = xr.where(((ds['depth'] == ds['Min_depth_anoxia'])),
+                                                                    ds['Oxygen_relerr'],
+                                                                    ds['Min_depth_anoxia'] * np.nan, keep_attrs=True).sum(
+            dim='depth', skipna=True)
+        # Summerar relativt felet över alla djup till en platt matris, dvs relativt fel, per gridcell och år.
+        # ds["Anoxic_relerr_per_grid"]=xr.where(((ds['depth']==ds['Min_depth_hypoxia'])),ds['Oxygen_relerr'],ds['Min_depth_hypoxia']*np.nan,keep_attrs=True).sum(dim=['depth'], skipna=True)
+        ds["Anoxic_relerr_per_grid"] = ds["Anoxic_relerr_per_depth"].sum(dim=['depth'], skipna=True)
+        ds["Anoxic_relerr_area"] = xr.where((ds['Anoxic_relerr_per_grid'] >= relerr_lim), ds['grid_area'],
+                                             ds['Min_depth_anoxia'] * np.nan, keep_attrs=True).sum(dim=['lat', 'lon'],
+                                                                                                    skipna=True)
 
-    # df[f"{season}_relerr"] = ds["Hypoxic_relerr_area"]
-    # save the updated dataset
-    print(f"saving {season}...")
-    ds.to_netcdf(f'{location}/resultat/nc/processed/{netcdf_filename}.nc') # rewrite to netcdf
-    print(f'{location}/resultat/nc/processed/{netcdf_filename}.nc has been modified')
+        # save the updated dataset
+        print(f"saving {netcdf_filename}...")
+        ds.to_netcdf(f'{results_dir}nc/processed/{netcdf_filename}') # rewrite to netcdf
+        print(f'{netcdf_filename} has been modified')
 
-# df.set_index(ds.time.values, inplace=True)
-pd.concat(area_results).to_csv(f'{location}resultat/area_data.txt', sep='\t', index=False)
-df.to_csv(f'{location}resultat/hypox_area_data.txt', sep='\t')
 
-#axs.set_xlabel('Year')
-#axs.set_ylabel('Area [km3]')
-#axs.legend()
-#fig.savefig(f'{location}resultat/figures/hypox_area.png')
-#fig2.savefig(f'{location}resultat/figures/hypox_relerr_area.png')
-
-#fig, axs = plt.subplots(1, 1, figsize=(10, 8))
-#df.plot.bar(ax = axs,)
-#plt.savefig(f'{location}resultat/figures/hypox_area_barchart.png')

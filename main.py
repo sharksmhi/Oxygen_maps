@@ -3,6 +3,9 @@ julia julia_code\oxygen_analysis.jl, år, säsong, DIVAsettings
 python python_code\calculata_areas.py, år, säsong, DIVASettings
 """
 import subprocess
+import json
+from python_code import calculate_areas as calculate_areas
+from python_code import plot_test
 from sys import stdout
 
 """# year: list, seasons: list, DIVAsettings: dict
@@ -26,6 +29,7 @@ def run_julia_function(args):
         # ropa på vår oxygen analysis funktion i oxygen analysis juila scriptet. 
         # Lägg till fler argument efter outputdir med komma mellan
         subprocess.run(args, check=True)
+
     except FileNotFoundError:
         print("Julia executable not found. Make sure Julia is installed and added to the system PATH.")
         
@@ -34,13 +38,38 @@ if __name__ == "__main__":
     # Specify function name and arguments
     # function_name = "my_julia_function"
     # argument1 = "value1"
-    # argument2 = "value2"
 
+    #Data input directory
     input_dir = "data"
-    results_dir = "//winfs-proj/proj/havgem/DIVA/syrekartor/resultat/nc/O2"
-    args = ['julia', 'julia_code/oxygen_analysis.jl', input_dir, results_dir]
-    # Call the function
+    #Result directory
+    results_dir = "//winfs-proj/proj/havgem/DIVA/syrekartor/resultat/"
+    #Input data filename
+    data_fname = "EMODNET_SHARK_ICES.txt"
+    #Years, month and seasons to be analysed
+    year_list = json.dumps([1995])
+    #month_list = [ [11,12,1,2], [3,4,5], [6,7,8], [8,9,10]];
+    month_list = json.dumps([[11, 12, 1, 2]])
+    seasons = json.dumps(["Winter"])
+    #seasons=["Winter","Spring","Summer","Autumn"]
+    #Correlation length
+    lenf = 80_000   #Km
+
+    args = ['julia', 'julia_code/oxygen_analysis.jl', input_dir, results_dir, data_fname, year_list, month_list, seasons]
+    # Call the function and save a json-file with a file_list containing the results. That we can send to the calculate_areas function.
     run_julia_function(args)
+
+    # Open the JSON file
+    with open(f"{results_dir}file_list.json", 'r') as file:
+        # Load JSON data from the file
+        file_list = json.load(file)
+
+    #Calculate areas from DIVA-results and save in a new nc-file. Results in file_list
+    calculate_areas.calculate_areas(results_dir, file_list)
+
+    #Read and plot areas in file_list
+    # todo fix reading of year_list
+    plot_test.read_processed_nc(results_dir,file_list,year_list)
+
 
 
 

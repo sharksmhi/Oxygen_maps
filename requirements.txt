@@ -1,0 +1,7 @@
+xarray
+pandas
+netcdf4
+numpy
+matplotlib
+h5netcdf
+#pip install -r .\requirements.txt
