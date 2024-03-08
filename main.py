@@ -67,7 +67,6 @@ if __name__ == "__main__":
     calculate_areas.calculate_areas(results_dir, file_list)
 
     #Read and plot areas in file_list
-    # todo fix reading of year_list
     plot_test.read_processed_nc(results_dir,file_list,year_list)
 
 

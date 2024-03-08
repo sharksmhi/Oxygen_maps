@@ -6,8 +6,10 @@ import pandas as pd
 import json
 # import cartopy
 from mpl_toolkits.basemap import Basemap
+from mpl_toolkits.axes_grid1 import inset_locator
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-def sub_plot_observations_basemap(ds, axis, year, show_depth, vmin, vmax, observation_span=2, bath_file=None):
+def sub_plot_parameter_basemap(ds, parameter, axis, year, show_depth, vmin, vmax, observation_span=2, bath_file=None):
     year_list = [datetime.strftime(timestr.astype('datetime64[M]').item(), '%Y') for timestr in ds["time"][:].values]
     time_index = year_list.index(str(year))
     depth_index = ds["depth"][:].values == show_depth
@@ -22,7 +24,7 @@ def sub_plot_observations_basemap(ds, axis, year, show_depth, vmin, vmax, observ
     # Plot land borders from the bathymetry file
 
     # Plot data
-    data = ds['Oxygen'].sel(time=ds['time'][time_index], depth=ds['depth'][depth_index]).squeeze()
+    data = ds[parameter].sel(time=ds['time'][time_index], depth = ds['depth'][depth_index]).squeeze()
     lon = ds['lon'].values
     lat = ds['lat'].values
 
@@ -30,9 +32,27 @@ def sub_plot_observations_basemap(ds, axis, year, show_depth, vmin, vmax, observ
     lon, lat = m(lon, lat)
 
     pcm = m.pcolormesh(lon, lat, data, cmap='jet', vmin=vmin, vmax=vmax)
-    # Add a colorbar
-    plt.colorbar(pcm, ax=axis, label='Oxygen umol/l', orientation='horizontal').ax.tick_params(labelsize=10)
 
+    return m, pcm
+
+def sub_plot_observations_basemap(ds, parameter, axis, year, show_depth, vmin, vmax, observation_span=2, bath_file=None):
+    year_list = [datetime.strftime(timestr.astype('datetime64[M]').item(), '%Y') for timestr in ds["time"][:].values]
+    time_index = year_list.index(str(year))
+    time_value = ds['time'][time_index].values.astype('datetime64[M]').item()
+
+    m, pcm = sub_plot_parameter_basemap(ds, parameter, axis, year, show_depth, vmin, vmax)
+    # Add a colorbar
+    # Create an inset_axes for the colorbar
+    # cax = inset_locator.inset_axes(axis, width="5%", height="100%", bbox_to_anchor=(0, 0, 1, 1),
+    #                             bbox_transform=axis.transAxes, borderpad=0)
+    # create an axes on the right side of ax. The width of cax will be 5%
+    # of ax and the padding between cax and ax will be fixed at 0.05 inch.
+    # divider = make_axes_locatable(axis)
+    # cax = divider.append_axes("right", size="5%", pad=0.05)
+    # plt.colorbar(pcm, ax=axis, label='Oxygen umol/l', orientation = 'horizontal', shrink = 0.5).ax.tick_params(labelsize=10)
+
+    # nedan är endast för att få med observationer
+    # OBS att DIVAnd resultatet ligger under dimensionen 'Oxygen' i datasetet och obsevrationerna under 'Oxygen_data'
     df = pd.DataFrame(
         {'obsyear': ds['obsyear'], 'obslon': ds['obslon'], 'obslat': ds['obslat'], 'Oxygen_data': ds['Oxygen_data'],
          'depth': ds['obsdepth']})
@@ -49,9 +69,11 @@ def sub_plot_observations_basemap(ds, axis, year, show_depth, vmin, vmax, observ
               vmin=vmin, vmax=vmax)
 
     # Add labels to the subplot
-    axis.set_title(f'Oxygen at {show_depth} m\nobservation at +/- {observation_span} m')
-    axis.set_xlabel('Longitude')
-    axis.set_ylabel('Latitude')
+    axis.set_title(f'Oxygen at {show_depth} m\nobservation at +/- {observation_span} m', fontsize = 10)
+    axis.set_xlabel('Longitude', fontsize = 10)
+    axis.set_ylabel('Latitude', fontsize = 10)
+
+    return pcm
 
 def sub_plot_area_at_threshold_basemap(ds, parameter, axis, year, vmin, vmax, threshold, unit='umol/l', bath_file=None):
     year_list = [datetime.strftime(timestr.astype('datetime64[M]').item(), '%Y') for timestr in ds["time"][:].values]
@@ -84,141 +106,15 @@ def sub_plot_area_at_threshold_basemap(ds, parameter, axis, year, vmin, vmax, th
     axis.set_xlabel('Longitude', fontsize=10)
     axis.set_ylabel('Latitude', fontsize=10)
 
+def sub_plot_errorfields_basemap(ds, parameter, axis, year, show_depth, vmin, vmax):
 
-def sub_plot_errorfields_basemap(ds, axis, year, show_depth, vmin, vmax):
-    year_list = [datetime.strftime(timestr.astype('datetime64[M]').item(), '%Y') for timestr in ds["time"][:].values]
-    time_index = year_list.index(str(year))
-    depth_index = ds["depth"][:].values == show_depth
-
-    # Create a Basemap instance with Mercator projection
-    m = Basemap(projection='merc', llcrnrlat=ds['lat'].min(), urcrnrlat=ds['lat'].max(),
-                llcrnrlon=ds['lon'].min(), urcrnrlon=ds['lon'].max(), resolution='l', ax=axis)
-
-    # Plot land borders
-    m.drawcoastlines(linewidth=0.5, color='gray')
-    
-    # plot data
-    data = ds['Oxygen_relerr'].sel(time=ds['time'][time_index], depth = ds['depth'][depth_index]).squeeze()
-
-    lon = ds['lon'].values
-    lat = ds['lat'].values
-
-    lon, lat = np.meshgrid(lon, lat)
-    lon, lat = m(lon, lat)
-
-    # Plot data using pcolormesh
-    pcm = m.pcolormesh(lon, lat, data, cmap='jet', vmin=vmin, vmax=vmax)
+    m, pcm = sub_plot_parameter_basemap(ds, parameter, axis, year, show_depth, vmin, vmax)
     # Add labels to the 2nd subplot
     axis.set_title(f'Errorfield at {show_depth} m results')
     axis.set_xlabel('Longitude')
     axis.set_ylabel('Latitude')
 
-
-"""
-def sub_plot_observations_cartopy(ds, axis, year, show_depth, vmin, vmax, observation_span=2, bath_file=None):
-    year_list = [datetime.strftime(timestr.astype('datetime64[M]').item(), '%Y') for timestr in ds["time"][:].values]
-    time_index = year_list.index(str(year))
-    depth_index = ds["depth"][:].values == show_depth
-    time_value = ds['time'][time_index].values.astype('datetime64[M]').item()
-
-    # Plot land borders
-    axis.add_feature(cartopy.feature.COASTLINE, edgecolor='gray')
-    axis.add_feature(cartopy.feature.BORDERS, linestyle=':', edgecolor='gray')
-
-    # Plot data
-    data = ds['Oxygen'].sel(time=ds['time'][time_index], depth=ds['depth'][depth_index])
-    lon = ds['lon'].values
-    lat = ds['lat'].values
-
-    axis.pcolormesh(lon, lat, data, transform=cartopy.crs.PlateCarree(), cmap='jet', vmin=vmin, vmax=vmax)
-
-    df = pd.DataFrame(
-        {'obsyear': ds['obsyear'], 'obslon': ds['obslon'], 'obslat': ds['obslat'], 'Oxygen_data': ds['Oxygen_data'],
-         'depth': ds['obsdepth']})
-    selection = ((df.obsyear == datetime.strftime(time_value, '%Y')) & (
-            df.depth >= show_depth - observation_span) & (df.depth <= show_depth + observation_span))
-
-    observations = df.loc[selection, 'Oxygen_data']
-    lon = df.loc[selection, 'obslon']
-    lat = df.loc[selection, 'obslat']
-
-    axis.scatter(x=lon, y=lat, s=5, c=observations, cmap='jet', edgecolors='k', linewidth=0.2, facecolor='none',
-                 vmin=vmin, vmax=vmax, transform=cartopy.crs.PlateCarree())
-
-    # Add labels to the subplot
-    axis.set_title(f'Oxygen at {show_depth} m\nobservation at +/- {observation_span} m')
-    axis.set_xlabel('Longitude')
-    axis.set_ylabel('Latitude')
-
-    # Set the map projection to SWEREF 99
-    axis.set_extent([10, 25, 55, 70], crs=cartopy.crs.PlateCarree())
-
-    # Optionally, add gridlines
-    axis.gridlines(draw_labels=True, linestyle='--', color='gray')
-"""
-
-def sub_plot_observations(ds, axis, year, show_depth, vmin, vmax, observation_span = 2):
-
-    year_list = [datetime.strftime(timestr.astype('datetime64[M]').item(), '%Y') for timestr in ds["time"][:].values]
-    time_index = year_list.index(str(year))
-    depth_index = ds["depth"][:].values == show_depth
-    time_value = ds['time'][time_index].values.astype('datetime64[M]').item()
-    # Plot land borders
-    axis.contourf(bath_file["lon"], bath_file["lat"], -b, levels=[-1e5, 0], colors="gray")
-    
-    # Plot data
-    data = ds['Oxygen'].sel(time=ds['time'][time_index], depth=ds['depth'][depth_index])
-    data.plot(ax=axis, x='lon', y='lat', cmap='jet', vmin=vmin, vmax=vmax)
-    df = pd.DataFrame(
-        {'obsyear': ds['obsyear'], 'obslon': ds['obslon'], 'obslat': ds['obslat'], 'Oxygen_data': ds['Oxygen_data'],
-         'depth': ds['obsdepth']})
-    selection = ((df.obsyear == datetime.strftime(time_value, '%Y')) & (
-            df.depth >= show_depth - observation_span) & (df.depth <= show_depth + observation_span))
-
-    observations = df.loc[selection, 'Oxygen_data']
-    lon = df.loc[selection, 'obslon']
-    lat = df.loc[selection, 'obslat']
-    axis.scatter(x=lon, y=lat, s=5, c=observations, cmap='jet', edgecolors='k', linewidth=0.2, facecolor='none',
-                    vmin=vmin, vmax=vmax)
-    # Add labels to the 1st subplot
-    axis.set_title(f'Oxygen at {show_depth} m\nobservation at +/- {observation_span} m')
-    axis.set_xlabel('Longitude')
-    axis.set_ylabel('Latitude')
-
-def sub_plot_errorfields(ds, axis, year, show_depth, vmin, vmax):
-    year_list = [datetime.strftime(timestr.astype('datetime64[M]').item(), '%Y') for timestr in ds["time"][:].values]
-    time_index = year_list.index(str(year))
-    depth_index = ds["depth"][:].values == show_depth
-    # Plot land borders
-    axis.contourf(bath_file["lon"], bath_file["lat"], -b, levels=[-1e5,0], colors="gray")
-    
-    # plot data
-    data = ds['Oxygen_relerr'].sel(time=ds['time'][time_index], depth = ds['depth'][depth_index])
-    data.plot(ax=axis, x='lon', y='lat', cmap='jet', vmin=vmin, vmax=vmax)
-    
-    # Add labels to the 2nd subplot
-    axis.set_title(f'Errorfield at {show_depth} m results')
-    axis.set_xlabel('Longitude')
-    axis.set_ylabel('Latitude')
-
-def sub_plot_area_at_threshold(ds, parameter, axis, year, vmin, vmax, threshold, unit = 'umol/l'):
-    year_list = [datetime.strftime(timestr.astype('datetime64[M]').item(), '%Y') for timestr in ds["time"][:].values]
-    time_index = year_list.index(str(year))
-
-    # Plot land borders
-    axis.contourf(bath_file["lon"], bath_file["lat"], -b, levels=[-1e5,0], colors="gray")
-    # Plot data
-    try:
-        data = ds[parameter].sel(time=ds['time'][time_index])
-        data.plot(ax=axis, x='lon', y='lat', cmap='jet', vmin=vmin, vmax=vmax)
-    except KeyError:
-        print(f'no {parameter} in file')
-    axis.set_title(f'area of oxygen <= {threshold} {unit}', fontsize=12)
-    axis.set_xlabel('Longitude', fontsize=10)
-    axis.set_ylabel('Latitude', fontsize=10)
-
-
-def plot(results_dir, netcdf_filename, year, ds):
+def plot(results_dir, netcdf_filename, year, season, ds):
     # in umol/l
     # 1 ml/l of O2 is approximately 43.570 µmol/kg
     # (assumes a molar volume of O2 of 22.392 l/mole and
@@ -233,34 +129,14 @@ def plot(results_dir, netcdf_filename, year, ds):
     show_depth_1 = 100
     show_depth_2 = 125
     show_depth_3 = 150
-
-    depth_index = ds["depth"][:].values == show_depth
-    depth_index_1 = ds["depth"][:].values == show_depth_1
-    depth_index_2 = ds["depth"][:].values == show_depth_2
-    depth_index_3 = ds["depth"][:].values == show_depth_3
-    observation_span = 2
-
-    # Extract year and month from the time value
     
-    year_list = [datetime.strftime(timestr.astype('datetime64[M]').item(), '%Y') for timestr in ds["time"][:].values]
-    time_index = year_list.index(str(year))
-    time_value = ds['time'][time_index].values.astype('datetime64[M]').item()
-    year_month = datetime.strftime(time_value, '%Y-%m')
     ds['obsyear'] = ds['obstime'].values.astype('datetime64[Y]')
 
-    print(f'producing maps for year {year} at {show_depth} m {year_month}')
+    print(f'producing maps for year {year} {season} at {show_depth} m')
     # Plot the data on a map
     plt.style.use('dark_background')
     # Create a 2x2 grid of subplots
     fig, axs = plt.subplots(2, 4, figsize=(10, 4))
-    ax_data = axs[0, 0]
-    ax_error_field = axs[0, 1]
-    ax_min_hypox = axs[0, 2]
-    ax_min_anox = axs[0, 3]
-    ax_data_1 = axs[1, 0]
-    ax_data_2 = axs[1, 1]
-    ax_data_3 = axs[1, 2]
-    ax_data_4 = axs[1, 3]
 
     # Create a 1x4 grid of subplots
     #fig, axs = plt.subplots(1, 4, figsize=(18, 4))
@@ -272,74 +148,68 @@ def plot(results_dir, netcdf_filename, year, ds):
     vmax_o2 = 180
     # 1111111 Plot the data on the 1st subplot
     # on the 1st and 2nd plot we show oxygen set min and max for colorscale
-    sub_plot_observations_basemap(ds, axis=ax_data, year=year, show_depth=show_depth, vmin=vmin_o2, vmax=vmax_o2)
+    pcm = sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, 0], year=year, show_depth=show_depth, vmin=vmin_o2, vmax=vmax_o2)
 
-    sub_plot_observations_basemap(ds, axis=ax_data_4, year=year, show_depth=show_depth, vmin=vmin_o2, vmax=vmax_o2)
+    sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[1, 3], year=year, show_depth=show_depth, vmin=vmin_o2, vmax=vmax_o2)
 
     # 1,0 Plot the data on the 1st subplot
     # on the 1st and 2nd plot we show oxygen set min and max for colorscale
-    sub_plot_observations_basemap(ds, axis=ax_data_1, year=year, show_depth=show_depth_1, vmin=vmin_o2, vmax=vmax_o2)
+    sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[1, 0], year=year, show_depth=show_depth_1, vmin=vmin_o2, vmax=vmax_o2)
 
     # 1,1 Plot the data on the 1st subplot
     # on the 1st and 2nd plot we show oxygen set min and max for colorscale
-    sub_plot_observations_basemap(ds, axis=ax_data_2, year=year, show_depth=show_depth_2, vmin=vmin_o2, vmax=vmax_o2)
+    sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[1, 1], year=year, show_depth=show_depth_2, vmin=vmin_o2, vmax=vmax_o2)
 
     # 1,2 Plot the data on the 1st subplot
     # on the 1st and 2nd plot we show oxygen set min and max for colorscala
-    sub_plot_observations_basemap(ds, axis=ax_data_3, year=year, show_depth=show_depth_3, vmin=vmin_o2, vmax=vmax_o2)
+    sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[1, 2], year=year, show_depth=show_depth_3, vmin=vmin_o2, vmax=vmax_o2)
     
     # 2222222 Plot the data on the 2nd subplot
     # plot relative error of results at the choosen depth
-    sub_plot_errorfields_basemap(ds, axis=ax_error_field, year=year, show_depth=show_depth, vmin=0, vmax=0.5)
+    sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[0, 1], year=year, show_depth=show_depth, vmin=0, vmax=0.5)
     
     # Plot 33333333333 the hypoxic min depth on the 3rd subplot
     # set common max, min limits for depth plots
-    sub_plot_area_at_threshold_basemap(ds, parameter='Min_depth_hypoxia', axis=ax_min_hypox, year=year, vmin = 60, vmax = 150, threshold=hypox)
+    sub_plot_area_at_threshold_basemap(ds, parameter='Min_depth_hypoxia', axis=axs[0, 2], year=year, vmin = 60, vmax = 150, threshold=hypox)
 
     # Plot the anoxic min depth  on the 4th subplot
-    sub_plot_area_at_threshold_basemap(ds, parameter='Min_depth_anoxia', axis=ax_min_anox, year=year, vmin = 60, vmax = 150, threshold=anox)
+    sub_plot_area_at_threshold_basemap(ds, parameter='Min_depth_anoxia', axis=axs[0, 3], year=year, vmin = 60, vmax = 150, threshold=anox)
 
-    # Set a common title for each row of subplots
-    """
-        Modifications to the Groupers returned by get_shared_x_axes and get_shared_y_axes are deprecated. 
-        In the future, these methods will return immutable views on the grouper structures. 
-        Note that previously, calling e.g. join() would already fail to set up the correct structures for sharing axes; 
-        use Axes.sharex or Axes.sharey instead.
-    """
-    ax_data.get_shared_x_axes().join(ax_data, ax_error_field)
-    ax_data.get_shared_y_axes().join(ax_data, ax_error_field)
+    
+    pcm = sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, 0], year=year, show_depth=show_depth, vmin=vmin_o2, vmax=vmax_o2)
+    cax = fig.add_axes(rect = [0.1, 0, 0.2, 0.02])
+    plt.colorbar(pcm, cax=cax, label='Oxygen umol/l', orientation = 'horizontal', shrink = 0.5).ax.tick_params(labelsize=10)
+    # Adjust the spacing between subplots
+    fig.tight_layout() # (left, bottom, width, height)
 
     # Adjust the spacing between subplots
-    fig.tight_layout(rect=[0, 0, 1, 1]) # (left, bottom, width, height)
+    # fig.subplots_adjust(hspace=1, wspace = 0)  # You can adjust the value of hspace as needed
+
 
     # Add title and labels
     # Set the title for the whole figure
-    fig.suptitle(f'maps of hypoxia and anoxia\n{year_month}')
+    fig.suptitle(f'maps of hypoxia and anoxia\n{year} {season}')
 
     # Save the plot
-    plt.savefig(f'{results_dir}/figures/maps_{year_month}_{show_depth}_{netcdf_filename}.png', dpi = 300, transparent=True)
-
-bath_file = xr.open_dataset("../Oxygen_maps/bathymetry/gebco_30sec_4.nc")
-# Extract the required variables
-b = bath_file["bat"]
+    plt.savefig(f'{results_dir}/figures/maps_{year}_{season}_{show_depth}m_{netcdf_filename}.png', dpi = 300, transparent=True)
 
 ## extract values that are within our limits, save to a new variable and nc-file. ####
 
-
-# # choose year
-start_year = 1995
-stop_year = 1995
-def read_processed_nc(results_dir,file_list,year_list):
+def read_processed_nc(results_dir,file_list,year_list: json):
     for netcdf_filename in file_list:
-
-        print(netcdf_filename)
         ds = xr.open_dataset(f"{results_dir}nc/processed/{netcdf_filename}")
-        """for year in year_list:
-            print(year)
-            plot(results_dir, netcdf_filename, year, ds)"""
-
-        for year in range(start_year,stop_year+1):
-            plot(results_dir, netcdf_filename, year, ds)
+       
+        metadata_list = netcdf_filename.split('_')
+        parameter = metadata_list[0]
+        year_range = metadata_list[1]
+        season = metadata_list[2]
+        epsilon = metadata_list[3]
+        corrlen = metadata_list[4]
+        year_list = json.loads(year_list)
+        for year in year_list:
+            if str(year) not in year_range:
+                   continue
+            plot(results_dir, netcdf_filename, year, season, ds)
 
 if __name__ == "__main__":
     # Result directory
@@ -349,6 +219,5 @@ if __name__ == "__main__":
         # Load JSON data from the file
         file_list = json.load(file)
 
-    year_list = json.dumps([1995])
-    print(year_list)
+    year_list = json.dumps([1995, 1996])
     read_processed_nc(results_dir,file_list, year_list)
