@@ -36,6 +36,7 @@ def sub_plot_parameter_basemap(ds, parameter, axis, year, show_depth, vmin, vmax
     return m, pcm
 
 def sub_plot_observations_basemap(ds, parameter, axis, year, show_depth, vmin, vmax, observation_span=2, bath_file=None):
+    
     year_list = [datetime.strftime(timestr.astype('datetime64[M]').item(), '%Y') for timestr in ds["time"][:].values]
     time_index = year_list.index(str(year))
     time_value = ds['time'][time_index].values.astype('datetime64[M]').item()
@@ -43,13 +44,11 @@ def sub_plot_observations_basemap(ds, parameter, axis, year, show_depth, vmin, v
     m, pcm = sub_plot_parameter_basemap(ds, parameter, axis, year, show_depth, vmin, vmax)
     # Add a colorbar
     # Create an inset_axes for the colorbar
-    # cax = inset_locator.inset_axes(axis, width="5%", height="100%", bbox_to_anchor=(0, 0, 1, 1),
-    #                             bbox_transform=axis.transAxes, borderpad=0)
-    # create an axes on the right side of ax. The width of cax will be 5%
-    # of ax and the padding between cax and ax will be fixed at 0.05 inch.
-    # divider = make_axes_locatable(axis)
-    # cax = divider.append_axes("right", size="5%", pad=0.05)
-    # plt.colorbar(pcm, ax=axis, label='Oxygen umol/l', orientation = 'horizontal', shrink = 0.5).ax.tick_params(labelsize=10)
+    cbax = inset_locator.inset_axes(axis, width="40%", height="3%", loc="lower right", bbox_to_anchor=(0, 0.15, 1, 1),
+                                bbox_transform=axis.transAxes)
+    cbar = plt.colorbar(pcm, cax = cbax,  orientation = 'horizontal')
+    cbar.ax.tick_params(labelsize = 7)
+    # cbar.set_label(label='µmol/l', fontsize = 10,  y=1.05)
 
     # nedan är endast för att få med observationer
     # OBS att DIVAnd resultatet ligger under dimensionen 'Oxygen' i datasetet och obsevrationerna under 'Oxygen_data'
@@ -100,6 +99,12 @@ def sub_plot_area_at_threshold_basemap(ds, parameter, axis, year, vmin, vmax, th
 
     # Plot data using pcolormesh
     pcm = m.pcolormesh(lon, lat, data, cmap='jet', vmin=vmin, vmax=vmax)
+    # Add a colorbar
+    # Create an inset_axes for the colorbar
+    cbax = inset_locator.inset_axes(axis, width="40%", height="3%", loc="lower right", bbox_to_anchor=(0, 0.15, 1, 1),
+                                bbox_transform=axis.transAxes)
+    cbar = plt.colorbar(pcm, cax = cbax,  orientation = 'horizontal')
+    cbar.ax.tick_params(labelsize = 7)
 
     # Add labels to the subplot with adjusted text size
     axis.set_title(f'Area <= {threshold} {unit}', fontsize=12)
@@ -109,7 +114,13 @@ def sub_plot_area_at_threshold_basemap(ds, parameter, axis, year, vmin, vmax, th
 def sub_plot_errorfields_basemap(ds, parameter, axis, year, show_depth, vmin, vmax):
 
     m, pcm = sub_plot_parameter_basemap(ds, parameter, axis, year, show_depth, vmin, vmax)
-    # Add labels to the 2nd subplot
+    # Add a colorbar
+    # Create an inset_axes for the colorbar
+    cbax = inset_locator.inset_axes(axis, width="40%", height="3%", loc="lower right", bbox_to_anchor=(0, 0.15, 1, 1),
+                                bbox_transform=axis.transAxes)
+    cbar = plt.colorbar(pcm, cax = cbax,  orientation = 'horizontal')
+    cbar.ax.tick_params(labelsize = 7)
+
     axis.set_title(f'Errorfield at {show_depth} m results')
     axis.set_xlabel('Longitude')
     axis.set_ylabel('Latitude')
@@ -137,6 +148,8 @@ def plot(results_dir, netcdf_filename, year, season, ds):
     plt.style.use('dark_background')
     # Create a 2x2 grid of subplots
     fig, axs = plt.subplots(2, 4, figsize=(10, 4))
+    # Adjust the spacing between subplots
+    fig.tight_layout() # (left, bottom, width, height)
 
     # Create a 1x4 grid of subplots
     #fig, axs = plt.subplots(1, 4, figsize=(18, 4))
@@ -177,10 +190,8 @@ def plot(results_dir, netcdf_filename, year, season, ds):
 
     
     pcm = sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, 0], year=year, show_depth=show_depth, vmin=vmin_o2, vmax=vmax_o2)
-    cax = fig.add_axes(rect = [0.1, 0, 0.2, 0.02])
-    plt.colorbar(pcm, cax=cax, label='Oxygen umol/l', orientation = 'horizontal', shrink = 0.5).ax.tick_params(labelsize=10)
-    # Adjust the spacing between subplots
-    fig.tight_layout() # (left, bottom, width, height)
+    # cax = fig.add_axes([0.6, 0.12, 0.1, 0.02])
+    # plt.colorbar(pcm, cax=cax, label='Oxygen umol/l', orientation = 'horizontal', shrink = 0.5).ax.tick_params(labelsize=10)
 
     # Adjust the spacing between subplots
     # fig.subplots_adjust(hspace=1, wspace = 0)  # You can adjust the value of hspace as needed
