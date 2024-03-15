@@ -55,7 +55,27 @@ def calculate_grid_areas(latitudes, longitudes):
 
     return areas
 
-def calculate_areas(results_dir, file_list):
+
+def area_at_threshold(threshold, ds):
+    # Step 1: Create a 3D mask where Oxygen values are below a given threshold
+    threshold = threshold  # Example threshold value
+
+    # Step 2: Create a 3D mask where Oxygen values are below the threshold and False everywhere else
+    mask_below_threshold = ds['Oxygen'] <= threshold
+    ds[f"{threshold}_mask"] = mask_below_threshold
+    # Step 3: Get the first layer in the depth dimension where Oxygen is below the threshold
+    # First, find the indices where the condition is True along the depth dimension
+    first_layer_indices = mask_below_threshold.argmax(dim='depth')
+
+    # Then, use these indices to extract the corresponding depth values
+    ds[f"Min_depth_{threshold}"] = ds['depth'].where(mask_below_threshold).isel(depth=first_layer_indices)
+
+    # Step 5: Extract corresponding values for the variable Oxygen_relerr using the mask from step 4
+    ds[f'Relerr_per_grid_at_min_{threshold}_depth'] = ds['Oxygen_relerr'].where(mask_below_threshold).isel(
+        depth=first_layer_indices)
+
+
+def calculate_areas(results_dir, file_list, threshold_list):
 
     area_results = []
     fig, axs = plt.subplots(1, 1, figsize=(10, 8))
@@ -71,26 +91,24 @@ def calculate_areas(results_dir, file_list):
         # assign the calculated areas to the dataset and return the updated dataset
         ds = ds.assign(grid_area=(('lat', 'lon'), grid_areas))
 
-        ### extract values that are within our limits, save to a new variable and nc-file. ####
-        # 1 ml/l of O2 is approximately 43.570 µmol/kg
-        # (assumes a molar volume of O2 of 22.392 l/mole and
-        # a constant seawater potential density of 1025 kg/m3).
-        # https://www.nodc.noaa.gov/OC5/WOD/wod18-notes.html
+        var_name = "Oxygen"
+        ### Find anox gridcells and set them to 1 all others to NaN
+        #To do: Ändra så att vi kan skicka in en lista på gränsvärden.
+        for threshold in threshold_list:
+            area_at_threshold(threshold,ds)
+        #----------------------------
+        #Här nedan skall vi rensa. Men det skrivs areor till nc-filen som vi använder för att skapa bar-plotstidsserien. Det får vi fixa nästa gång.
+        #
         hypox = 90
         anox = 9      # Detta är kanske för lågt? borde vara kanske 9 µmol/l = ~0.2 ml/l? 18 = ~0.4 ml/l
         relerr_lim = 0.5
         unit = 'umol/l'
 
-        var_name = "Oxygen"
-        ### Find anox gridcells and set them to 1 all others to NaN
-        #To do: Ändra så att vi kan skicka in en lista på gränsvärden.
-
-        ds["Anoxia_mask"]=xr.where((ds[var_name]<=anox),ds[var_name]/ds[var_name]*1,ds[var_name]*np.nan,keep_attrs=True)
-        ds["Hypoxia_mask"]=xr.where((ds[var_name]<=hypox),ds[var_name]/ds[var_name]*1,ds[var_name]*np.nan,keep_attrs=True)
 
         ds["Depth_hypoxia"]=xr.where((ds[var_name]<=hypox),ds['depth'],ds[var_name]*np.nan,keep_attrs=True)
         # Find the minimum threshold depth at each (time, lon, lat) coordinate
         ds['Min_depth_hypoxia']=ds['Depth_hypoxia'].min(dim='depth', skipna=True)
+
 
         ds["Depth_anoxia"]=xr.where((ds[var_name]<=anox),ds['depth'],ds[var_name]*np.nan,keep_attrs=True)
         # Find the minimum threshold depth at each (time, lon, lat) coordinate
@@ -100,9 +118,7 @@ def calculate_areas(results_dir, file_list):
         ds["Hypoxic_area"]=xr.where((ds['Min_depth_hypoxia']>=0),ds['grid_area'],ds['Min_depth_hypoxia']*np.nan,keep_attrs=True).sum(dim=['lat', 'lon'], skipna=True)
         #HRelativt fel på alla grundaste djup som har hypoxi.
         ds["Hypoxic_relerr_per_depth"] = xr.where(((ds['depth'] == ds['Min_depth_hypoxia'])), ds['Oxygen_relerr'],
-                                           ds['Min_depth_hypoxia'] * np.nan, keep_attrs=True)
-        ds["Hypoxic_relerr_per_grid_at_min_hypox_depth"] = xr.where(((ds['depth'] == ds['Min_depth_hypoxia'])), ds['Oxygen_relerr'],
-                                                  ds['Min_depth_hypoxia'] * np.nan, keep_attrs=True).sum(dim= 'depth', skipna=True)
+                                           ds['Min_depth_hypoxia'] * 1000., keep_attrs=True)
         #Summerar relativt felet över alla djup till en platt matris, dvs relativt fel, per gridcell och år.
         #ds["Hypoxic_relerr_per_grid"]=xr.where(((ds['depth']==ds['Min_depth_hypoxia'])),ds['Oxygen_relerr'],ds['Min_depth_hypoxia']*np.nan,keep_attrs=True).sum(dim=['depth'], skipna=True)
         ds["Hypoxic_relerr_per_grid"] = ds["Hypoxic_relerr_per_depth"].sum(dim=['depth'], skipna=True)
@@ -114,12 +130,8 @@ def calculate_areas(results_dir, file_list):
         # HRelativt fel på alla grundaste djup som har anoxi.
         ds["Anoxic_relerr_per_depth"] = xr.where(((ds['depth'] == ds['Min_depth_anoxia'])), ds['Oxygen_relerr'],
                                                   ds['Min_depth_anoxia'] * np.nan, keep_attrs=True)
-        ds["Anoxic_relerr_per_grid_at_min_anox_depth"] = xr.where(((ds['depth'] == ds['Min_depth_anoxia'])),
-                                                                    ds['Oxygen_relerr'],
-                                                                    ds['Min_depth_anoxia'] * np.nan, keep_attrs=True).sum(
-            dim='depth', skipna=True)
+
         # Summerar relativt felet över alla djup till en platt matris, dvs relativt fel, per gridcell och år.
-        # ds["Anoxic_relerr_per_grid"]=xr.where(((ds['depth']==ds['Min_depth_hypoxia'])),ds['Oxygen_relerr'],ds['Min_depth_hypoxia']*np.nan,keep_attrs=True).sum(dim=['depth'], skipna=True)
         ds["Anoxic_relerr_per_grid"] = ds["Anoxic_relerr_per_depth"].sum(dim=['depth'], skipna=True)
         ds["Anoxic_relerr_area"] = xr.where((ds['Anoxic_relerr_per_grid'] >= relerr_lim), ds['grid_area'],
                                              ds['Min_depth_anoxia'] * np.nan, keep_attrs=True).sum(dim=['lat', 'lon'],

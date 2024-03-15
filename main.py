@@ -46,13 +46,15 @@ if __name__ == "__main__":
     #Input data filename
     data_fname = "EMODNET_SHARK_ICES.txt"
     #Years, month and seasons to be analysed
-    year_list = json.dumps([1995])
+    year_list = json.dumps([1996])
     #month_list = [ [11,12,1,2], [3,4,5], [6,7,8], [8,9,10]];
     month_list = json.dumps([[11, 12, 1, 2]])
     seasons = json.dumps(["Winter"])
     #seasons=["Winter","Spring","Summer","Autumn"]
     #Correlation length
     lenf = 80_000   #Km
+    #Thresholds to analyse
+    threshold_list = [0, 90, 180]
 
     args = ['julia', 'julia_code/oxygen_analysis.jl', input_dir, results_dir, data_fname, year_list, month_list, seasons]
     # Call the function and save a json-file with a file_list containing the results. That we can send to the calculate_areas function.
@@ -64,11 +66,14 @@ if __name__ == "__main__":
         file_list = json.load(file)
 
     #Calculate areas from DIVA-results and save in a new nc-file. Results in file_list
-    calculate_areas.calculate_areas(results_dir, file_list)
+    calculate_areas.calculate_areas(results_dir, file_list, threshold_list)
 
     #Read and plot areas in file_list
     plot_test.read_processed_nc(results_dir,file_list,year_list)
 
-
-
+### extract values that are within our limits, save to a new variable and nc-file. ####
+# 1 ml/l of O2 is approximately 43.570 µmol/kg
+# (assumes a molar volume of O2 of 22.392 l/mole and
+# a constant seawater potential density of 1025 kg/m3).
+# https://www.nodc.noaa.gov/OC5/WOD/wod18-notes.html
 
