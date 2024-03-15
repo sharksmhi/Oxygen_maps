@@ -1,6 +1,7 @@
 import xarray as xr
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
 from datetime import datetime
 import pandas as pd
 import json
@@ -42,13 +43,15 @@ def sub_plot_observations_basemap(ds, parameter, axis, year, show_depth, vmin, v
     time_value = ds['time'][time_index].values.astype('datetime64[M]').item()
 
     m, pcm = sub_plot_parameter_basemap(ds, parameter, axis, year, show_depth, vmin, vmax)
-    # Add a colorbar
-    # Create an inset_axes for the colorbar
-    cbax = inset_locator.inset_axes(axis, width="40%", height="3%", loc="lower right", bbox_to_anchor=(0, 0.15, 1, 1),
-                                bbox_transform=axis.transAxes)
-    cbar = plt.colorbar(pcm, cax = cbax,  orientation = 'horizontal')
-    cbar.ax.tick_params(labelsize = 7)
-    # cbar.set_label(label='µmol/l', fontsize = 10,  y=1.05)
+    
+    # Change vmin and vmax after the plot is created
+    pcm.set_clim(vmin=vmin, vmax=vmax)
+    # Create a custom discrete colormap
+    #        -45     0        45    90 (2 ml/l)  135      180 (4 ml/l)
+    colors = ['black', 'brown', 'red',   'orange', 'yellow',  'pink',  'green']
+    cmap = ListedColormap(colors)
+    # Change the colormap after the plot is created
+    pcm.set_cmap(cmap)
 
     # nedan är endast för att få med observationer
     # OBS att DIVAnd resultatet ligger under dimensionen 'Oxygen' i datasetet och obsevrationerna under 'Oxygen_data'
@@ -64,8 +67,23 @@ def sub_plot_observations_basemap(ds, parameter, axis, year, show_depth, vmin, v
 
     lon, lat = m(lon, lat)
 
-    m.scatter(lon, lat, s=5, c=observations, cmap='jet', edgecolors='k', linewidth=0.2, facecolor='none',
+    m.scatter(lon, lat, s=5, c=observations, cmap=cmap, edgecolors='k', linewidth=0.2, facecolor='none',
               vmin=vmin, vmax=vmax)
+    
+    # Add a colorbar
+    # Create an inset_axes for the colorbar
+    cbax = inset_locator.inset_axes(axis, width="40%", height="3%", loc="lower right", bbox_to_anchor=(0, 0.15, 1, 1),
+                                bbox_transform=axis.transAxes)
+    cbar = plt.colorbar(pcm, cax = cbax,  orientation = 'horizontal')
+    cbar.ax.tick_params(labelsize = 7)
+    # cbar.set_label(label='µmol/l', fontsize = 10,  y=1.05)
+
+    # Modify the colormap levels to control the step length
+    levels = np.arange(vmin, vmax+1, 45)
+    norm = plt.Normalize(vmin=vmin, vmax=vmax)
+    pcm.set_norm(norm)
+    # Set the colorbar levels explicitly
+    cbar.set_ticks(levels)
 
     # Add labels to the subplot
     axis.set_title(f'Oxygen at {show_depth} m\nobservation at +/- {observation_span} m', fontsize = 10)
@@ -98,7 +116,7 @@ def sub_plot_area_at_threshold_basemap(ds, parameter, axis, year, vmin, vmax, th
     lon, lat = m(lon, lat)
 
     # Plot data using pcolormesh
-    pcm = m.pcolormesh(lon, lat, data, cmap='jet', vmin=vmin, vmax=vmax)
+    pcm = m.pcolormesh(lon, lat, data, cmap='ocean', vmin=vmin, vmax=vmax)
     # Add a colorbar
     # Create an inset_axes for the colorbar
     cbax = inset_locator.inset_axes(axis, width="40%", height="3%", loc="lower right", bbox_to_anchor=(0, 0.15, 1, 1),
@@ -157,13 +175,13 @@ def plot(results_dir, netcdf_filename, year, season, ds):
     #ax_error_field = axs[1]
     #ax_min_hypox = axs[2]
     #ax_min_anox = axs[3]
-    vmin_o2 = -180
-    vmax_o2 = 180
+    vmin_o2 = -45
+    vmax_o2 = 180+45
     # 1111111 Plot the data on the 1st subplot
     # on the 1st and 2nd plot we show oxygen set min and max for colorscale
     pcm = sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, 0], year=year, show_depth=show_depth, vmin=vmin_o2, vmax=vmax_o2)
 
-    sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[1, 3], year=year, show_depth=show_depth, vmin=vmin_o2, vmax=vmax_o2)
+    sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[1, 3], year=year, show_depth=80, vmin=vmin_o2, vmax=vmax_o2)
 
     # 1,0 Plot the data on the 1st subplot
     # on the 1st and 2nd plot we show oxygen set min and max for colorscale
