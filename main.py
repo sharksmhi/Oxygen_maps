@@ -39,24 +39,30 @@ if __name__ == "__main__":
     # function_name = "my_julia_function"
     # argument1 = "value1"
 
-    #Data input directory
+    # Data input directory
     input_dir = "data"
-    #Result directory
+    # Result directory
     results_dir = "//winfs-proj/proj/havgem/DIVA/syrekartor/resultat/"
-    #Input data filename
+    # Input data filename
     data_fname = "EMODNET_SHARK_ICES.txt"
-    #Years, month and seasons to be analysed
+    # Years, month and seasons to be analysed
     year_list = json.dumps([1996])
-    #month_list = [ [11,12,1,2], [3,4,5], [6,7,8], [8,9,10]];
+    # month_list = [ [11,12,1,2], [3,4,5], [6,7,8], [8,9,10]];
     month_list = json.dumps([[11, 12, 1, 2]])
     seasons = json.dumps(["Winter"])
-    #seasons=["Winter","Spring","Summer","Autumn"]
-    #Correlation length
-    lenf = 80_000   #Km
-    #Thresholds to analyse
+    # seasons=["Winter","Spring","Summer","Autumn"]
+    # Correlation length
+    # Vi bör köra med lite längre lenf troligen 80_000km då vi har ca 40nm mellan våra station i eg.Östersjön
+    lenf = json.dumps(80000)   #Km
+    # Signal to noise ratio
+    # low epsilon means higher noise in data and result is more smoothed
+    # high epsilon means lower noise in data and result is less smoothed and each observation is seen more
+    epsilon = json.dumps(0.2)
+    #Thresholds to analyse in µmol/l oxygen (0, 2, 4 ml/l)
     threshold_list = [0, 90, 180]
 
-    args = ['julia', 'julia_code/oxygen_analysis.jl', input_dir, results_dir, data_fname, year_list, month_list, seasons]
+
+    args = ['julia', 'julia_code/oxygen_analysis.jl', input_dir, results_dir, data_fname, year_list, month_list, seasons, lenf, epsilon]
     # Call the function and save a json-file with a file_list containing the results. That we can send to the calculate_areas function.
     run_julia_function(args)
 

@@ -1,7 +1,7 @@
 import xarray as xr
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.colors import ListedColormap
+from matplotlib.colors import ListedColormap, BoundaryNorm
 from datetime import datetime
 import pandas as pd
 import json
@@ -9,6 +9,14 @@ import json
 from mpl_toolkits.basemap import Basemap
 from mpl_toolkits.axes_grid1 import inset_locator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+def create_custom_colormap(levels, colors):
+    # Define color ranges and corresponding colors
+    #ranges = np.linspace(0, 1, len(levels) + 1)
+    cmap = ListedColormap(colors)
+    norm = BoundaryNorm(levels, cmap.N)
+
+    return cmap, norm
 
 def sub_plot_parameter_basemap(ds, parameter, axis, year, show_depth, vmin, vmax, observation_span=2, bath_file=None):
     year_list = [datetime.strftime(timestr.astype('datetime64[M]').item(), '%Y') for timestr in ds["time"][:].values]
@@ -44,14 +52,16 @@ def sub_plot_observations_basemap(ds, parameter, axis, year, show_depth, vmin, v
 
     m, pcm = sub_plot_parameter_basemap(ds, parameter, axis, year, show_depth, vmin, vmax)
     
-    # Change vmin and vmax after the plot is created
-    pcm.set_clim(vmin=vmin, vmax=vmax)
-    # Create a custom discrete colormap
-    #        -45     0        45    90 (2 ml/l)  135      180 (4 ml/l)
-    colors = ['grey', 'brown', 'red',   'orange', 'yellow',  'pink',  'green']
-    cmap = ListedColormap(colors)
+    levels = np.arange(vmin, vmax, 45)
+    colors = ['black', 'brown', 'red', 'orange', 'yellow', 'green']
+    # Create the custom colormap
+    cmap, norm = create_custom_colormap(levels, colors)
+
     # Change the colormap after the plot is created
     pcm.set_cmap(cmap)
+    pcm.set_norm(norm)
+    # Change vmin and vmax after the plot is created
+    pcm.set_clim(vmin=vmin, vmax=vmax)
 
     # nedan är endast för att få med observationer
     # OBS att DIVAnd resultatet ligger under dimensionen 'Oxygen' i datasetet och obsevrationerna under 'Oxygen_data'
@@ -75,7 +85,7 @@ def sub_plot_observations_basemap(ds, parameter, axis, year, show_depth, vmin, v
     cbax = inset_locator.inset_axes(axis, width="40%", height="3%", loc="lower right", bbox_to_anchor=(0, 0.15, 1, 1),
                                 bbox_transform=axis.transAxes)
     cbar = plt.colorbar(pcm, cax = cbax,  orientation = 'horizontal')
-    cbar.ax.tick_params(labelsize = 5)
+    cbar.ax.tick_params(labelsize = 4)
     # cbar.set_label(label='µmol/l', fontsize = 10,  y=1.05)
 
     # Modify the colormap levels to control the step length
@@ -128,7 +138,6 @@ def sub_plot_area_at_threshold_basemap(ds, parameter, axis, year, vmin, vmax, th
     axis.set_title(f'Area <= {threshold} {unit}', fontsize=10)
     axis.set_xlabel('Longitude', fontsize=8)
     axis.set_ylabel('Latitude', fontsize=8)
-
 
 def sub_plot_error_area_at_threshold_basemap(ds, parameter, axis, year, vmin, vmax, threshold, unit='umol/l', bath_file=None):
     year_list = [datetime.strftime(timestr.astype('datetime64[M]').item(), '%Y') for timestr in ds["time"][:].values]
@@ -184,19 +193,11 @@ def sub_plot_error_area_at_threshold_basemap(ds, parameter, axis, year, vmin, vm
     axis.set_xlabel('Longitude', fontsize=8)
     axis.set_ylabel('Latitude', fontsize=8)
 
-
 def sub_plot_errorfields_basemap(ds, parameter, axis, year, show_depth, vmin, vmax):
 
     m, pcm = sub_plot_parameter_basemap(ds, parameter, axis, year, show_depth, vmin, vmax)
 
-    # Change vmin and vmax after the plot is created
-    pcm.set_clim(vmin=0, vmax=1)
-    # Create a custom discrete colormap
-    #        0       0.3       0.5
-    colors = ['green', 'orange', 'red', 'red']
-    cmap = ListedColormap(colors)
-    # Change the colormap after the plot is created
-    pcm.set_cmap(cmap)
+
 
     # Add a colorbar
     # Create an inset_axes for the colorbar
@@ -206,10 +207,20 @@ def sub_plot_errorfields_basemap(ds, parameter, axis, year, show_depth, vmin, vm
     cbar.ax.tick_params(labelsize=5)
 
     # Modify the colormap levels to control the step length
-    levels = [0, 0.3, 0.5, 1]
-    # norm = plt.Normalize(vmin=vmin, vmax=vmax)
-    # pcm.set_norm(norm)
-    # Set the colorbar levels explicitly
+    levels = [0,0.3,0.5,1]
+    # Create a custom discrete colormap
+    #        0       0.3       0.5
+    colors = ['green', 'orange', 'red']
+
+    cmap, norm = create_custom_colormap(levels, colors)
+
+    # Change the colormap after the plot is created
+    pcm.set_cmap(cmap)
+    pcm.set_norm(norm)
+
+    # Change vmin and vmax after the plot is created
+    pcm.set_clim(vmin=vmin, vmax=vmax)
+
     cbar.set_ticks(levels)
 
     axis.set_title(f'Errorfield at {show_depth} m results')
@@ -226,15 +237,9 @@ def plot(results_dir, netcdf_filename, year, season, ds):
     anox = 9
     unit = 'umol/l'
     # Select a time index from year and depth level from show_depth
-    # choose depth
-    show_depth = 70
-    show_depth_1 = 100
-    show_depth_2 = 125
-    show_depth_3 = 150
     
     ds['obsyear'] = ds['obstime'].values.astype('datetime64[Y]')
 
-    print(f'producing maps for year {year} {season} at {show_depth} m')
     # Plot the data on a map
     plt.style.use('dark_background')
 
@@ -260,54 +265,125 @@ def plot(results_dir, netcdf_filename, year, season, ds):
     plt.savefig(f'{results_dir}/figures/maps_{year}_{season}_areas_{netcdf_filename}.png', dpi=300,
                 transparent=True)
 
-    # Create a 2x2 grid of subplots
+    # plots of results at 4 different depths 10, 40, 50, 60
     fig, axs = plt.subplots(2, 4, figsize=(10, 4))
     # Adjust the spacing between subplots
-    fig.tight_layout() # (left, bottom, width, height)
+    fig.tight_layout()  # (left, bottom, width, height)
 
-    # Create a 1x4 grid of subplots
-    #fig, axs = plt.subplots(1, 4, figsize=(18, 4))
-    #ax_data = axs[0]
-    #ax_error_field = axs[1]
-    #ax_min_hypox = axs[2]
-    #ax_min_anox = axs[3]
     vmin_o2 = -45
-    vmax_o2 = 180+45
+    vmax_o2 = 180 + 45
     # 1111111 Plot the data on the 1st subplot
     # on the 1st and 2nd plot we show oxygen set min and max for colorscale
-    sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, 0], year=year, show_depth=show_depth, vmin=vmin_o2, vmax=vmax_o2)
+    sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, 0], year=year, show_depth=10, vmin=vmin_o2,
+                                  vmax=vmax_o2)
 
-    sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[1, 0], year=year, show_depth=show_depth,
-                                  vmin=0, vmax=0.5)
+    sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[1, 0], year=year, show_depth=10,
+                                 vmin=0, vmax=0.5)
 
-    sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, 1], year=year, show_depth=show_depth_1,
-                                        vmin=vmin_o2, vmax=vmax_o2)
-
-    sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[1, 1], year=year, show_depth=show_depth_1,
-                                  vmin=0, vmax=0.5)
-
-    sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, 2], year=year, show_depth=show_depth_2,
+    sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, 1], year=year, show_depth=40,
                                   vmin=vmin_o2, vmax=vmax_o2)
 
-    sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[1, 2], year=year, show_depth=show_depth_2,
-                                  vmin=0, vmax=0.5)
+    sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[1, 1], year=year, show_depth=40,
+                                 vmin=0, vmax=0.5)
 
-    sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, 3], year=year, show_depth=show_depth_3,
+    sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, 2], year=year, show_depth=50,
                                   vmin=vmin_o2, vmax=vmax_o2)
 
-    sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[1, 3], year=year, show_depth=show_depth_3,
-                                  vmin=0, vmax=0.5)
+    sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[1, 2], year=year, show_depth=50,
+                                 vmin=0, vmax=0.5)
 
-    # Adjust the spacing between subplots
-    # fig.subplots_adjust(hspace=1, wspace = 0)  # You can adjust the value of hspace as needed
+    sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, 3], year=year, show_depth=60,
+                                  vmin=vmin_o2, vmax=vmax_o2)
 
+    sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[1, 3], year=year, show_depth=60,
+                                 vmin=0, vmax=0.5)
 
     # Add title and labels
     # Set the title for the whole figure
     fig.suptitle(f'Hypoxia and anoxia:  {year} {season}', fontsize=8)
 
     # Save the plot
-    plt.savefig(f'{results_dir}/figures/maps_{year}_{season}_{show_depth}m_{netcdf_filename}.png', dpi = 300, transparent=True)
+    plt.savefig(f'{results_dir}/figures/maps_{year}_{season}_surf_{netcdf_filename}.png', dpi=300, transparent=True)
+
+    # plots of results at 4 different depths 60, 70, 80, 90
+    fig, axs = plt.subplots(2, 4, figsize=(10, 4))
+    # Adjust the spacing between subplots
+    fig.tight_layout() # (left, bottom, width, height)
+
+    vmin_o2 = -45
+    vmax_o2 = 180+45
+    # 1111111 Plot the data on the 1st subplot
+    # on the 1st and 2nd plot we show oxygen set min and max for colorscale
+    sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, 0], year=year, show_depth=60, vmin=vmin_o2, vmax=vmax_o2)
+
+    sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[1, 0], year=year, show_depth=60,
+                                  vmin=0, vmax=0.5)
+
+    sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, 1], year=year, show_depth=70,
+                                        vmin=vmin_o2, vmax=vmax_o2)
+
+    sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[1, 1], year=year, show_depth=70,
+                                  vmin=0, vmax=0.5)
+
+    sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, 2], year=year, show_depth=80,
+                                  vmin=vmin_o2, vmax=vmax_o2)
+
+    sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[1, 2], year=year, show_depth=80,
+                                  vmin=0, vmax=0.5)
+
+    sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, 3], year=year, show_depth=90,
+                                  vmin=vmin_o2, vmax=vmax_o2)
+
+    sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[1, 3], year=year, show_depth=90,
+                                  vmin=0, vmax=0.5)
+
+    # Add title and labels
+    # Set the title for the whole figure
+    fig.suptitle(f'Hypoxia and anoxia:  {year} {season}', fontsize=8)
+
+    # Save the plot
+    plt.savefig(f'{results_dir}/figures/maps_{year}_{season}_halo_{netcdf_filename}.png', dpi = 300, transparent=True)
+
+    # plots of results at 4 different depths 100, 110, 125, 150
+    fig, axs = plt.subplots(2, 4, figsize=(10, 4))
+    # Adjust the spacing between subplots
+    fig.tight_layout()  # (left, bottom, width, height)
+
+    vmin_o2 = -45
+    vmax_o2 = 180 + 45
+    # 1111111 Plot the data on the 1st subplot
+    # on the 1st and 2nd plot we show oxygen set min and max for colorscale
+    sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, 0], year=year, show_depth=100, vmin=vmin_o2,
+                                  vmax=vmax_o2)
+
+    sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[1, 0], year=year, show_depth=100,
+                                 vmin=0, vmax=0.5)
+
+    sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, 1], year=year, show_depth=110,
+                                  vmin=vmin_o2, vmax=vmax_o2)
+
+    sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[1, 1], year=year, show_depth=110,
+                                 vmin=0, vmax=0.5)
+
+    sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, 2], year=year, show_depth=125,
+                                  vmin=vmin_o2, vmax=vmax_o2)
+
+    sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[1, 2], year=year, show_depth=125,
+                                 vmin=0, vmax=0.5)
+
+    sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, 3], year=year, show_depth=150,
+                                  vmin=vmin_o2, vmax=vmax_o2)
+
+    sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[1, 3], year=year, show_depth=150,
+                                 vmin=0, vmax=0.5)
+
+    # Add title and labels
+    # Set the title for the whole figure
+    fig.suptitle(f'Hypoxia and anoxia:  {year} {season}', fontsize=8)
+
+    # Save the plot
+    plt.savefig(f'{results_dir}/figures/maps_{year}_{season}_deep_{netcdf_filename}.png', dpi=300, transparent=True)
+
 
 ## extract values that are within our limits, save to a new variable and nc-file. ####
 

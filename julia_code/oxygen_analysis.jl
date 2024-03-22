@@ -31,6 +31,8 @@ data_fname = args[3]
 year_list = JSON.parse(args[4])
 month_list = JSON.parse(args[5])
 seasons = JSON.parse(args[6])
+lenf = JSON.parse(args[7])
+epsilon = JSON.parse(args[8])
 
 # ## Configuration
 # * Define variabel and set horizontal, vertical and temporal resolutions.
@@ -70,27 +72,9 @@ dx, dy = 0.05, 0.05  #Karin dx, dy = 0.1, 0.1
 lonr = 9.:dx:31.
 latr = 53.5:dy:61.
 
-#New lists for analysis
-#year_list = [1993];
-#year_list = [1960,1961,1962,1963,1964,1965,1966,1967,1968,1969,1970,1971,1972,1973,1974,1975,1976,1977,1978,1979,1980,1981,1982,1983,1984,1985,1986,1987,1988,1989,1990,1991,1992,1993,1994,1995,1996,1997,1998,1999,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021];
-#year_list = [1960,1965,1970,1975,1980,1994,1995,1998,2000,2003,2004,2005,2010,2014,2015,2018,2020,2021];
-
 # Time origin for the NetCDF file
 timeorigin = DateTime(1900,1,1,0,0,0);
 aspect_ratio = 1/cos(mean(latr) * pi/180);
-
-# #### Set negative oxygen to 0
-# Sätter alla syrevärden som är noll eller mindre än noll till ngt väldigt nära noll, dock ej noll.
-# Om syre är noll eller negativt får vi inte ut några värden till analysen. Lite knepigt att den inte klarar noll dock.
-# Kanske fråga Charles när vi har tid. 
-# %% <0.2 ml/l är från SMHIs ctd för syrefritt vilket motsvarar 8.93 µmol/l.
-
-#if varname == "Oxygen"
-#    sel_q = (obsval .<= -250.);
-#    obsval[sel_q] .= -250.;
-#    sel_q = (obsval .> 600.);
-#    obsval[sel_q] .= 600.;
-#end
 
 # ## Extract the bathymetry
 # It is used to delimit the domain where the interpolation is performed.
@@ -106,9 +90,8 @@ bx,by,b = DIVAnd.extract_bath(bathname,bathisglobal,lonr,latr);
 
 # First set the depth resolotion, this will be the depths used in DIVArun
 # Then set the horizontal correlation length (should be twice the resolution)
-depthr = [0.,  10., 20., 25., 30., 35., 40., 50., 55., 60., 65., 70.,  75., 80., 85., 90., 95., 100., 105., 110., 115., 120., 125., 130., 135., 140., 145.,150.,175.,200.,250.,300.];
-# lenz_ =  [10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10.,  5.,  10., 10., 10., 10., 10.,  10.,  10.,  10.,  10.,   5.,  10.,  10.]; #används ej
-
+depthr = [0.,  10., 20., 25., 30., 35., 40., 50., 55., 60., 65., 70., 75., 80., 85., 90., 95., 100., 105., 110., 115., 120., 125., 130., 135., 140., 145.,150.,175.,200.,250.,300.];
+lenz_ =  [20., 20., 20., 10., 10., 10., 20., 20., 10., 10., 10., 10,  10., 10., 10., 10., 10.,  50.,  50.,  50.,  50.,  50.,  50.,  50.,  50.,  50.,  50., 50., 50.,100., 100.,100.];
 xmask,ymask,mmask = load_mask(bathname,true,lonr,latr,depthr);
 
 # #### 2) apply floodfill.
@@ -158,19 +141,19 @@ gcf()
 #
 # Ökas slen så minskas avståndet från kusten där len är mindre.
 
-# lenf should be the normal value for horizontal correlation length
-# Sätt korrelationslängd (m)
-# Vi bör köra med lite längre lenf troligen 80_000km då vi har ca 40nm mellan våra station i eg.Östersjön
-lenf = 80_000.#49_000. #78_000, 50_000 25_000
-
 sz = (length(lonr),length(latr),length(depthr));
-lenx = fill(lenf,sz)   # 100 km
-leny = fill(lenf,sz)   # 100 km
-lenz = fill(10,sz);      # 25 m
+lenx = fill(lenf,sz)
+leny = fill(lenf,sz)
+#Horisontell korrelationslängd
+#lenz =  [lenz_[k] for i = 1:sz[1], j = 1:sz[2], k = 1:sz[3]];
+lenz = fill(10,sz);      # 10m 25 m
+
 len = (lenx, leny, lenz);
 
 lx = lenf #78_000. #50_000.
 ly = lenf #78_000.
+
+
 
 # ### Plotting function
 # Define a plotting function that will be applied for each time index and depth level.     
@@ -193,10 +176,9 @@ obstime_shifted[Dates.month.(obstime) .== 12 .| Dates.month.(obstime) .== 11] .+
 
 # Settings for DIVAnd-------------------------------------------------------------------------------
 error_thresholds = [("L1", 0.3), ("L2", 0.5)];
-epsilon = 0.2; #1., 0.1, 10
+#epsilon = 0.2; #1., 0.1, 10
 
-# low epsilon means higher noise in data and result is more smoothed
-# high epsilon means lower noise in data and result is less smoothed and each observation is seen more
+
 
 # Modify data weight
 # ⌛⌛⌛
@@ -334,101 +316,12 @@ for monthlist_index in 1:length(month_list)
     @info("starting DIVAnd computations for $(seasons[monthlist_index])")
     @info(Dates.now())
 
-    function plotres(timeindex,selected,fit,erri)
-        year=year_list[timeindex]
-        @show timeindex
-        tmp = copy(fit)
-        L2 = 0.5
-        L1 = 0.3
-
-        #Välj djup som skall plottas
-        selected_depth = 70.
-
-        depth_index = findall(depthr .== selected_depth)
-        @info("making figures for $(year) in $(season) including months $(month_list[monthlist_index]) $(selected_depth) m")
-        #tmp[erri .> rel_error] .= NaN;
-        figure(figsize = (10,8))
-        title("test")
-
-        #Plot1
-        subplot(2,2,1)
-        title("$(year),$(season),$(selected_depth)m")
-
-        # select the data in a depthrange of +/- 5 m from selected depth
-        sel_obs = selected .& (obsdepth .> selected_depth-5) .& (obsdepth .< selected_depth+5)
-
-        # om man vill sätta max och min för färgskalen efter valda data.
-        # nu sätter vi vmin, vmax utanför loopen så det blir samma färgskala på alla.
-        #vmin = vmin_ #minimum(obsval[selsurface])
-        #vmax = vmax #maximum(obsval[selsurface])
-        # plot the data
-        xlim(minimum(lonr),maximum(lonr))
-        ylim(minimum(latr),maximum(latr))
-        # Land
-        contourf(bx,by,permutedims(b,[2,1]), levels = [-1e5,0],colors = [[.5,.5,.5]])
-        # Djupnivå
-        contour(bx,by,permutedims(b,[2,1]), levels = [selected_depth], linewidths=[1], colors = [[.15,.25,.35]])
-        gca().set_aspect(aspect_ratio)
-        # Observationer
-        scatter(obslon[sel_obs],obslat[sel_obs],6,obsval[sel_obs];
-                vmin = vmin_, vmax = vmax_, cmap="jet_r")  #"PuBuGn","viridis"
-        colorbar(extend="max")
-
-        # plot2 the analysis
-        subplot(2,2,2)
-        @show lenz[depth_index[1]]
-        title("lx=$(lx)[m],ly=$(ly)[m], lz=$(lenz[1,1,depth_index[1]])[m],e=$(epsilon)")
-
-        #title("L=$(L)[m], lenx=$(lx)[m], leny=$(ly)[m]")
-        @show depth_index[1]
-        pcolor(lonr,latr,permutedims(tmp[:,:,depth_index[1]],[2,1]);
-            vmin = vmin_, vmax = vmax_, cmap="jet_r")
-        colorbar(extend="max")
-        #Land
-        contourf(bx,by,permutedims(b,[2,1]), levels = [-1e5,0],colors = [[.5,.5,.5]])
-        gca().set_aspect(aspect_ratio)
-
-        #Plot 3
-        subplot(2,2,3)
-        title("Error threshold L2>$(L2)")
-        #Resultat
-        tmp_L2=copy(tmp)
-        tmp_L2[erri .< L2] .= NaN
-        pcolor(lonr,latr,permutedims(tmp_L2[:,:,depth_index[1]],[2,1]);
-            vmin = vmin_, vmax = vmax_, cmap="jet_r")
-        colorbar(extend="max")
-        #Land
-        contourf(bx,by,permutedims(b,[2,1]), levels = [-1e5,0],colors = [[.5,.5,.5]])
-        gca().set_aspect(aspect_ratio)
-
-        # plot the analysis
-        #Plot 4
-        subplot(2,2,4)
-        title("Error threshold L1>$(L1)")
-        #Resultat
-        tmp_L1=copy(tmp)
-        tmp_L1[erri .< L1] .= NaN
-        pcolor(lonr,latr,permutedims(tmp_L1[:,:,depth_index[1]],[2,1]);
-            vmin = vmin_, vmax = vmax_, cmap="jet_r")
-        colorbar(extend="max")
-        #Land
-        contourf(bx,by,permutedims(b,[2,1]), levels = [-1e5,0],colors = [[.5,.5,.5]])
-        gca().set_aspect(aspect_ratio)
-
-        # save the figure
-        figname = savevar * @sprintf("_%04d_", year) * season * @sprintf("_%d",selected_depth) * 
-        @sprintf("_%.2f",epsilon) * @sprintf("_%05d",lx) * @sprintf("_%d",lenz[1,1,depth_index[1]]) *
-        @sprintf("_%03d.png",timeindex)
-        PyPlot.savefig(joinpath(figdir, figname), dpi=300, bbox_inches="tight");
-        PyPlot.close_figs()
-    end
-
     # Time selection for the analyse. This was already defined together with yearlist, month_list, seasons
     TS = DIVAnd.TimeSelectorYearListMonthList(year_list,month_list[monthlist_index:monthlist_index])
     @show TS;
 
     # File name based on the variable (but all spaces are replaced by _)
-    nc_filename = "$(replace(varname,' '=>'_'))_$(minimum(year_list))-$(maximum(year_list))_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_with_backgroundfield_moredepths_$(bath_file_name).nc"
+    nc_filename = "$(replace(varname,' '=>'_'))_$(minimum(year_list))-$(maximum(year_list))_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(bath_file_name)_varcorrlenz.nc"
     nc_filepath = joinpath("$(results_dir)nc/O2", nc_filename)
 
     #Append the created files to file_list
@@ -449,7 +342,7 @@ for monthlist_index in 1:length(month_list)
               nc_filepath, varname,
               bathname = bathname,
               bathisglobal = bathisglobal,
-              plotres = plotres,
+              #plotres = plotres,
               ncvarattrib = ncvarattrib,
               ncglobalattrib = ncglobalattrib,
               timeorigin = timeorigin,
