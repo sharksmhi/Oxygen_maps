@@ -1,5 +1,5 @@
 # ### Oxygen maps
-# ### 2023
+# ### 2023-2024
 # ### Lena Viktorsson & Martin Hansson
 # ### Based on copy from Karin Wesslander and DIVA workshop notebooks
 
@@ -79,7 +79,6 @@ aspect_ratio = 1/cos(mean(latr) * pi/180);
 # ## Extract the bathymetry
 # It is used to delimit the domain where the interpolation is performed.
 # Modify bathname according to the resolution required.
-
 bath_file_name = "gebco_30sec_4"
 bathname = joinpath(input_dir, "$(bath_file_name).nc")
 bathisglobal = true;
@@ -87,7 +86,6 @@ bx,by,b = DIVAnd.extract_bath(bathname,bathisglobal,lonr,latr);
 
 # ## MASK
 # #### 1) Create a mask from bathymetry and your selected depth vector
-
 # First set the depth resolotion, this will be the depths used in DIVArun
 # Then set the horizontal correlation length (should be twice the resolution)
 depthr = [0.,  10., 20., 25., 30., 35., 40., 50., 55., 60., 65., 70., 75., 80., 85., 90., 95., 100., 105., 110., 115., 120., 125., 130., 135., 140., 145.,150.,175.,200.,250.,300.];
@@ -118,55 +116,17 @@ sel_mask3 = (grid_by .>= 57.) .& (grid_by .< 57.4) .& (grid_bx .<= 10.);
 sel_mask4 = (grid_by .>= 60.2) .& (grid_bx .>= 15.) .& (grid_bx .<= 25.);;
 new_mask = mask_edit .* .!sel_mask1 .* .!sel_mask2 .* .!sel_mask3 .* .!sel_mask4;
 
-aspectratio = 1/cos(mean(54:0.05:61) * pi/180)
-fig=figure(1)
-ax = subplot(1,1,1)
-ax.tick_params("both",labelsize=6)
-#pyplot.plot(xmask, ymask, new_mask[:,:,1]');
-pcolor(xmask, ymask, new_mask[:,:,1]');
-gca().set_aspect(aspectratio)
-gcf()
-
-# #### Plot
-
-# ## Analysis parameters
-# ## Horizontal correlation length
-# From https://github.com/gher-uliege/DIVAnd.jl/issues/121 
-#
-# Here is a piece of code (from Emodnet Chemistry), which could be used to create a correlation length lenfilled
-# decreasing to a fifth of the normal value lenf when approaching a cost.
-# The distance at which the change happens is defined by slen (here in meters, so metrics pmn are in /m). sz is size(mask)
-#
-# The mask is 2D.
-#
 # Ökas slen så minskas avståndet från kusten där len är mindre.
-
 sz = (length(lonr),length(latr),length(depthr));
 lenx = fill(lenf,sz)
 leny = fill(lenf,sz)
 #Horisontell korrelationslängd
-#lenz =  [lenz_[k] for i = 1:sz[1], j = 1:sz[2], k = 1:sz[3]];
-lenz = fill(10,sz);      # 10m 25 m
+lenz =  [lenz_[k] for i = 1:sz[1], j = 1:sz[2], k = 1:sz[3]];
+#lenz = fill(10,sz);      # 10m 25 m
 
 len = (lenx, leny, lenz);
-
-lx = lenf #78_000. #50_000.
-ly = lenf #78_000.
-
-
-
-# ### Plotting function
-# Define a plotting function that will be applied for each time index and depth level.     
-# All the figures will be saved in a selected directory.
-# This function is within the time loop. Try to move outside and understand the how the input argumetns are sent to plotres from DIVArun
-
-# If you do not want to generate plots but print the time index at every time slice
-# you can use the function `plotres_timeindex`.
-# function plotres_timeindex(timeindex,sel,fit,erri)
-#    @show timeindex
-#end
-
-# # Run DIVA3d
+lx = lenf
+ly = lenf
 
 # To include December from previous year in the analyse
 obstime_shifted = copy(obstime)
@@ -176,12 +136,8 @@ obstime_shifted[Dates.month.(obstime) .== 12 .| Dates.month.(obstime) .== 11] .+
 
 # Settings for DIVAnd-------------------------------------------------------------------------------
 error_thresholds = [("L1", 0.3), ("L2", 0.5)];
-#epsilon = 0.2; #1., 0.1, 10
-
-
 
 # Modify data weight
-# ⌛⌛⌛
 # Compute the new weights that takes into account close points.
 # If the dataset is large, this can take a few minutes.
 # The maximal and mean values provide an indication of the spatial proximity between the data.
@@ -214,20 +170,13 @@ else
 end
 
 @show maximum(rdiag),mean(rdiag)
-
 epsilon_weighted = epsilon * rdiag;
-#epsilon_weighted = epsilon
-#---------------------------------------------------------------------------------------------------
-# sätter min, max för färgskalan i plottarna
-vmin_ = 0
-vmax_ = 400
-# %%
+
 # One metadata set up per season
 metadata=Array{DataStructures.OrderedDict{String,Any}}(undef,4) ;
 
-
 #A list of created files
- file_list = []
+file_list = []
 
 for monthlist_index in 1:length(month_list)
     season = seasons[monthlist_index]

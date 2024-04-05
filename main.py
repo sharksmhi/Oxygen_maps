@@ -47,10 +47,10 @@ if __name__ == "__main__":
     data_fname = "EMODNET_SHARK_ICES.txt"
     # Years, month and seasons to be analysed
     year_list = json.dumps([1996])
-    # month_list = [ [11,12,1,2], [3,4,5], [6,7,8], [8,9,10]];
-    month_list = json.dumps([[11, 12, 1, 2]])
-    seasons = json.dumps(["Winter"])
-    # seasons=["Winter","Spring","Summer","Autumn"]
+    month_list = json.dumps([[11,12,1,2], [3,4,5], [6,7,8], [8,9,10]]);
+    #month_list = json.dumps([[11, 12, 1, 2]])
+    #seasons = json.dumps(["Winter"])
+    seasons = json.dumps(["Winter","Spring","Summer","Autumn"])
     # Correlation length
     # Vi bör köra med lite längre lenf troligen 80_000km då vi har ca 40nm mellan våra station i eg.Östersjön
     lenf = json.dumps(80000)   #Km
