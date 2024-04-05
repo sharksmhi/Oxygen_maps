@@ -76,11 +76,16 @@ def area_at_threshold(threshold, ds):
 
 
 def calculate_areas(results_dir, file_list, threshold_list):
-
+    #List for results to txt
     area_results = []
+    metadata_list = netcdf_filename.split('_')
+    season = metadata_list[2]
+
     fig, axs = plt.subplots(1, 1, figsize=(10, 8))
     fig2, axs2 = plt.subplots(1, 1, figsize=(10, 8))
     for netcdf_filename in file_list:
+        metadata_list = netcdf_filename.split('_')
+        season = metadata_list[2]
 
         print(netcdf_filename)
         ds = xr.open_dataset(f"{results_dir}nc/O2/{netcdf_filename}")
@@ -142,4 +147,21 @@ def calculate_areas(results_dir, file_list, threshold_list):
         ds.to_netcdf(f'{results_dir}nc/processed/{netcdf_filename}') # rewrite to netcdf
         print(f'{netcdf_filename} has been modified')
 
+        df = pd.DataFrame()
+        df["Hypoxic_area_km2"] = ds["Hypoxic_area"].round(3)
+        df["Hypoxic_relerr_area_km2"] = ds["Hypoxic_relerr_area"].round(3)
+        df["Anoxic_area_km2"] = ds["Anoxic_area"].round(3)
+        df["Anoxic_relerr_area_km2"] = ds["Anoxic_relerr_area"].round(3)
+        df["year"] = ds.time.values.astype('datetime64[Y]').astype(int) + 1970
+        df["season"] = season
+        area_results.append(df)
+
+        pd.concat(area_results).to_csv(f'{location}resultat/area_data.txt', sep='\t', index=False)
+        df.to_csv(f'{location}resultat/hypox_area_data.txt', sep='\t'
+
+        # df[f"{season}_relerr"] = ds["Hypoxic_relerr_area"]
+        # save the updated dataset
+        print(f"saving {season}...")
+        ds.to_netcdf(f'{location}/resultat/nc/processed/{netcdf_filename}.nc')  # rewrite to netcdf
+        print(f'{location}/resultat/nc/processed/{netcdf_filename}.nc has been modified')
 

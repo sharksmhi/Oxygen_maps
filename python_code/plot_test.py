@@ -388,6 +388,8 @@ def plot(results_dir, netcdf_filename, year, season, ds):
 ## extract values that are within our limits, save to a new variable and nc-file. ####
 
 def read_processed_nc(results_dir,file_list,year_list: json):
+    year_list = json.loads(year_list)
+
     for netcdf_filename in file_list:
         ds = xr.open_dataset(f"{results_dir}nc/processed/{netcdf_filename}")
        
@@ -397,7 +399,7 @@ def read_processed_nc(results_dir,file_list,year_list: json):
         season = metadata_list[2]
         epsilon = metadata_list[3]
         corrlen = metadata_list[4]
-        year_list = json.loads(year_list)
+
         for year in year_list:
             if str(year) not in year_range:
                    continue
