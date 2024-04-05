@@ -392,18 +392,17 @@ def read_processed_nc(results_dir,file_list,year_list: json):
 
     for netcdf_filename in file_list:
         ds = xr.open_dataset(f"{results_dir}nc/processed/{netcdf_filename}")
-       
-        metadata_list = netcdf_filename.split('_')
-        parameter = metadata_list[0]
-        year_range = metadata_list[1]
-        season = metadata_list[2]
-        epsilon = metadata_list[3]
-        corrlen = metadata_list[4]
+        season = ds.attrs['season']
+        epsilon = ds.attrs['epsilon']
+        corrlen = ds.attrs['horizontal correlation length m']
+        # start_year = ds.attrs['start year']
+        # end_year = ds.attrs['end year']
 
-        for year in year_list:
-            if str(year) not in year_range:
-                   continue
-            plot(results_dir, netcdf_filename, year, season, ds)
+        # 
+        # for year in year_list:
+        #     if str(year) not in range(start_year, end_year+1):
+        #            continue
+        plot(results_dir, netcdf_filename, year, season, ds)
 
 if __name__ == "__main__":
     # Result directory

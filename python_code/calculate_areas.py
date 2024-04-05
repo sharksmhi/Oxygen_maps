@@ -78,17 +78,11 @@ def area_at_threshold(threshold, ds):
 def calculate_areas(results_dir, file_list, threshold_list):
     #List for results to txt
     area_results = []
-    metadata_list = netcdf_filename.split('_')
-    season = metadata_list[2]
-
     fig, axs = plt.subplots(1, 1, figsize=(10, 8))
     fig2, axs2 = plt.subplots(1, 1, figsize=(10, 8))
     for netcdf_filename in file_list:
-        metadata_list = netcdf_filename.split('_')
-        season = metadata_list[2]
-
-        print(netcdf_filename)
         ds = xr.open_dataset(f"{results_dir}nc/O2/{netcdf_filename}")
+        season = ds.attrs['season']
         ### Calculate area of all grid cells
         # Get the latitude and longitude coordinates
         lon, lat = np.meshgrid(ds['lon'], ds['lat'])
@@ -143,9 +137,8 @@ def calculate_areas(results_dir, file_list, threshold_list):
                                                                                                     skipna=True)
 
         # save the updated dataset
-        print(f"saving {netcdf_filename}...")
+        print(f"writing to {results_dir}nc/processed/{netcdf_filename}...")
         ds.to_netcdf(f'{results_dir}nc/processed/{netcdf_filename}') # rewrite to netcdf
-        print(f'{netcdf_filename} has been modified')
 
         df = pd.DataFrame()
         df["Hypoxic_area_km2"] = ds["Hypoxic_area"].round(3)
@@ -156,12 +149,6 @@ def calculate_areas(results_dir, file_list, threshold_list):
         df["season"] = season
         area_results.append(df)
 
-        pd.concat(area_results).to_csv(f'{location}resultat/area_data.txt', sep='\t', index=False)
-        df.to_csv(f'{location}resultat/hypox_area_data.txt', sep='\t'
-
-        # df[f"{season}_relerr"] = ds["Hypoxic_relerr_area"]
-        # save the updated dataset
-        print(f"saving {season}...")
-        ds.to_netcdf(f'{location}/resultat/nc/processed/{netcdf_filename}.nc')  # rewrite to netcdf
-        print(f'{location}/resultat/nc/processed/{netcdf_filename}.nc has been modified')
+    # combing area results from all seasons and saving to a textfile
+    pd.concat(area_results).to_csv(f'{results_dir}area_data.txt', sep='\t', index=False)
 
