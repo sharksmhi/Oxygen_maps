@@ -4,4 +4,11 @@ netcdf4
 numpy
 matplotlib
 h5netcdf
-#pip install -r .\requirements.txt
+basemap
+# proj
+# geos
+# shapely
+# cartopy
+# pip install -r .\requirements.txt
+# install Miniconda, https://docs.anaconda.com/free/miniconda/
+# conda install -c conda-forge cartopy
