@@ -180,8 +180,7 @@ file_list = []
 
 for monthlist_index in 1:length(month_list)
     season = seasons[monthlist_index]
-    @show monthlist_index
-    @show seasons
+
     @info("Creating metadata dicitonary for the season $(season)")
     metadata_season = OrderedDict(
         # set attributes for DVIA run from our settings
@@ -191,7 +190,7 @@ for monthlist_index in 1:length(month_list)
         "start year" => string(year_list[1]),
         "end year" => string(year_list[end]),
         # Name of the project (SeaDataCloud, SeaDataNet, EMODNET-chemistry, ...)
-        "project" => "SMHI Oxygen maps",
+        "project" => "EMODNET-chemistry",
         # URN code for the institution EDMO registry,
         # e.g. SDN:EDMO::1579
         "institution_urn" => "SDN:EDMO::545",
@@ -269,7 +268,7 @@ for monthlist_index in 1:length(month_list)
 
     # Time selection for the analyse. This was already defined together with yearlist, month_list, seasons
     TS = DIVAnd.TimeSelectorYearListMonthList(year_list,month_list[monthlist_index:monthlist_index])
-    @show TS;
+    #@show TS;
 
     # File name based on the variable (but all spaces are replaced by _)
     nc_filename = "$(replace(varname,' '=>'_'))_$(minimum(year_list))-$(maximum(year_list))_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(bath_file_name)_varcorrlenz.nc"
