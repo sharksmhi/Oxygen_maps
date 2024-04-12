@@ -395,14 +395,15 @@ def read_processed_nc(results_dir,file_list,year_list: json):
         season = ds.attrs['season']
         epsilon = ds.attrs['epsilon']
         corrlen = ds.attrs['horizontal correlation length m']
-        # start_year = ds.attrs['start year']
-        # end_year = ds.attrs['end year']
+        start_year = ds.attrs['start year']
+        end_year = ds.attrs['end year']
 
         # 
-        # for year in year_list:
-        #     if str(year) not in range(start_year, end_year+1):
-        #            continue
-        plot(results_dir, netcdf_filename, year, season, ds)
+        for year in year_list:
+            # str(year) testa om det inte funkar.
+            if year not in range(int(start_year), int(end_year)+1):
+                    continue
+            plot(results_dir, netcdf_filename, year, season, ds)
 
 if __name__ == "__main__":
     # Result directory
@@ -412,5 +413,5 @@ if __name__ == "__main__":
         # Load JSON data from the file
         file_list = json.load(file)
 
-    year_list = json.dumps([1995, 1996])
+    year_list = json.dumps([1960, 1961])
     read_processed_nc(results_dir,file_list, year_list)
