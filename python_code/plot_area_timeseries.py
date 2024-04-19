@@ -5,8 +5,11 @@ import matplotlib.ticker as ticker
 from datetime import datetime
 import pandas as pd
 
+start_year = 2021
+end_year = 2021
+
 location = "//winfs-proj/proj/havgem/DIVA/syrekartor/" # or other location, like havgem path
-df = pd.read_csv(f'{location}resultat/area_data.txt', sep = '\t')
+df = pd.read_csv(f'{location}resultat/area_data_{start_year}_{end_year}.txt', sep = '\t')
 df_matlab = pd.read_csv(f'{location}resultat/area_volume_data_from_matlab.txt', sep = '\t')
 
 mpl.rcParams['hatch.linewidth'] = 0.5 # sets the linewidth globally of all hatch lines
@@ -30,12 +33,15 @@ ax[0].xaxis.set_minor_locator(ticker.MultipleLocator(1))
 
 for season, subset in df.groupby('season'):
     subplot_row = subplot_order[season]
+    # plot bars
+    ax[subplot_row].bar(x=subset['year'], height=subset[f"Area_180_km2"], width=1, color='b', edgecolor='black',linewidth=0.5, label='180')
+    ax[subplot_row].bar(x=subset['year'], height=subset['Relerr_area_180_km2'],bottom=subset['Area_180_km2'] - subset['Relerr_area_180_km2'], width=1, color='b', hatch='/////',edgecolor='black', linewidth=0.5, label="180 Relerror >0.5")
     # plot hypoxic bars
-    ax[subplot_row].bar(x=subset['year'], height=subset['Hypoxic_area_km2'], width = 1, color = 'r', edgecolor = 'black', linewidth = 0.5, label = 'hypoxic')
-    ax[subplot_row].bar(x=subset['year'], height=subset['Hypoxic_relerr_area_km2'], bottom = subset['Hypoxic_area_km2']-subset['Hypoxic_relerr_area_km2'], width = 1, color = 'r', hatch='/////', edgecolor = 'black', linewidth = 0.5)
+    ax[subplot_row].bar(x=subset['year'], height=subset[f"Area_90_km2"], width = 1, color = 'r', edgecolor = 'black', linewidth = 0.5, label = 'Hypoxic')
+    ax[subplot_row].bar(x=subset['year'], height=subset['Relerr_area_90_km2'], bottom = subset['Area_90_km2']-subset['Relerr_area_90_km2'], width = 1, color = 'r', hatch='/////', edgecolor = 'black', linewidth = 0.5, label="Hypoxic Relerror >0.5")
     # plot anoxic bars
-    ax[subplot_row].bar(x=subset['year'], height=subset['Anoxic_area_km2'], width = 1, color = 'grey', edgecolor = 'black', linewidth = 0.5, label = 'anoxic')
-    ax[subplot_row].bar(x=subset['year'], height=subset['Anoxic_relerr_area_km2'], bottom = subset['Anoxic_area_km2']-subset['Anoxic_relerr_area_km2'], width = 1, color = 'grey', hatch='/////', edgecolor = 'black', linewidth = 0.5)
+    ax[subplot_row].bar(x=subset['year'], height=subset['Area_0_km2'], width = 1, color = 'grey', edgecolor = 'black', linewidth = 0.5, label = 'Anoxic')
+    ax[subplot_row].bar(x=subset['year'], height=subset['Relerr_area_0_km2'], bottom = subset['Area_0_km2']-subset['Relerr_area_0_km2'], width = 1, color = 'grey', hatch='|||||', edgecolor = 'black', linewidth = 0.5, label="Anoxic Relerror >0.5")
     # set title, ylabel, grid on
     ax[subplot_row].set_title(season)
     ax[subplot_row].set_ylabel('area km$^2$') 
@@ -83,6 +89,7 @@ ax[1].grid(which = 'both')
 ax[0].legend(loc=(0.8,1.1))
 
 # save figure
+print(f'{location}resultat/figures/DIVAnd and matlab result.png')
 fig.savefig(f'{location}resultat/figures/DIVAnd and matlab result.png', dpi = 300)
 
 """

@@ -236,7 +236,7 @@ def plot(results_dir, netcdf_filename, year, season, ds):
     ds['obsyear'] = ds['obstime'].values.astype('datetime64[Y]')
 
     # Plot the data on a map
-    plt.style.use('dark_background')
+    #plt.style.use('dark_background')
 
     # plot of areas at thresholds
     # Create a 2x2 grid of subplots
@@ -258,7 +258,7 @@ def plot(results_dir, netcdf_filename, year, season, ds):
 
     # Save the plot
     plt.savefig(f'{results_dir}/figures/maps_{year}_{season}_areas_{netcdf_filename}.png', dpi=300,
-                transparent=True)
+                transparent=False)
 
     # plots of results at 4 different depths 10, 40, 50, 60
     fig, axs = plt.subplots(2, 4, figsize=(10, 4.5))
@@ -397,16 +397,21 @@ def read_processed_nc(results_dir,file_list,year_list: json):
         for year in year_list:
             # str(year) testa om det inte funkar.
             if year not in range(int(start_year), int(end_year)+1):
-                    continue
+                    pass
             plot(results_dir, netcdf_filename, year, season, ds)
 
 if __name__ == "__main__":
+    print("running")
     # Result directory
     results_dir = "//winfs-proj/proj/havgem/DIVA/syrekartor/resultat/"
     # Open the JSON file
     with open(f"{results_dir}file_list.json", 'r') as file:
         # Load JSON data from the file
         file_list = json.load(file)
-
-    year_list = json.dumps([1960])
+    file_list = ["Oxygen_1960-2021_Winter_0.2_80000_0.05_5.0_2.0_gebco_30sec_4_varcorrlenz.nc"]
+    year_list = json.dumps([2021])
+    ##ear_list = json.dumps([1960, 1961, 1962, 1963, 1964, 1965, 1966, 1967, 1968, 1969, 1970, 1971, 1972, 1973, 1974, 1975, 1976, 1977, 1978,
+    # 1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997,
+    # 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016,
+    # 2017, 2018, 2019, 2020, 2021]);
     read_processed_nc(results_dir,file_list, year_list)

@@ -66,7 +66,8 @@ filenamebackground = joinpath(input_dir, "$(replace(varname,' '=>'_'))_backgroun
 year_list_background = [1960:1969,1970:1979,1980:1989,1990:1999,2000:2009,2010:2021];
 TSbackground = DIVAnd.TimeSelectorYearListMonthList(year_list_background,month_list);
 
-# Sätt horisontell uppplösning
+# Sätt horisontell uppplösning i grader
+# 0.05 motsvarra ca 5km
 #dx, dy = 0.125, 0.125  #Karin dx, dy = 0.1, 0.1
 dx, dy = 0.05, 0.05  #Karin dx, dy = 0.1, 0.1
 lonr = 9.:dx:31.
@@ -79,7 +80,8 @@ aspect_ratio = 1/cos(mean(latr) * pi/180);
 # ## Extract the bathymetry
 # It is used to delimit the domain where the interpolation is performed.
 # Modify bathname according to the resolution required.
-bath_file_name = "gebco_30sec_4"
+# Bathymetry needs to be namned "bat"
+bath_file_name = "bat_elevation_Baltic_Sea_masked"
 bathname = joinpath(input_dir, "$(bath_file_name).nc")
 bathisglobal = true;
 bx,by,b = DIVAnd.extract_bath(bathname,bathisglobal,lonr,latr);
