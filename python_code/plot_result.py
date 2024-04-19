@@ -298,7 +298,7 @@ def plot(results_dir, netcdf_filename, year, season, ds):
     fig.suptitle(f'Hypoxia and anoxia:  {year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
 
     # Save the plot
-    plt.savefig(f'{results_dir}/figures/maps_{year}_{season}_surf_{netcdf_filename}.png', dpi=300, transparent=True)
+    plt.savefig(f'{results_dir}/figures/maps_{year}_{season}_surf_{netcdf_filename}.png', dpi=300, transparent=False)
 
     # plots of results at 4 different depths 60, 70, 80, 90
     fig, axs = plt.subplots(2, 4, figsize=(10, 4.5))
@@ -337,7 +337,7 @@ def plot(results_dir, netcdf_filename, year, season, ds):
     fig.suptitle(f'Hypoxia and anoxia:  {year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
 
     # Save the plot
-    plt.savefig(f'{results_dir}/figures/maps_{year}_{season}_halo_{netcdf_filename}.png', dpi = 300, transparent=True)
+    plt.savefig(f'{results_dir}/figures/maps_{year}_{season}_halo_{netcdf_filename}.png', dpi = 300, transparent=False)
 
     # plots of results at 4 different depths 100, 110, 125, 150
     fig, axs = plt.subplots(2, 4, figsize=(10, 4.5)) #4
@@ -377,7 +377,7 @@ def plot(results_dir, netcdf_filename, year, season, ds):
     fig.suptitle(f'Hypoxia and anoxia:  {year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
 
     # Save the plot
-    plt.savefig(f'{results_dir}/figures/maps_{year}_{season}_deep_{netcdf_filename}.png', dpi=300, transparent=True)
+    plt.savefig(f'{results_dir}/figures/maps_{year}_{season}_deep_{netcdf_filename}.png', dpi=300, transparent=False)
 
 
 ## extract values that are within our limits, save to a new variable and nc-file. ####
