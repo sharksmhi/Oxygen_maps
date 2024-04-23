@@ -59,13 +59,6 @@ end
 #data_fname = "EMODNET_SHARK_ICES"
 @time obsval,obslon,obslat,obsdepth,obstime,obsid = loadbigfile(joinpath(input_dir, "$(data_fname)"))
 
-#Load background field
-filenamebackground = joinpath(input_dir, "$(replace(varname,' '=>'_'))_background_weighted_0.05_field.nc")
-
-# year and month-list for background analysis
-year_list_background = [1960:1969,1970:1979,1980:1989,1990:1999,2000:2009,2010:2021];
-TSbackground = DIVAnd.TimeSelectorYearListMonthList(year_list_background,month_list);
-
 # Sätt horisontell uppplösning i grader
 # 0.05 motsvarra ca 5km
 #dx, dy = 0.125, 0.125  #Karin dx, dy = 0.1, 0.1
@@ -82,9 +75,17 @@ aspect_ratio = 1/cos(mean(latr) * pi/180);
 # Modify bathname according to the resolution required.
 # Bathymetry needs to be namned "bat"
 bath_file_name = "bat_elevation_Baltic_Sea_masked"
+#bath_file_name = "gebco_30sec_4"
 bathname = joinpath(input_dir, "$(bath_file_name).nc")
 bathisglobal = true;
 bx,by,b = DIVAnd.extract_bath(bathname,bathisglobal,lonr,latr);
+
+#Load background field
+filenamebackground = joinpath(input_dir, "$(replace(varname,' '=>'_'))_background_weighted_0.05_field_$(bath_file_name).nc")
+
+# year and month-list for background analysis
+year_list_background = [1960:1969,1970:1979,1980:1989,1990:1999,2000:2009,2010:2021];
+TSbackground = DIVAnd.TimeSelectorYearListMonthList(year_list_background,month_list);
 
 # ## MASK
 # #### 1) Create a mask from bathymetry and your selected depth vector

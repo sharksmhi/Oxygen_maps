@@ -50,7 +50,7 @@ end
 data_fname = "EMODNET_SHARK_ICES.txt"
 @time obsval,obslon,obslat,obsdepth,obstime,obsid = loadbigfile(joinpath(location, "data/$data_fname"));
 
-dx, dy = 0.05, 0.05
+dx, dy = 0.05, 0.05         #~5km?
 lonr = 9.:dx:31.
 latr = 53.5:dy:61.0
 timerange = [Date(1960,1,1),Date(2021,12,31)];
@@ -70,6 +70,7 @@ aspect_ratio = 1/cos(mean(latr) * pi/180);
 
 "BATHYMETRY"
 bathname = joinpath(location, "bathymetry/gebco_30sec_4.nc")
+#bathname = joinpath(location, "bathymetry/bat_elevation_Baltic_Sea_masked.nc")
 bath_file_name = split(bathname,"/")[end]
 bathisglobal = true;
 bx,by,b = DIVAnd.extract_bath(bathname,bathisglobal,lonr,latr);
@@ -122,7 +123,7 @@ epsilon_weighted = epsilon * rdiag;
 obstime_shifted = copy(obstime)
 obstime_shifted[Dates.month.(obstime) .== 12 .& Dates.month.(obstime) .== 11] .+= Dates.Year(1)
 
-filenamebackground = joinpath(outputdir, "$(replace(varname,' '=>'_'))_background_weighted_0.05_field.nc")
+filenamebackground = joinpath(outputdir, "$(replace(varname,' '=>'_'))_background_weighted_0.05_field_$(bath_file_name)")
 
 dbinfo = @time diva3d((lonr,latr,depthr,TSbackground),
            (obslon,obslat,obsdepth,obstime_shifted), obsval,
