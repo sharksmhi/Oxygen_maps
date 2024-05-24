@@ -18,11 +18,7 @@ def create_custom_colormap(levels, colors):
 
     return cmap, norm
 
-def sub_plot_parameter_basemap(ds, parameter, axis, year, show_depth, vmin, vmax, observation_span=2, bath_file=None):
-    year_list = [datetime.strftime(timestr.astype('datetime64[M]').item(), '%Y') for timestr in ds["time"][:].values]
-    time_index = year_list.index(str(year))
-    depth_index = ds["depth"][:].values == show_depth
-    time_value = ds['time'][time_index].values.astype('datetime64[M]').item()
+def set_up_basemap(ds, axis):
 
     # Create a Basemap instance
     m = Basemap(projection='merc', llcrnrlat=ds['lat'].min(), urcrnrlat=ds['lat'].max(),
@@ -30,6 +26,18 @@ def sub_plot_parameter_basemap(ds, parameter, axis, year, show_depth, vmin, vmax
 
     # Plot land borders
     m.drawcoastlines(linewidth=0.5, color='gray')
+    # Plot land borders from the bathymetry file
+
+    return m
+
+def sub_plot_parameter_basemap(ds, parameter, axis, year, show_depth, vmin, vmax, observation_span=2, bath_file=None):
+    year_list = [datetime.strftime(timestr.astype('datetime64[M]').item(), '%Y') for timestr in ds["time"][:].values]
+    time_index = year_list.index(str(year))
+    depth_index = ds["depth"][:].values == show_depth
+    time_value = ds['time'][time_index].values.astype('datetime64[M]').item()
+
+    # Create a Basemap instance
+    m = set_up_basemap(ds, axis)
     # Plot land borders from the bathymetry file
 
     # Plot data
@@ -44,26 +52,15 @@ def sub_plot_parameter_basemap(ds, parameter, axis, year, show_depth, vmin, vmax
 
     return m, pcm
 
-def sub_plot_observations_basemap(ds, parameter, axis, year, show_depth, vmin, vmax, observation_span=2, bath_file=None):
+def sub_plot_only_observations(ds, axis, year, 
+                                  show_depth = 0, vmin = 0, vmax = 180, observation_span=2, 
+                                  colorbar = True, color = 'k'):
     
     year_list = [datetime.strftime(timestr.astype('datetime64[M]').item(), '%Y') for timestr in ds["time"][:].values]
     time_index = year_list.index(str(year))
     time_value = ds['time'][time_index].values.astype('datetime64[M]').item()
 
-    m, pcm = sub_plot_parameter_basemap(ds, parameter, axis, year, show_depth, vmin, vmax)
-    
-    levels = np.arange(vmin, vmax, 45)
-    colors = ['black', 'brown', 'red', 'orange', 'yellow', 'green']
-    # Create the custom colormap
-    cmap, norm = create_custom_colormap(levels, colors)
-
-    # Change the colormap after the plot is created
-    pcm.set_cmap(cmap)
-    pcm.set_norm(norm)
-    # Change vmin and vmax after the plot is created
-    pcm.set_clim(vmin=vmin, vmax=vmax)
-
-    # nedan är endast för att få med observationer
+    # Plocka ut observationer
     # OBS att DIVAnd resultatet ligger under dimensionen 'Oxygen' i datasetet och obsevrationerna under 'Oxygen_data'
     df = pd.DataFrame(
         {'obsyear': ds['obsyear'], 'obslon': ds['obslon'], 'obslat': ds['obslat'], 'Oxygen_data': ds['Oxygen_data'],
@@ -75,25 +72,102 @@ def sub_plot_observations_basemap(ds, parameter, axis, year, show_depth, vmin, v
     lon = df.loc[selection, 'obslon']
     lat = df.loc[selection, 'obslat']
 
+    m = set_up_basemap(ds, axis)
     lon, lat = m(lon, lat)
 
-    m.scatter(lon, lat, s=5, c=observations, cmap=cmap, edgecolors='k', linewidth=0.2, facecolor='none',
-              vmin=vmin, vmax=vmax)
-    
-    # Add a colorbar
-    # Create an inset_axes for the colorbar
-    cbax = inset_locator.inset_axes(axis, width="40%", height="3%", loc="lower right", bbox_to_anchor=(0, 0.15, 1, 1),
-                                bbox_transform=axis.transAxes)
-    cbar = plt.colorbar(pcm, cax = cbax,  orientation = 'horizontal')
-    cbar.ax.tick_params(labelsize = 4)
-    # cbar.set_label(label='µmol/l', fontsize = 10,  y=1.05)
+    if colorbar:
+        levels = np.arange(vmin, vmax, 45)
+        colors = ['black', 'brown', 'red', 'orange', 'yellow', 'green']
+        # Create the custom colormap
+        cmap, norm = create_custom_colormap(levels, colors)
+        pcm = m.pcolormesh(lon, lat, observations, cmap='jet', vmin=vmin, vmax=vmax)
 
-    # Modify the colormap levels to control the step length
-    levels = np.arange(vmin, vmax+1, 45)
-    norm = plt.Normalize(vmin=vmin, vmax=vmax)
-    pcm.set_norm(norm)
-    # Set the colorbar levels explicitly
-    cbar.set_ticks(levels)
+        # Change the colormap after the plot is created
+        pcm.set_cmap(cmap)
+        pcm.set_norm(norm)
+        # Change vmin and vmax after the plot is created
+        pcm.set_clim(vmin=vmin, vmax=vmax)
+
+        m.scatter(lon, lat, s=5, c=observations, cmap=cmap, edgecolors='k', linewidth=0.2, facecolor='none',
+              vmin=vmin, vmax=vmax)
+        
+        # Add a colorbar
+        # Create an inset_axes for the colorbar
+        cbax = inset_locator.inset_axes(axis, width="40%", height="3%", loc="lower right", bbox_to_anchor=(0, 0.15, 1, 1),
+                                    bbox_transform=axis.transAxes)
+        cbar = plt.colorbar(pcm, cax = cbax,  orientation = 'horizontal')
+        cbar.ax.tick_params(labelsize = 4)
+        # cbar.set_label(label='µmol/l', fontsize = 10,  y=1.05)
+
+        # Modify the colormap levels to control the step length
+        levels = np.arange(vmin, vmax+1, 45)
+        norm = plt.Normalize(vmin=vmin, vmax=vmax)
+        pcm.set_norm(norm)
+        # Set the colorbar levels explicitly
+        cbar.set_ticks(levels)
+    else:
+        m.scatter(lon, lat, s=5, edgecolors='k', linewidth=0.2, facecolor=color)
+
+    # Add labels to the subplot
+    axis.set_title(f'Oxygen at {show_depth} m\nobservation at +/- {observation_span} m', fontsize = 8)
+    axis.set_xlabel('Longitude', fontsize = 8)
+    axis.set_ylabel('Latitude', fontsize = 8)
+
+
+def sub_plot_observations_basemap(ds, parameter, axis, year, 
+                                  show_depth = 0, vmin = 0, vmax = 180, observation_span=2, 
+                                  colorbar = True, color = 'k'):
+    
+    year_list = [datetime.strftime(timestr.astype('datetime64[M]').item(), '%Y') for timestr in ds["time"][:].values]
+    time_index = year_list.index(str(year))
+    time_value = ds['time'][time_index].values.astype('datetime64[M]').item()
+
+    # Plocka ut observationer
+    # OBS att DIVAnd resultatet ligger under dimensionen 'Oxygen' i datasetet och obsevrationerna under 'Oxygen_data'
+    df = pd.DataFrame(
+        {'obsyear': ds['obsyear'], 'obslon': ds['obslon'], 'obslat': ds['obslat'], 'Oxygen_data': ds['Oxygen_data'],
+         'depth': ds['obsdepth']})
+    selection = ((df.obsyear == datetime.strftime(time_value, '%Y')) & (
+            df.depth >= show_depth - observation_span) & (df.depth <= show_depth + observation_span))
+
+    observations = df.loc[selection, 'Oxygen_data']
+    lon = df.loc[selection, 'obslon']
+    lat = df.loc[selection, 'obslat']
+
+    m, pcm = sub_plot_parameter_basemap(ds, parameter, axis, year, show_depth, vmin, vmax)
+    lon, lat = m(lon, lat)
+
+    if colorbar:
+        levels = np.arange(vmin, vmax, 45)
+        colors = ['black', 'brown', 'red', 'orange', 'yellow', 'green']
+        # Create the custom colormap
+        cmap, norm = create_custom_colormap(levels, colors)
+
+        # Change the colormap after the plot is created
+        pcm.set_cmap(cmap)
+        pcm.set_norm(norm)
+        # Change vmin and vmax after the plot is created
+        pcm.set_clim(vmin=vmin, vmax=vmax)
+
+        m.scatter(lon, lat, s=5, c=observations, cmap=cmap, edgecolors='k', linewidth=0.2, facecolor='none',
+              vmin=vmin, vmax=vmax)
+        
+        # Add a colorbar
+        # Create an inset_axes for the colorbar
+        cbax = inset_locator.inset_axes(axis, width="40%", height="3%", loc="lower right", bbox_to_anchor=(0, 0.15, 1, 1),
+                                    bbox_transform=axis.transAxes)
+        cbar = plt.colorbar(pcm, cax = cbax,  orientation = 'horizontal')
+        cbar.ax.tick_params(labelsize = 4)
+        # cbar.set_label(label='µmol/l', fontsize = 10,  y=1.05)
+
+        # Modify the colormap levels to control the step length
+        levels = np.arange(vmin, vmax+1, 45)
+        norm = plt.Normalize(vmin=vmin, vmax=vmax)
+        pcm.set_norm(norm)
+        # Set the colorbar levels explicitly
+        cbar.set_ticks(levels)
+    else:
+        m.scatter(lon, lat, s=5, edgecolors='k', linewidth=0.2, facecolor=color)
 
     # Add labels to the subplot
     axis.set_title(f'Oxygen at {show_depth} m\nobservation at +/- {observation_span} m', fontsize = 8)
@@ -102,7 +176,7 @@ def sub_plot_observations_basemap(ds, parameter, axis, year, show_depth, vmin, v
 
     return pcm
 
-def sub_plot_area_at_threshold_basemap(ds, parameter, axis, year, vmin, vmax, threshold, unit='umol/l', bath_file=None):
+def sub_plot_area_at_threshold_basemap(ds, parameter, axis, year, threshold, vmin = 0, vmax = 180, unit='umol/l', bath_file=None, colorbar=True, color = 'k'):
     year_list = [datetime.strftime(timestr.astype('datetime64[M]').item(), '%Y') for timestr in ds["time"][:].values]
     time_index = year_list.index(str(year))
 
@@ -126,14 +200,17 @@ def sub_plot_area_at_threshold_basemap(ds, parameter, axis, year, vmin, vmax, th
     lon, lat = m(lon, lat)
 
     # Plot data using pcolormesh
-    pcm = m.pcolormesh(lon, lat, data, cmap='ocean', vmin=vmin, vmax=vmax)
-    # Add a colorbar
-    # Create an inset_axes for the colorbar
-    cbax = inset_locator.inset_axes(axis, width="40%", height="3%", loc="lower right", bbox_to_anchor=(0, 0.15, 1, 1),
-                                bbox_transform=axis.transAxes)
-    cbar = plt.colorbar(pcm, cax = cbax,  orientation = 'horizontal')
-    cbar.ax.tick_params(labelsize = 7)
-
+    if colorbar:
+        pcm = m.pcolormesh(lon, lat, data, cmap='ocean', vmin=vmin, vmax=vmax)
+        # Add a colorbar
+        # Create an inset_axes for the colorbar
+        cbax = inset_locator.inset_axes(axis, width="40%", height="3%", loc="lower right", bbox_to_anchor=(0, 0.15, 1, 1),
+                                    bbox_transform=axis.transAxes)
+        cbar = plt.colorbar(pcm, cax = cbax,  orientation = 'horizontal')
+        cbar.ax.tick_params(labelsize = 7)
+    else:
+        pcm = m.pcolormesh(lon, lat, data, color=color)
+    
     # Add labels to the subplot with adjusted text size
     axis.set_title(f'Area <= {threshold} {unit}', fontsize=8)
     axis.set_xlabel('Longitude', fontsize=8)
@@ -246,12 +323,9 @@ def plot(results_dir, netcdf_filename, year, season, ds):
 
     sub_plot_error_area_at_threshold_basemap(ds, parameter='Relerr_per_grid_at_min_90_depth', axis=axs[0, 0], year=year,
                                              vmin=0, vmax=1, threshold=90)
-    sub_plot_area_at_threshold_basemap(ds, parameter='Min_depth_90', axis=axs[1, 0], year=year, vmin=50, vmax=200,
-                                       threshold=90)
-    sub_plot_error_area_at_threshold_basemap(ds, parameter='Relerr_per_grid_at_min_0_depth', axis=axs[0, 1], year=year,
-                                             vmin=0, vmax=1, threshold=0)
-    sub_plot_area_at_threshold_basemap(ds, parameter='Min_depth_0', axis=axs[1, 1], year=year, vmin=50, vmax=200,
-                                       threshold=0)
+    sub_plot_area_at_threshold_basemap(ds, parameter='Min_depth_90', axis=axs[1, 0], year=year, threshold=90, vmin=50, vmax=200,)
+    sub_plot_error_area_at_threshold_basemap(ds, parameter='Relerr_per_grid_at_min_0_depth', axis=axs[0, 1], year=year, threshold=0, vmin=0, vmax=1)
+    sub_plot_area_at_threshold_basemap(ds, parameter='Min_depth_0', axis=axs[1, 1], year=year, threshold=0, vmin=50, vmax=200)
     # Add title and labels
     # Set the title for the whole figure
     fig.suptitle(f'Hypoxia and anoxia:  {year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
@@ -379,6 +453,26 @@ def plot(results_dir, netcdf_filename, year, season, ds):
     # Save the plot
     plt.savefig(f'{results_dir}/figures/maps_{year}_{season}_deep_{netcdf_filename}.png', dpi=300, transparent=False)
 
+    # plots of results all observations and hypox area and with anox area overlayed
+    fig, axs = plt.subplots(1, 1, figsize=(10, 4.5))
+    # Adjust the spacing between subplots
+    fig.tight_layout()  # (left, bottom, width, height)
+
+    sub_plot_area_at_threshold_basemap(ds, parameter='Min_depth_90', axis=axs, year=year, colorbar=False, color = 'r',
+                                       threshold=90)
+    sub_plot_area_at_threshold_basemap(ds, parameter='Min_depth_0', axis=axs, year=year, colorbar=False, color = 'y',
+                                       threshold=0)
+    sub_plot_only_observations(ds, axis=axs, year=year, colorbar=False, color = 'c')
+    
+    
+    # Add title and labels
+    # Set the title for the whole figure
+    fig.suptitle(f'Hypoxia and anoxia:  {year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
+
+    # Save the plot
+    plt.savefig(f'{results_dir}/figures/maps_{year}_{season}_overview_{netcdf_filename}.png', dpi=300, transparent=False)
+    
+
 
 ## extract values that are within our limits, save to a new variable and nc-file. ####
 
@@ -386,6 +480,7 @@ def read_processed_nc(results_dir,file_list,year_list: json):
     year_list = json.loads(year_list)
 
     for netcdf_filename in file_list:
+        print(f'plto from {netcdf_filename}')
         ds = xr.open_dataset(f"{results_dir}nc/processed/{netcdf_filename}")
         season = ds.attrs['season']
         epsilon = ds.attrs['epsilon']
@@ -398,6 +493,7 @@ def read_processed_nc(results_dir,file_list,year_list: json):
             # str(year) testa om det inte funkar.
             if year not in range(int(start_year), int(end_year)+1):
                     pass
+            print(f'plotting {year}')
             plot(results_dir, netcdf_filename, year, season, ds)
 
 if __name__ == "__main__":
@@ -408,7 +504,7 @@ if __name__ == "__main__":
     with open(f"{results_dir}file_list.json", 'r') as file:
         # Load JSON data from the file
         file_list = json.load(file)
-    file_list = ["Oxygen_1960-2021_Winter_0.2_80000_0.05_5.0_2.0_gebco_30sec_4_varcorrlenz.nc"]
+    file_list = ["Oxygen_2021-2021_Autumn_0.2_80000_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked_varcorrlenz.nc"]
     year_list = json.dumps([2021])
     ##ear_list = json.dumps([1960, 1961, 1962, 1963, 1964, 1965, 1966, 1967, 1968, 1969, 1970, 1971, 1972, 1973, 1974, 1975, 1976, 1977, 1978,
     # 1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997,
