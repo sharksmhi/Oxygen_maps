@@ -92,7 +92,7 @@ TSbackground = DIVAnd.TimeSelectorYearListMonthList(year_list_background,month_l
 # First set the depth resolotion, this will be the depths used in DIVArun
 # Then set the horizontal correlation length (should be twice the resolution)
 depthr = [0.,  10., 20., 25., 30., 35., 40., 50., 55., 60., 65., 70., 75., 80., 85., 90., 95., 100., 105., 110., 115., 120., 125., 130., 135., 140., 145.,150.,175.,200.,250.,300.];
-lenz_ =  [20., 20., 20., 10., 10., 10., 20., 20., 10., 10., 10., 10,  10., 10., 10., 10., 10.,  50.,  50.,  50.,  50.,  50.,  50.,  50.,  50.,  50.,  50., 50., 50.,100., 100.,100.];
+lenz_ =  [20., 20., 20., 10., 10., 10., 20., 20., 10., 10., 10., 10.,  10., 10., 10., 10., 10.,  50.,  50.,  50.,  50.,  50.,  50.,  50.,  50.,  50.,  50., 50., 50.,100., 100.,100.];
 xmask,ymask,mmask = load_mask(bathname,true,lonr,latr,depthr);
 
 # #### 2) apply floodfill.
