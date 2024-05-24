@@ -71,6 +71,9 @@ def area_at_threshold(threshold, ds, df):
     # Then, use these indices to extract the corresponding depth values
     ds[f"Min_depth_{threshold}"] = ds['depth'].where(mask_below_threshold).isel(depth=first_layer_indices)
 
+    # Then, use these indices to extract the corresponding depth values
+    ds[f"{threshold}_mask_firstlayer"] = ds[f"{threshold}_mask"].where(mask_below_threshold).isel(depth=first_layer_indices)
+
     # Step 5: Extract corresponding values for the variable Oxygen_relerr using the mask from step 4
     ds[f'Relerr_per_grid_at_min_{threshold}_depth'] = ds['Oxygen_relerr'].where(mask_below_threshold).isel(
         depth=first_layer_indices)
