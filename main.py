@@ -8,19 +8,6 @@ from python_code import calculate_areas as calculate_areas
 from python_code import plot_result
 from sys import stdout
 
-"""# year: list, seasons: list, DIVAsettings: dict
-# location = "//winfs-proj/proj/havgem/DIVA/syrekartor/"
-# outputdir = joinpath(location, "resultat/nc/$(savevar)/");
-# data_fname = "EMODNET_SHARK_ICES.txt"
-# year_list_background = [1960:1969,1970:1979,1980:1989,1990:1999,2000:2009,2010:2021];
-# month_list_background = [ [11,12,1,2], [3,4,5], [6,7,8], [8,9,10]];
-# filenamebackground
-# year_list = []
-# month_list = [ [11,12,1,2], [3,4,5], [6,7,8], [8,9,10]];
-# seasons=["Winter","Spring","Summer","Autumn"]
-# months=["(Nov-Feb)","(Mar-May)","(June-Aug)","(Aug-Oct)"];
-# depthr = [0.,  10., 20., 25., 30., 35., 40., 50., 55., 60., 65., 70.,  75., 80., 85., 90., 95., 100., 105., 110., 115., 120., 125., 130., 135., 140., 145.,150.,175.,200.,250.,300.];
-"""
 
 def run_julia_function(args):
     try:
@@ -43,6 +30,7 @@ if __name__ == "__main__":
     input_dir = "data"
     # Result directory
     results_dir = "//winfs-proj/proj/havgem/DIVA/syrekartor/resultat/"
+    # results_dir = "C:/LenaV/code/DIVAND/resultat/"
     # Input data filename
     data_fname = "EMODNET_SHARK_ICES.txt"
     # Years, month and seasons to be analysed
@@ -76,10 +64,21 @@ if __name__ == "__main__":
         # Load JSON data from the file
         file_list = json.load(file)
 
+    file_list = []
+    lx = json.load(lenf)
+    dx = 0.03
+    w_depth = 5.
+    w_days = 2.
+    bath_file_name = "bat_elevation_Baltic_Sea_masked"
+    for season in json.load(seasons):
+        file_list.append(f"Oxygen_{min(json.load(year_list))}-{max(json.load(year_list))}_{season}_{json.load(epsilon)}_{lx}_{dx}_{w_depth}_{w_days}_{bath_file_name}_varcorrlenz.nc")
+    
     #Calculate areas from DIVA-results and save in a new nc-file. Results in file_list
+    print("calculating areas")
     calculate_areas.calculate_areas(results_dir, file_list, threshold_list, save_area_data)
 
     #Read and plot areas in file_list
+    print("plotting")
     plot_result.read_processed_nc(results_dir,file_list,year_list)
 
 ### extract values that are within our limits, save to a new variable and nc-file. ####
