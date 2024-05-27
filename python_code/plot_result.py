@@ -176,7 +176,7 @@ def sub_plot_observations_basemap(ds, parameter, axis, year,
 
     return pcm
 
-def sub_plot_area_at_threshold_basemap(ds, parameter, axis, year, threshold, vmin = 0, vmax = 180, unit='umol/l', bath_file=None, colorbar=True, color = 'k'):
+def sub_plot_area_at_threshold_basemap(ds, parameter, axis, year, threshold, vmin = 0, vmax = 180, unit='umol/l', bath_file=None, colorbar=True, color = 'k', levels=[0.5, 1.5], hatches = []):
     year_list = [datetime.strftime(timestr.astype('datetime64[M]').item(), '%Y') for timestr in ds["time"][:].values]
     time_index = year_list.index(str(year))
 
@@ -209,7 +209,8 @@ def sub_plot_area_at_threshold_basemap(ds, parameter, axis, year, threshold, vmi
         cbar = plt.colorbar(pcm, cax = cbax,  orientation = 'horizontal')
         cbar.ax.tick_params(labelsize = 7)
     else:
-        pcm = m.pcolormesh(lon, lat, data, color=color)
+        # pcm = m.pcolormesh(lon, lat, data, color=color)
+        pcm = m.contourf(lon, lat, data,  levels=levels, colors=[color], hatches = hatches)
     
     # Add labels to the subplot with adjusted text size
     axis.set_title(f'Area <= {threshold} {unit}', fontsize=8)
@@ -458,10 +459,12 @@ def plot(results_dir, netcdf_filename, year, season, ds):
     # Adjust the spacing between subplots
     fig.tight_layout()  # (left, bottom, width, height)
 
-    sub_plot_area_at_threshold_basemap(ds, parameter='Min_depth_90', axis=axs, year=year, colorbar=False, color = 'r',
+    sub_plot_area_at_threshold_basemap(ds, parameter='90_mask_firstlayer', axis=axs, year=year, colorbar=False, color = 'grey',
                                        threshold=90)
-    sub_plot_area_at_threshold_basemap(ds, parameter='Min_depth_0', axis=axs, year=year, colorbar=False, color = 'y',
+    sub_plot_area_at_threshold_basemap(ds, parameter='0_mask_firstlayer', axis=axs, year=year, colorbar=False, color = 'k',
                                        threshold=0)
+    sub_plot_area_at_threshold_basemap(ds, parameter='Relerr_per_grid_at_min_90_depth', axis=axs, year=year, colorbar=False, color = 'pink', hatches=['//'],
+                                       threshold=90)
     sub_plot_only_observations(ds, axis=axs, year=year, colorbar=False, color = 'c')
     
     
@@ -500,12 +503,10 @@ if __name__ == "__main__":
     print("running")
     # Result directory
     results_dir = "//winfs-proj/proj/havgem/DIVA/syrekartor/resultat/"
-    # Open the JSON file
-    with open(f"{results_dir}file_list.json", 'r') as file:
-        # Load JSON data from the file
-        file_list = json.load(file)
-    file_list = ["Oxygen_2021-2021_Autumn_0.2_80000_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked_varcorrlenz.nc"]
-    year_list = json.dumps([2021])
+    results_dir = "C:/LenaV/code/DIVAnd/resultat/"
+    
+    file_list = ["Oxygen_1960-2022_Autumn_0.2_80000_0.03_5.0_2.0_bat_elevation_Baltic_Sea_masked_varcorrlenz.nc"]
+    year_list = json.dumps([2020])
     ##ear_list = json.dumps([1960, 1961, 1962, 1963, 1964, 1965, 1966, 1967, 1968, 1969, 1970, 1971, 1972, 1973, 1974, 1975, 1976, 1977, 1978,
     # 1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997,
     # 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016,
