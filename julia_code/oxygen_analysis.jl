@@ -33,6 +33,10 @@ month_list = JSON.parse(args[5])
 seasons = JSON.parse(args[6])
 lenf = JSON.parse(args[7])
 epsilon = JSON.parse(args[8])
+dx = JSON.parse(args[9])
+bath_file_name = args[10]
+w_depth = JSON.parse(args[11])
+w_days = JSON.parse(args[12])
 
 # ## Configuration
 # * Define variabel and set horizontal, vertical and temporal resolutions.
@@ -62,7 +66,7 @@ end
 # Sätt horisontell uppplösning i grader
 # 0.05 motsvarra ca 5km
 #dx, dy = 0.125, 0.125  #Karin dx, dy = 0.1, 0.1
-dx, dy = 0.05, 0.05  #Karin dx, dy = 0.1, 0.1
+dy = dx #0.05, 0.05  #Karin dx, dy = 0.1, 0.1
 lonr = 9.:dx:31.
 latr = 53.5:dy:61.
 
@@ -74,14 +78,16 @@ aspect_ratio = 1/cos(mean(latr) * pi/180);
 # It is used to delimit the domain where the interpolation is performed.
 # Modify bathname according to the resolution required.
 # Bathymetry needs to be namned "bat"
-bath_file_name = "bat_elevation_Baltic_Sea_masked"
+#bath_file_name = "bat_elevation_Baltic_Sea_masked"
 #bath_file_name = "gebco_30sec_4"
 bathname = joinpath(input_dir, "$(bath_file_name).nc")
+@show(bathname)
 bathisglobal = true;
 bx,by,b = DIVAnd.extract_bath(bathname,bathisglobal,lonr,latr);
 
 #Load background field
-filenamebackground = joinpath(input_dir, "$(replace(varname,' '=>'_'))_background_weighted_0.05_field_$(bath_file_name).nc")
+#filenamebackground = joinpath(input_dir, "$(replace(varname,' '=>'_'))_background_weighted_0.05_field_$(bath_file_name).nc")
+filenamebackground = joinpath(input_dir, "$(replace(varname,' '=>'_'))_background_weighted_$(dx)_field_$(bath_file_name).nc")
 
 # year and month-list for background analysis
 year_list_background = [1960:1969,1970:1979,1980:1989,1990:1999,2000:2009,2010:2021];
@@ -156,8 +162,8 @@ error_thresholds = [("L1", 0.3), ("L2", 0.5)];
 # 2.5m och 2 dagar
 # 2.5m och 30 dagar
 
-w_depth = 5.
-w_days = 2.
+#w_depth = 5.
+#w_days = 2.
 
 @show data_fname
 @show split(data_fname,".")[1]

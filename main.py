@@ -34,28 +34,37 @@ if __name__ == "__main__":
     # Input data filename
     data_fname = "EMODNET_SHARK_ICES.txt"
     # Years, month and seasons to be analysed
-    year_list = json.dumps([1960, 1961, 1962, 1963, 1964, 1965, 1966, 1967, 1968, 1969, 1970, 1971, 1972, 1973, 1974, 1975, 1976, 1977, 1978,
-     1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997,
-     1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016,
-    2017, 2018, 2019, 2020, 2021, 2022]);
-    #year_list = json.dumps([2021])
-    month_list = json.dumps([[11,12,1,2], [3,4,5], [6,7,8], [8,9,10]]);
-    #month_list = json.dumps([[11, 12, 1, 2]])
-    #seasons = json.dumps(["Winter"])
-    seasons = json.dumps(["Winter","Spring","Summer","Autumn"])
+    #year_list = json.dumps([1960, 1961, 1962, 1963, 1964, 1965, 1966, 1967, 1968, 1969, 1970, 1971, 1972, 1973, 1974, 1975, 1976, 1977, 1978,
+    # 1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997,
+    # 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016,
+    #2017, 2018, 2019, 2020, 2021, 2022]);
+    year_list = json.dumps([2019])
+    #month_list = json.dumps([[11,12,1,2], [3,4,5], [6,7,8], [8,9,10]]);
+    month_list = json.dumps([[11, 12, 1, 2]])
+    seasons = json.dumps(["Winter"])
+    #seasons = json.dumps(["Winter","Spring","Summer","Autumn"])
     # Correlation length
     # Vi bör köra med lite längre lenf troligen 80_000km då vi har ca 40nm mellan våra station i eg.Östersjön
-    lenf = json.dumps(80000)   #Km
+    lenf = json.dumps(80000)    #Km
+    # Resolution
+    dx = json.dumps(0.05)       #deg
     # Signal to noise ratio
     # low epsilon means higher noise in data and result is more smoothed
     # high epsilon means lower noise in data and result is less smoothed and each observation is seen more
     epsilon = json.dumps(0.2)
+    #Bathymetry file
+    bath_file_name = "bat_elevation_Baltic_Sea_masked"
     #Thresholds to analyse in µmol/l oxygen (0, 2, 4 ml/l)
-    threshold_list = [0, 90, 180]
+    threshold_list = [0, 90, 180]   #µmol/l
+    # Modify data weight
+    w_depth = json.dumps(5.)
+    w_days = json.dumps(2.)
     #Set True if you want to save area_data to file (for time-series bar plots)
     save_area_data=True
 
-    args = ['julia', 'julia_code/oxygen_analysis.jl', input_dir, results_dir, data_fname, year_list, month_list, seasons, lenf, epsilon]
+
+    print("running DIVAnd in Julia...")
+    args = ['julia', 'julia_code/oxygen_analysis.jl', input_dir, results_dir, data_fname, year_list, month_list, seasons, lenf, epsilon, dx, bath_file_name, w_depth, w_days]
     # Call the function and save a json-file with a file_list containing the results. That we can send to the calculate_areas function.
     run_julia_function(args)
 
@@ -65,20 +74,17 @@ if __name__ == "__main__":
         file_list = json.load(file)
 
     file_list = []
-    lx = json.load(lenf)
-    dx = 0.03
-    w_depth = 5.
-    w_days = 2.
-    bath_file_name = "bat_elevation_Baltic_Sea_masked"
-    for season in json.load(seasons):
-        file_list.append(f"Oxygen_{min(json.load(year_list))}-{max(json.load(year_list))}_{season}_{json.load(epsilon)}_{lx}_{dx}_{w_depth}_{w_days}_{bath_file_name}_varcorrlenz.nc")
+
+    for season in json.loads(seasons):
+
+        file_list.append(f"Oxygen_{min(json.loads(year_list))}-{max(json.loads(year_list))}_{season}_{json.loads(epsilon)}_{lenf}_{json.loads(dx)}_{w_depth}_{w_days}_{bath_file_name}_varcorrlenz.nc")
     
     #Calculate areas from DIVA-results and save in a new nc-file. Results in file_list
-    print("calculating areas")
+    print("calculating areas...")
     calculate_areas.calculate_areas(results_dir, file_list, threshold_list, save_area_data)
 
     #Read and plot areas in file_list
-    print("plotting")
+    print("plotting...")
     plot_result.read_processed_nc(results_dir,file_list,year_list)
 
 ### extract values that are within our limits, save to a new variable and nc-file. ####
