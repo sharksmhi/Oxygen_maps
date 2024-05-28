@@ -9,6 +9,9 @@ import json
 from mpl_toolkits.basemap import Basemap
 from mpl_toolkits.axes_grid1 import inset_locator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+import matplotlib as mpl
+
+mpl.rcParams['hatch.linewidth'] = 0.1
 
 def create_custom_colormap(levels, colors):
     # Define color ranges and corresponding colors
@@ -22,7 +25,7 @@ def set_up_basemap(ds, axis):
 
     # Create a Basemap instance
     m = Basemap(projection='merc', llcrnrlat=ds['lat'].min(), urcrnrlat=ds['lat'].max(),
-                llcrnrlon=ds['lon'].min(), urcrnrlon=ds['lon'].max(), resolution='l', ax=axis)
+                llcrnrlon=ds['lon'].min(), urcrnrlon=ds['lon'].max(), resolution='i', ax=axis)
 
     # Plot land borders
     m.drawcoastlines(linewidth=0.5, color='gray')
@@ -105,11 +108,11 @@ def sub_plot_only_observations(ds, axis, year,
         pcm.set_norm(norm)
         # Set the colorbar levels explicitly
         cbar.set_ticks(levels)
+        axis.set_title(f'Oxygen at {show_depth} m\nobservation at +/- {observation_span} m', fontsize=8)
     else:
         m.scatter(lon, lat, s=5, edgecolors='k', linewidth=0.2, facecolor=color)
 
     # Add labels to the subplot
-    axis.set_title(f'Oxygen at {show_depth} m\nobservation at +/- {observation_span} m', fontsize = 8)
     axis.set_xlabel('Longitude', fontsize = 8)
     axis.set_ylabel('Latitude', fontsize = 8)
 
@@ -182,7 +185,7 @@ def sub_plot_area_at_threshold_basemap(ds, parameter, axis, year, threshold, vmi
 
     # Create a Basemap instance with Mercator projection
     m = Basemap(projection='merc', llcrnrlat=ds['lat'].min(), urcrnrlat=ds['lat'].max(),
-                llcrnrlon=ds['lon'].min(), urcrnrlon=ds['lon'].max(), resolution='l', ax=axis)
+                llcrnrlon=ds['lon'].min(), urcrnrlon=ds['lon'].max(), resolution='i', ax=axis)
 
     # Plot land borders
     m.drawcoastlines(linewidth=0.5, color='gray')
@@ -208,12 +211,12 @@ def sub_plot_area_at_threshold_basemap(ds, parameter, axis, year, threshold, vmi
                                     bbox_transform=axis.transAxes)
         cbar = plt.colorbar(pcm, cax = cbax,  orientation = 'horizontal')
         cbar.ax.tick_params(labelsize = 7)
+        axis.set_title(f'Area <= {threshold} {unit}', fontsize=8)
     else:
         # pcm = m.pcolormesh(lon, lat, data, color=color)
         pcm = m.contourf(lon, lat, data,  levels=levels, colors=[color], hatches = hatches)
     
     # Add labels to the subplot with adjusted text size
-    axis.set_title(f'Area <= {threshold} {unit}', fontsize=8)
     axis.set_xlabel('Longitude', fontsize=8)
     axis.set_ylabel('Latitude', fontsize=8)
 
@@ -332,7 +335,7 @@ def plot(results_dir, netcdf_filename, year, season, ds):
     fig.suptitle(f'Hypoxia and anoxia:  {year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
 
     # Save the plot
-    plt.savefig(f'{results_dir}/figures/maps_{year}_{season}_areas_{netcdf_filename}.png', dpi=300,
+    plt.savefig(f'{results_dir}/figures/maps_{year}_areas_{netcdf_filename}.png', dpi=300,
                 transparent=False)
 
     # plots of results at 4 different depths 10, 40, 50, 60
@@ -373,7 +376,7 @@ def plot(results_dir, netcdf_filename, year, season, ds):
     fig.suptitle(f'Hypoxia and anoxia:  {year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
 
     # Save the plot
-    plt.savefig(f'{results_dir}/figures/maps_{year}_{season}_surf_{netcdf_filename}.png', dpi=300, transparent=False)
+    plt.savefig(f'{results_dir}/figures/maps_{year}_surf_{netcdf_filename}.png', dpi=300, transparent=False)
 
     # plots of results at 4 different depths 60, 70, 80, 90
     fig, axs = plt.subplots(2, 4, figsize=(10, 4.5))
@@ -412,7 +415,7 @@ def plot(results_dir, netcdf_filename, year, season, ds):
     fig.suptitle(f'Hypoxia and anoxia:  {year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
 
     # Save the plot
-    plt.savefig(f'{results_dir}/figures/maps_{year}_{season}_halo_{netcdf_filename}.png', dpi = 300, transparent=False)
+    plt.savefig(f'{results_dir}/figures/maps_{year}_halo_{netcdf_filename}.png', dpi = 300, transparent=False)
 
     # plots of results at 4 different depths 100, 110, 125, 150
     fig, axs = plt.subplots(2, 4, figsize=(10, 4.5)) #4
@@ -452,7 +455,7 @@ def plot(results_dir, netcdf_filename, year, season, ds):
     fig.suptitle(f'Hypoxia and anoxia:  {year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
 
     # Save the plot
-    plt.savefig(f'{results_dir}/figures/maps_{year}_{season}_deep_{netcdf_filename}.png', dpi=300, transparent=False)
+    plt.savefig(f'{results_dir}/figures/maps_{year}_deep_{netcdf_filename}.png', dpi=300, transparent=False)
 
     # plots of results all observations and hypox area and with anox area overlayed
     fig, axs = plt.subplots(1, 1, figsize=(10, 4.5))
@@ -461,11 +464,13 @@ def plot(results_dir, netcdf_filename, year, season, ds):
 
     sub_plot_area_at_threshold_basemap(ds, parameter='90_mask_firstlayer', axis=axs, year=year, colorbar=False, color = 'grey',
                                        threshold=90)
-    sub_plot_area_at_threshold_basemap(ds, parameter='0_mask_firstlayer', axis=axs, year=year, colorbar=False, color = 'c',
+    sub_plot_area_at_threshold_basemap(ds, parameter='0_mask_firstlayer', axis=axs, year=year, colorbar=False, color = 'k',
                                        threshold=0)
-    sub_plot_area_at_threshold_basemap(ds, parameter='Relerr_per_grid_at_min_90_depth', axis=axs, year=year, colorbar=False, color = 'pink', hatches=['//'],
+    sub_plot_area_at_threshold_basemap(ds, parameter='Relerr_per_grid_at_min_90_depth', axis=axs, year=year, colorbar=False, color = 'none', hatches=[10*'/'],
                                        threshold=90)
-    sub_plot_only_observations(ds, axis=axs, year=year, colorbar=False, color = 'g')
+    sub_plot_area_at_threshold_basemap(ds, parameter='Relerr_per_grid_at_min_0_depth', axis=axs, year=year, colorbar=False, color = 'none', hatches=[10*"\\"],
+                                       threshold=0)
+    sub_plot_only_observations(ds, axis=axs, year=year, colorbar=False, color = 'r')
     
     
     # Add title and labels
@@ -505,8 +510,8 @@ if __name__ == "__main__":
     results_dir = "//winfs-proj/proj/havgem/DIVA/syrekartor/resultat/"
     #results_dir = "C:/LenaV/code/DIVAnd/resultat/"
 
-    file_list = ["Oxygen_2021-2021_Winter_0.2_80000_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked_varcorrlenz.nc"]
-    year_list = json.dumps([2021])
+    file_list = ["Oxygen_1961-1961_Spring_0.2_80000_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked_varcorrlenz.nc"]
+    year_list = json.dumps([1961])
     ##ear_list = json.dumps([1960, 1961, 1962, 1963, 1964, 1965, 1966, 1967, 1968, 1969, 1970, 1971, 1972, 1973, 1974, 1975, 1976, 1977, 1978,
     # 1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997,
     # 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016,
