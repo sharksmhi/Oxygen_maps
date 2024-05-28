@@ -461,11 +461,11 @@ def plot(results_dir, netcdf_filename, year, season, ds):
 
     sub_plot_area_at_threshold_basemap(ds, parameter='90_mask_firstlayer', axis=axs, year=year, colorbar=False, color = 'grey',
                                        threshold=90)
-    sub_plot_area_at_threshold_basemap(ds, parameter='0_mask_firstlayer', axis=axs, year=year, colorbar=False, color = 'k',
+    sub_plot_area_at_threshold_basemap(ds, parameter='0_mask_firstlayer', axis=axs, year=year, colorbar=False, color = 'c',
                                        threshold=0)
     sub_plot_area_at_threshold_basemap(ds, parameter='Relerr_per_grid_at_min_90_depth', axis=axs, year=year, colorbar=False, color = 'pink', hatches=['//'],
                                        threshold=90)
-    sub_plot_only_observations(ds, axis=axs, year=year, colorbar=False, color = 'c')
+    sub_plot_only_observations(ds, axis=axs, year=year, colorbar=False, color = 'g')
     
     
     # Add title and labels
@@ -473,7 +473,7 @@ def plot(results_dir, netcdf_filename, year, season, ds):
     fig.suptitle(f'Hypoxia and anoxia:  {year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
 
     # Save the plot
-    plt.savefig(f'{results_dir}/figures/maps_{year}_{season}_overview_{netcdf_filename}.png', dpi=300, transparent=False)
+    plt.savefig(f'{results_dir}/figures/maps_{year}_overview_{netcdf_filename}.png', dpi=300, transparent=False)
     
 
 
@@ -503,10 +503,10 @@ if __name__ == "__main__":
     print("running")
     # Result directory
     results_dir = "//winfs-proj/proj/havgem/DIVA/syrekartor/resultat/"
-    results_dir = "C:/LenaV/code/DIVAnd/resultat/"
-    
-    file_list = ["Oxygen_1960-2022_Autumn_0.2_80000_0.03_5.0_2.0_bat_elevation_Baltic_Sea_masked_varcorrlenz.nc"]
-    year_list = json.dumps([2020])
+    #results_dir = "C:/LenaV/code/DIVAnd/resultat/"
+
+    file_list = ["Oxygen_2021-2021_Winter_0.2_80000_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked_varcorrlenz.nc"]
+    year_list = json.dumps([2021])
     ##ear_list = json.dumps([1960, 1961, 1962, 1963, 1964, 1965, 1966, 1967, 1968, 1969, 1970, 1971, 1972, 1973, 1974, 1975, 1976, 1977, 1978,
     # 1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997,
     # 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016,
