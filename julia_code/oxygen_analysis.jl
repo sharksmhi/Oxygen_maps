@@ -27,6 +27,7 @@ using PyCall
 args= ARGS
 input_dir = args[1]
 results_dir = args[2]
+
 data_fname = args[3]
 year_list = JSON.parse(args[4])
 month_list = JSON.parse(args[5])
@@ -37,6 +38,8 @@ dx = JSON.parse(args[9])
 bath_file_name = args[10]
 w_depth = JSON.parse(args[11])
 w_days = JSON.parse(args[12])
+depthr = JSON.parse(args[13])
+lenz_ = JSON.parse(args[14])
 
 # ## Configuration
 # * Define variabel and set horizontal, vertical and temporal resolutions.
@@ -67,6 +70,7 @@ end
 # 0.05 motsvarra ca 5km
 #dx, dy = 0.125, 0.125  #Karin dx, dy = 0.1, 0.1
 dy = dx #0.05, 0.05  #Karin dx, dy = 0.1, 0.1
+#Dic-havsområden, ytsnitt, depthr, lenz_
 lonr = 9.:dx:31.
 latr = 53.5:dy:61.
 
@@ -97,8 +101,8 @@ TSbackground = DIVAnd.TimeSelectorYearListMonthList(year_list_background,month_l
 # #### 1) Create a mask from bathymetry and your selected depth vector
 # First set the depth resolotion, this will be the depths used in DIVArun
 # Then set the horizontal correlation length (should be twice the resolution)
-depthr = [0.,  10., 20., 25., 30., 35., 40., 50., 55., 60., 65., 70., 75., 80., 85., 90., 95., 100., 105., 110., 115., 120., 125., 130., 135., 140., 145.,150.,175.,200.,250.,300.];
-lenz_ =  [20., 20., 20., 10., 10., 10., 20., 20., 10., 10., 10., 10.,  10., 10., 10., 10., 10.,  50.,  50.,  50.,  50.,  50.,  50.,  50.,  50.,  50.,  50., 50., 50.,100., 100.,100.];
+#depthr = [0.,  10., 20., 25., 30., 35., 40., 50., 55., 60., 65., 70., 75., 80., 85., 90., 95., 100., 105., 110., 115., 120., 125., 130., 135., 140., 145.,150.,175.,200.,250.,300.];
+#lenz_ =  [20., 20., 20., 10., 10., 10., 20., 20., 10., 10., 10., 10.,  10., 10., 10., 10., 10.,  50.,  50.,  50.,  50.,  50.,  50.,  50.,  50.,  50.,  50., 50., 50.,100., 100.,100.];
 xmask,ymask,mmask = load_mask(bathname,true,lonr,latr,depthr);
 
 # #### 2) apply floodfill.

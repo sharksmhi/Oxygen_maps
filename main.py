@@ -38,10 +38,10 @@ if __name__ == "__main__":
     # 1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997,
     # 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016,
     #2017, 2018, 2019, 2020, 2021, 2022]);
-    year_list = json.dumps([2019])
+    year_list = json.dumps([1961])
     #month_list = json.dumps([[11,12,1,2], [3,4,5], [6,7,8], [8,9,10]]);
-    month_list = json.dumps([[11, 12, 1, 2]])
-    seasons = json.dumps(["Winter"])
+    month_list = json.dumps([[3, 4, 5]])
+    seasons = json.dumps(["Spring"])
     #seasons = json.dumps(["Winter","Spring","Summer","Autumn"])
     # Correlation length
     # Vi bör köra med lite längre lenf troligen 80_000km då vi har ca 40nm mellan våra station i eg.Östersjön
@@ -61,10 +61,13 @@ if __name__ == "__main__":
     w_days = json.dumps(2.)
     #Set True if you want to save area_data to file (for time-series bar plots)
     save_area_data=True
-
+    depthr = json.dumps([0., 10., 20., 25., 30., 35., 40., 50., 55., 60., 65., 70., 75., 80., 85., 90., 95., 100., 105., 110.,
+              115., 120., 125., 130., 135., 140., 145., 150., 175., 200., 250., 300.]);
+    lenz_ = json.dumps([20., 20., 20., 10., 10., 10., 20., 20., 10., 10., 10., 10., 10., 10., 10., 10., 10., 50., 50., 50., 50.,
+             50., 50., 50., 50., 50., 50., 50., 50., 100., 100., 100.]);
 
     print("running DIVAnd in Julia...")
-    args = ['julia', 'julia_code/oxygen_analysis.jl', input_dir, results_dir, data_fname, year_list, month_list, seasons, lenf, epsilon, dx, bath_file_name, w_depth, w_days]
+    args = ['julia', 'julia_code/oxygen_analysis.jl', input_dir, results_dir, data_fname, year_list, month_list, seasons, lenf, epsilon, dx, bath_file_name, w_depth, w_days, depthr, lenz_]
     # Call the function and save a json-file with a file_list containing the results. That we can send to the calculate_areas function.
     run_julia_function(args)
 

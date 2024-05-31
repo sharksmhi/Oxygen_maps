@@ -10,6 +10,7 @@ from mpl_toolkits.basemap import Basemap
 from mpl_toolkits.axes_grid1 import inset_locator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib as mpl
+import matplotlib.patches as mpatches
 
 mpl.rcParams['hatch.linewidth'] = 0.1
 
@@ -29,7 +30,12 @@ def set_up_basemap(ds, axis):
 
     # Plot land borders
     m.drawcoastlines(linewidth=0.5, color='gray')
+    # Rita gränser för länder
+    #m.drawcountries()
     # Plot land borders from the bathymetry file
+    # Rita meridian- och parallelgränser med anpassade intervall
+    m.drawmeridians(np.arange(9, 31, 4), labels=[True, False, False, True], linewidth=0.1)
+    m.drawparallels(np.arange(54, 61, 1), labels=[True, False, False, True], linewidth=0.1)
 
     return m
 
@@ -109,13 +115,11 @@ def sub_plot_only_observations(ds, axis, year,
         # Set the colorbar levels explicitly
         cbar.set_ticks(levels)
         axis.set_title(f'Oxygen at {show_depth} m\nobservation at +/- {observation_span} m', fontsize=8)
+        # Add labels to the subplot
+        axis.set_xlabel('Longitude', fontsize=8)
+        axis.set_ylabel('Latitude', fontsize=8)
     else:
         m.scatter(lon, lat, s=5, edgecolors='k', linewidth=0.2, facecolor=color)
-
-    # Add labels to the subplot
-    axis.set_xlabel('Longitude', fontsize = 8)
-    axis.set_ylabel('Latitude', fontsize = 8)
-
 
 def sub_plot_observations_basemap(ds, parameter, axis, year, 
                                   show_depth = 0, vmin = 0, vmax = 180, observation_span=2, 
@@ -195,7 +199,7 @@ def sub_plot_area_at_threshold_basemap(ds, parameter, axis, year, threshold, vmi
         data = ds[parameter].sel(time=ds['time'][time_index])
     except KeyError:
         print(f'No {parameter} in file')
-        
+
     lon = ds['lon'].values
     lat = ds['lat'].values
 
@@ -203,6 +207,7 @@ def sub_plot_area_at_threshold_basemap(ds, parameter, axis, year, threshold, vmi
     lon, lat = m(lon, lat)
 
     # Plot data using pcolormesh
+    patches =[]
     if colorbar:
         pcm = m.pcolormesh(lon, lat, data, cmap='ocean', vmin=vmin, vmax=vmax)
         # Add a colorbar
@@ -215,10 +220,6 @@ def sub_plot_area_at_threshold_basemap(ds, parameter, axis, year, threshold, vmi
     else:
         # pcm = m.pcolormesh(lon, lat, data, color=color)
         pcm = m.contourf(lon, lat, data,  levels=levels, colors=[color], hatches = hatches)
-    
-    # Add labels to the subplot with adjusted text size
-    axis.set_xlabel('Longitude', fontsize=8)
-    axis.set_ylabel('Latitude', fontsize=8)
 
 def sub_plot_error_area_at_threshold_basemap(ds, parameter, axis, year, vmin, vmax, threshold, unit='umol/l', bath_file=None):
     year_list = [datetime.strftime(timestr.astype('datetime64[M]').item(), '%Y') for timestr in ds["time"][:].values]
@@ -464,15 +465,30 @@ def plot(results_dir, netcdf_filename, year, season, ds):
 
     sub_plot_area_at_threshold_basemap(ds, parameter='90_mask_firstlayer', axis=axs, year=year, colorbar=False, color = 'grey',
                                        threshold=90)
-    sub_plot_area_at_threshold_basemap(ds, parameter='0_mask_firstlayer', axis=axs, year=year, colorbar=False, color = 'k',
+    sub_plot_area_at_threshold_basemap(ds, parameter='0_mask_firstlayer', axis=axs, year=year, colorbar=False, color = '#303030',
                                        threshold=0)
     sub_plot_area_at_threshold_basemap(ds, parameter='Relerr_per_grid_at_min_90_depth', axis=axs, year=year, colorbar=False, color = 'none', hatches=[10*'/'],
                                        threshold=90)
     sub_plot_area_at_threshold_basemap(ds, parameter='Relerr_per_grid_at_min_0_depth', axis=axs, year=year, colorbar=False, color = 'none', hatches=[10*"\\"],
                                        threshold=0)
     sub_plot_only_observations(ds, axis=axs, year=year, colorbar=False, color = 'r')
-    
-    
+
+    # Lägg till en "fejk" legend
+    fake_labels = ['Hypoxia <90 µmol/l', 'Anoxia <= 0 µmol/l','Error field <90 µmol/l','Error field <=0 µmol/l']
+    fake_colors = ['grey', '#303030','none','none']
+    fake_hatches = ['','',10*'/', 10*"\\"]
+    #fake_marker =['none','none','none','none','o',]
+
+    # Skapa proxy-objekt för legenden
+    patches = [mpatches.Patch(facecolor=color, hatch=hatch, label=label)
+               for color, hatch, label in zip(fake_colors, fake_hatches, fake_labels)]
+
+    # Lägg till en "fejk" röd marker 'o'
+    fake_marker = plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='red', markeredgecolor='k', markersize=2, label='Observations')
+
+    # Lägg till legenden
+    axs.legend(handles=patches + [fake_marker], loc='lower right', fontsize=7)
+
     # Add title and labels
     # Set the title for the whole figure
     fig.suptitle(f'Hypoxia and anoxia:  {year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
