@@ -34,15 +34,26 @@ if __name__ == "__main__":
     # Input data filename
     data_fname = "EMODNET_SHARK_ICES.txt"
     # Years, month and seasons to be analysed
-    #year_list = json.dumps([1960, 1961, 1962, 1963, 1964, 1965, 1966, 1967, 1968, 1969, 1970, 1971, 1972, 1973, 1974, 1975, 1976, 1977, 1978,
-    # 1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997,
-    # 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016,
-    #2017, 2018, 2019, 2020, 2021, 2022]);
-    year_list = json.dumps([1961])
-    #month_list = json.dumps([[11,12,1,2], [3,4,5], [6,7,8], [8,9,10]]);
-    month_list = json.dumps([[3, 4, 5]])
-    seasons = json.dumps(["Spring"])
-    #seasons = json.dumps(["Winter","Spring","Summer","Autumn"])
+    year_list = json.dumps([1960, 1961, 1962, 1963, 1964, 1965, 1966, 1967, 1968, 1969, 1970, 1971, 1972, 1973, 1974, 1975, 1976, 1977, 1978,
+    1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997,
+    1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016,
+    2017, 2018, 2019, 2020, 2021, 2022])
+    # year_list = json.dumps([1961])
+
+    seasons_dict = {
+                "Winter": [11,12,1,2],
+                "Spring": [3,4,5],
+                "Summer": [6,7,8],
+                "Autumn": [8,9,10]
+               }
+    seasons = []
+    month_list = []
+    for season, months in seasons_dict.items():
+        seasons.append(season)
+        month_list.append(months)
+    seasons = json.dumps(seasons)
+    month_list = json.dumps(month_list)
+
     # Correlation length
     # Vi bör köra med lite längre lenf troligen 80_000km då vi har ca 40nm mellan våra station i eg.Östersjön
     lenf = json.dumps(80000)    #Km
@@ -71,17 +82,18 @@ if __name__ == "__main__":
     # Call the function and save a json-file with a file_list containing the results. That we can send to the calculate_areas function.
     run_julia_function(args)
 
-    # Open the JSON file
-    with open(f"{results_dir}file_list.json", 'r') as file:
-        # Load JSON data from the file
-        file_list = json.load(file)
-
     file_list = []
 
     for season in json.loads(seasons):
 
-        file_list.append(f"Oxygen_{min(json.loads(year_list))}-{max(json.loads(year_list))}_{season}_{json.loads(epsilon)}_{lenf}_{json.loads(dx)}_{w_depth}_{w_days}_{bath_file_name}_varcorrlenz.nc")
+        file_list.append(f"Oxygen_{min(json.loads(year_list))}-{max(json.loads(year_list))}_{season}_{json.loads(epsilon)}_{lenf}_{json.loads(dx)}_{w_depth}_{w_days}_{bath_file_name}_varcorrlenz_NBK.nc")
     
+    # file_list = [
+    #     "Oxygen_background_weighted_0.03_field_gebco_30sec_4.nc",
+    #     "Oxygen_background_weighted_0.03_field_bat_elevation_Baltic_Sea_masked.nc",
+    #     "Oxygen_background_weighted_0.05_field_bat_elevation_Baltic_Sea_masked.nc",
+    #     "Oxygen_background_weighted_0.05_field.nc"
+    # ]
     #Calculate areas from DIVA-results and save in a new nc-file. Results in file_list
     print("calculating areas...")
     calculate_areas.calculate_areas(results_dir, file_list, threshold_list, save_area_data)
