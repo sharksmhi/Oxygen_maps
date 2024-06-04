@@ -63,6 +63,13 @@ def area_at_threshold(threshold, ds, df):
 
     # Step 2: Create a 3D mask where Oxygen values are below the threshold and False everywhere else
     mask_below_threshold = ds['Oxygen'] <= threshold
+
+    #Detta kör vi sen, när vi kollat lite mer.
+    #if threshold != 0:
+    #    mask_below_threshold = ds['Oxygen'] <= threshold
+    #else:
+    #    mask_below_threshold = ds['Oxygen'] <= threshold + 4.5
+
     ds[f"{threshold}_mask"] = mask_below_threshold
     # Step 3: Get the first layer in the depth dimension where Oxygen is below the threshold
     # First, find the indices where the condition is True along the depth dimension

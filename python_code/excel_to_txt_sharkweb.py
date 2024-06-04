@@ -6,8 +6,8 @@ import pandas as pd
 import numpy as np
 
 # Define file path and data types for each column
-file_path = "C:/Work/DIVAnd/Oxygen_maps/data/"
-file_name = "sharkweb_data_utf8.txt"
+file_path = "C:/Work/DIVAnd/Oxygen_maps/data/all_baltic/"
+file_name = "sharkweb_data_1960_2024_utf8.txt"
 
 # Load data from CSV file into a pandas DataFrame
 #df = pd.read_csv(file_path+file_name, dtype=dtype_dict)
@@ -56,7 +56,7 @@ column_list = ["Sample longitude (DD)", "Sample latitude (DD)", "DOXY_umol", "Sa
 
 # Write the filtered data to two output files, one with headers and one without
 # df_filtered[column_list].to_csv(file_path+"bot.txt", index=False, sep='\t')
-df_filtered[column_list].to_csv(file_path+"sharkweb_btlctd_02.txt", index=False, header=False, sep='\t')
+df_filtered[column_list].to_csv(file_path+"sharkweb_btlctd_02_240603.txt", index=False, header=False, sep='\t')
 
 
 

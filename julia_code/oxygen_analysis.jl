@@ -71,8 +71,8 @@ end
 #dx, dy = 0.125, 0.125  #Karin dx, dy = 0.1, 0.1
 dy = dx #0.05, 0.05  #Karin dx, dy = 0.1, 0.1
 #Dic-havsområden, ytsnitt, depthr, lenz_
-lonr = 9.:dx:31.
-latr = 53.5:dy:61.
+#lonr = 9.:dx:31.
+#latr = 53.5:dy:61.
 
 # Time origin for the NetCDF file
 timeorigin = DateTime(1900,1,1,0,0,0);
@@ -284,7 +284,7 @@ for monthlist_index in 1:length(month_list)
     #@show TS;
 
     # File name based on the variable (but all spaces are replaced by _)
-    nc_filename = "$(replace(varname,' '=>'_'))_$(minimum(year_list))-$(maximum(year_list))_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(bath_file_name)_varcorrlenz.nc"
+    nc_filename = "$(replace(varname,' '=>'_'))_$(minimum(year_list))-$(maximum(year_list))_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(bath_file_name)_varcorrlenz_NBK.nc"
     nc_filepath = joinpath("$(results_dir)nc/O2", nc_filename)
 
     #Append the created files to file_list
@@ -313,7 +313,7 @@ for monthlist_index in 1:length(month_list)
               mask = new_mask,
               solver = :direct,
               niter_e = 1,
-              background = DIVAnd.backgroundfile(filenamebackground,varname,TSbackground),
+              #background = DIVAnd.backgroundfile(filenamebackground,varname,TSbackground),
               error_thresholds = error_thresholds,
               surfextend = true,
               alphabc = 0,

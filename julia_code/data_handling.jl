@@ -12,6 +12,8 @@ Emodnet, SHARKweb anb ICES data
 -Merge to one dataset
 # ### Lena Viktorsson & Martin Hansson
 =#
+#using Pkg
+#Pkg.add("PyCall")
 
 # #### Add necessary packages
 using DIVAnd
@@ -25,6 +27,7 @@ using Printf
 using Missings
 using DataFrames
 using CSV
+using PyCall
 
 # ## Configuration
 # * Define variabel and set horizontal, vertical and temporal resolutions.
@@ -39,7 +42,8 @@ unit = "umol/l";
 # ## Where to save the result. Create path if not there.
 # File name based on the variable (but all spaces are replaced by _) _varlenz
 # data-files
-location = "//winfs-proj/proj/havgem/DIVA/syrekartor/"
+#location = "//winfs-proj/proj/havgem/DIVA/syrekartor/"
+location = "C:/Work/DIVAnd/Oxygen_maps/"
 outputdir = joinpath(location,"data/");
 if !isdir(outputdir)
     mkpath(outputdir)
@@ -54,18 +58,20 @@ end
 
 # ## Load data big files
 # emodnet BTL + CTD
-fname_shark = joinpath(location, "data/sharkweb_btlctd_02.txt")
+@show("Loading SHARKWEB...")
+fname_shark = joinpath(location, "data/all_baltic/sharkweb_btlctd_02_240603.txt")
 @time obsval_shark,obslon_shark,obslat_shark,obsdepth_shark,obstime_shark,obsid_shark = loadbigfile(fname_shark);
 
-datafile_emod_btl = joinpath(location, "data/emodnet_02_1960_2023_BTL.txt")
+@show("Loading EMODNET BTL...")
+datafile_emod_btl = joinpath(location, "data/all_baltic/emodnet-chem_1960_2022_BTL.txt")
 @time obsval_emod_btl,obslon_emod_btl,obslat_emod_btl,obsdepth_emod_btl,obstime_emod_btl,obsid_emod_btl = ODVspreadsheet.load(Float64,[datafile_emod_btl],
                            ["Water body dissolved oxygen concentration"]; nametype = :localname );
-
-datafile_emod_ctd = joinpath(location, "data/emodnet_02_1960_2023_CTD.txt")
+@show("Loading EMODNET CTD...")
+datafile_emod_ctd = joinpath(location, "data/all_baltic/emodnet-chem_1960_2022_CTD.txt")
 @time obsval_emod_ctd,obslon_emod_ctd,obslat_emod_ctd,obsdepth_emod_ctd,obstime_emod_ctd,obsid_emod_ctd = ODVspreadsheet.load(Float64,[datafile_emod_ctd],
                            ["Water body dissolved oxygen concentration"]; nametype = :localname );
-
-datafile_ices_btlctd = joinpath(location, "data/ICES_1960_2022/ICES_btl_lowres_ctd_02.txt")
+@show("Loading ICES...")
+datafile_ices_btlctd = joinpath(location, "data/all_baltic/ICES_btl_lowres_ctd_02_NEW.txt")
 @time obsval_ices_btlctd,obslon_ices_btlctd,obslat_ices_btlctd,obsdepth_ices_btlctd,obstime_ices_btlctd,obsid_ices_btlctd = loadbigfile(datafile_ices_btlctd);
 
 @show(length(obsval_emod_btl));
@@ -179,8 +185,8 @@ figure("Additional-Data")
 aspectratio = 1/cos(mean(54:0.05:61) * pi/180)
 ax = subplot(1,1,1)
 ax.tick_params("both",labelsize=6)
-ylim(53, 65);
-xlim(9, 27);
+ylim(53, 66);
+xlim(8, 31);
 #contourf(bx, by, permutedims(Float64.(mask_edit[:,:,1]),[2,1]),
 #    levels=[-1e5,0],cmap="binary");
 plot(obslon_emod, obslat_emod, "bo", markersize=.2, label="Emodnet")
@@ -197,8 +203,8 @@ PyPlot.savefig(joinpath(figdir,"$(figname)"), dpi=300);
 PyPlot.close_figs()
 
 df  = DataFrame(obslon=obslon,obslat=obslat,obsval=obsval,obsdepth=obsdepth,obsdepth1=obsdepth,obsdepth2=obsdepth,obsdepth3=obsdepth,obsdepth4=obsdepth,obsdepth5=obsdepth,obstime=obstime,obsid=obsid)
-filename = "EMODNET_SHARK_ICES"
+filename = "EMODNET_SHARK_ICES_240604"
 CSV.write(joinpath(outputdir, "$(filename).txt"), df, delim="\t", writeheader=false)
-DIVAnd.saveobs(joinpath(outputdir, "$(filename).nc"),varname, obsval, (obslon,obslat,obsdepth,obstime),obsid)
+#DIVAnd.saveobs(joinpath(outputdir, "$(filename).nc"),varname, obsval, (obslon,obslat,obsdepth,obstime),obsid)
 
 
