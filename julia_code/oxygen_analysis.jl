@@ -71,8 +71,8 @@ end
 #dx, dy = 0.125, 0.125  #Karin dx, dy = 0.1, 0.1
 dy = dx #0.05, 0.05  #Karin dx, dy = 0.1, 0.1
 #Dic-havsområden, ytsnitt, depthr, lenz_
-#lonr = 9.:dx:31.
-#latr = 53.5:dy:61.
+lonr = 9.:dx:31.
+latr = 53.5:dy:61.
 
 # Time origin for the NetCDF file
 timeorigin = DateTime(1900,1,1,0,0,0);
