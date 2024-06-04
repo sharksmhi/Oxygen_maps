@@ -338,6 +338,8 @@ def plot(results_dir, netcdf_filename, year, season, ds):
     # Save the plot
     plt.savefig(f'{results_dir}/figures/maps_{year}_areas_{netcdf_filename}.png', dpi=300,
                 transparent=False)
+    
+    plt.close()
 
     # plots of results at 4 different depths 10, 40, 50, 60
     fig, axs = plt.subplots(2, 4, figsize=(10, 4.5))
@@ -378,6 +380,7 @@ def plot(results_dir, netcdf_filename, year, season, ds):
 
     # Save the plot
     plt.savefig(f'{results_dir}/figures/maps_{year}_surf_{netcdf_filename}.png', dpi=300, transparent=False)
+    plt.close()
 
     # plots of results at 4 different depths 60, 70, 80, 90
     fig, axs = plt.subplots(2, 4, figsize=(10, 4.5))
@@ -417,6 +420,7 @@ def plot(results_dir, netcdf_filename, year, season, ds):
 
     # Save the plot
     plt.savefig(f'{results_dir}/figures/maps_{year}_halo_{netcdf_filename}.png', dpi = 300, transparent=False)
+    plt.close()
 
     # plots of results at 4 different depths 100, 110, 125, 150
     fig, axs = plt.subplots(2, 4, figsize=(10, 4.5)) #4
@@ -457,6 +461,7 @@ def plot(results_dir, netcdf_filename, year, season, ds):
 
     # Save the plot
     plt.savefig(f'{results_dir}/figures/maps_{year}_deep_{netcdf_filename}.png', dpi=300, transparent=False)
+    plt.close()
 
     # plots of results all observations and hypox area and with anox area overlayed
     fig, axs = plt.subplots(1, 1, figsize=(10, 4.5))
@@ -495,7 +500,7 @@ def plot(results_dir, netcdf_filename, year, season, ds):
 
     # Save the plot
     plt.savefig(f'{results_dir}/figures/maps_{year}_overview_{netcdf_filename}.png', dpi=300, transparent=False)
-    
+    plt.close()
 
 
 ## extract values that are within our limits, save to a new variable and nc-file. ####

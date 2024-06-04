@@ -9,7 +9,7 @@ start_year = 1960
 end_year = 2022
 
 location = "//winfs-proj/proj/havgem/DIVA/syrekartor/" # or other location, like havgem path
-df = pd.read_csv(f'{location}resultat/area_data_{start_year}_{end_year}.txt', sep = '\t')
+df = pd.read_csv(f'{location}resultat/area_data_{start_year}_{end_year}_0.05_new_bat_NBK.txt', sep = '\t')
 df_matlab = pd.read_csv(f'{location}resultat/area_volume_data_from_matlab.txt', sep = '\t')
 df_matlab.rename(columns={"Anoxic_area_km2": "Area_0_km2", "Hypoxic_area_km2": "Area_90_km2"}, inplace=True)
 
@@ -25,7 +25,7 @@ fig.subplots_adjust(top=0.88, bottom=0.09, left=0.14, right=0.95, hspace=0.28)
 
 # set axis properties
 
-ax[0].set_ylim(0, 100000)
+ax[0].set_ylim(0, 120000)
 
 ax[0].yaxis.set_major_locator(ticker.MultipleLocator(20000))
 ax[0].yaxis.set_minor_locator(ticker.MultipleLocator(10000))
@@ -35,14 +35,14 @@ ax[0].xaxis.set_minor_locator(ticker.MultipleLocator(1))
 for season, subset in df.groupby('season'):
     subplot_row = subplot_order[season]
     # plot bars
-    ax[subplot_row].bar(x=subset['year'], height=subset[f"Area_180_km2"], width=1, color='b', edgecolor='black',linewidth=0.5, label='180 umol/l')
-    ax[subplot_row].bar(x=subset['year'], height=subset['Relerr_area_180_km2'],bottom=subset['Area_180_km2'] - subset['Relerr_area_180_km2'], width=1, color='b', hatch='/////',edgecolor='black', linewidth=0.5, label="180 umol/l Relerror >0.5")
+    ax[subplot_row].bar(x=subset['year'], height=subset[f"Area_180_km2"], width=1, color='g', edgecolor='black',linewidth=0.5, label='180 umol/l')
+    ax[subplot_row].bar(x=subset['year'], height=subset['Relerr_area_180_km2'],bottom=subset['Area_180_km2'] - subset['Relerr_area_180_km2'], width=1, color='none', hatch='/////',edgecolor='black', linewidth=0.5, label="180 umol/l Relerror >0.5")
     # plot hypoxic bars
     ax[subplot_row].bar(x=subset['year'], height=subset[f"Area_90_km2"], width = 1, color = 'r', edgecolor = 'black', linewidth = 0.5, label = 'Hypoxic')
-    ax[subplot_row].bar(x=subset['year'], height=subset['Relerr_area_90_km2'], bottom = subset['Area_90_km2']-subset['Relerr_area_90_km2'], width = 1, color = 'r', hatch='/////', edgecolor = 'black', linewidth = 0.5, label="Hypoxic Relerror >0.5")
+    ax[subplot_row].bar(x=subset['year'], height=subset['Relerr_area_90_km2'], bottom = subset['Area_90_km2']-subset['Relerr_area_90_km2'], width = 1, color = 'none', hatch='/////', edgecolor = 'black', linewidth = 0.5, label="Hypoxic Relerror >0.5")
     # plot anoxic bars
     ax[subplot_row].bar(x=subset['year'], height=subset['Area_0_km2'], width = 1, color = 'grey', edgecolor = 'black', linewidth = 0.5, label = 'Anoxic')
-    ax[subplot_row].bar(x=subset['year'], height=subset['Relerr_area_0_km2'], bottom = subset['Area_0_km2']-subset['Relerr_area_0_km2'], width = 1, color = 'grey', hatch='|||||', edgecolor = 'black', linewidth = 0.5, label="Anoxic Relerror >0.5")
+    ax[subplot_row].bar(x=subset['year'], height=subset['Relerr_area_0_km2'], bottom = subset['Area_0_km2']-subset['Relerr_area_0_km2'], width = 1, color = 'none', hatch='|||||', edgecolor = 'black', linewidth = 0.5, label="Anoxic Relerror >0.5")
     # set title, ylabel, grid on
     ax[subplot_row].set_title(season)
     ax[subplot_row].set_ylabel('area km$^2$') 
@@ -50,10 +50,11 @@ for season, subset in df.groupby('season'):
     ax[subplot_row].ticklabel_format(style='scientific', axis = 'y')
 
 # turn on legend and set position
-ax[0].legend(ncols=3, loc=(0.1,1.1))
+ax[0].legend(ncols=3, loc=(0.1,1.2))
 
 # save figure
-fig.savefig(f'{location}resultat/figures/{df.year.min()}-{df.year.max()}_barchart.png', dpi = 300)
+# TODO: fixa filnamnet!
+fig.savefig(f'{location}resultat/figures/{df.year.min()}-{df.year.max()}_barchart_0.05_NBK.png', dpi = 300)
 
 # create figure object
 fig, ax = plt.subplots(2, 1,  figsize=(10, 8), sharey=True, sharex=True)
@@ -90,8 +91,9 @@ ax[1].grid(which = 'both')
 ax[0].legend(loc=(0.8,1.1))
 
 # save figure
+# TODO: fixa filnamnet
 print(f'{location}resultat/figures/DIVAnd and matlab result.png')
-fig.savefig(f'{location}resultat/figures/DIVAnd and matlab result.png', dpi = 300)
+fig.savefig(f'{location}resultat/figures/DIVAnd and matlab result_0.05_NBK.png', dpi = 300)
 
 """
 import matplotlib.pyplot as plt
