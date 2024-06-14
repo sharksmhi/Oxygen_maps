@@ -26,16 +26,17 @@ def set_up_basemap(ds, axis):
 
     # Create a Basemap instance
     m = Basemap(projection='merc', llcrnrlat=ds['lat'].min(), urcrnrlat=ds['lat'].max(),
-                llcrnrlon=ds['lon'].min(), urcrnrlon=ds['lon'].max(), resolution='i', ax=axis)
+                llcrnrlon=ds['lon'].min(), urcrnrlon=ds['lon'].max(), resolution='l', ax=axis)
 
-    # Plot land borders
+    # Rita kustlinjer
     m.drawcoastlines(linewidth=0.5, color='gray')
-    # Rita gränser för länder
-    #m.drawcountries()
-    # Plot land borders from the bathymetry file
+
+    # Rita kontinenter, men undvik att fylla sjöar
+    #m.fillcontinents(color='white', lake_color=None, zorder=1)
+
     # Rita meridian- och parallelgränser med anpassade intervall
-    m.drawmeridians(np.arange(9, 31, 4), labels=[True, False, False, True], linewidth=0.1)
-    m.drawparallels(np.arange(54, 61, 1), labels=[True, False, False, True], linewidth=0.1)
+    m.drawmeridians(np.arange(9, 31, 4), labels=[True, False, False, True], linewidth=0.1, fontsize=3)
+    m.drawparallels(np.arange(54, 67, 1), labels=[True, False, False, True], linewidth=0.1, fontsize=3)
 
     return m
 
@@ -116,8 +117,8 @@ def sub_plot_only_observations(ds, axis, year,
         cbar.set_ticks(levels)
         axis.set_title(f'Oxygen at {show_depth} m\nobservation at +/- {observation_span} m', fontsize=8)
         # Add labels to the subplot
-        axis.set_xlabel('Longitude', fontsize=8)
-        axis.set_ylabel('Latitude', fontsize=8)
+        #axis.set_xlabel('Longitude', fontsize=8)
+        #axis.set_ylabel('Latitude', fontsize=8)
     else:
         m.scatter(lon, lat, s=5, edgecolors='k', linewidth=0.2, facecolor=color)
 
@@ -164,7 +165,7 @@ def sub_plot_observations_basemap(ds, parameter, axis, year,
         cbax = inset_locator.inset_axes(axis, width="40%", height="3%", loc="lower right", bbox_to_anchor=(0, 0.15, 1, 1),
                                     bbox_transform=axis.transAxes)
         cbar = plt.colorbar(pcm, cax = cbax,  orientation = 'horizontal')
-        cbar.ax.tick_params(labelsize = 4)
+        cbar.ax.tick_params(labelsize = 3)
         # cbar.set_label(label='µmol/l', fontsize = 10,  y=1.05)
 
         # Modify the colormap levels to control the step length
@@ -177,9 +178,7 @@ def sub_plot_observations_basemap(ds, parameter, axis, year,
         m.scatter(lon, lat, s=5, edgecolors='k', linewidth=0.2, facecolor=color)
 
     # Add labels to the subplot
-    axis.set_title(f'Oxygen at {show_depth} m\nobservation at +/- {observation_span} m', fontsize = 8)
-    axis.set_xlabel('Longitude', fontsize = 8)
-    axis.set_ylabel('Latitude', fontsize = 8)
+    axis.set_title(f'Oxygen at {show_depth} m\nobservation at +/- {observation_span} m [µmol/l]', fontsize = 4)
 
     return pcm
 
@@ -189,10 +188,12 @@ def sub_plot_area_at_threshold_basemap(ds, parameter, axis, year, threshold, vmi
 
     # Create a Basemap instance with Mercator projection
     m = Basemap(projection='merc', llcrnrlat=ds['lat'].min(), urcrnrlat=ds['lat'].max(),
-                llcrnrlon=ds['lon'].min(), urcrnrlon=ds['lon'].max(), resolution='i', ax=axis)
+                llcrnrlon=ds['lon'].min(), urcrnrlon=ds['lon'].max(), resolution='l', ax=axis)
 
     # Plot land borders
     m.drawcoastlines(linewidth=0.5, color='gray')
+    m.drawmeridians(np.arange(9, 31, 4), labels=[True, False, False, True], linewidth=0.1, fontsize=3)
+    m.drawparallels(np.arange(54, 67, 1), labels=[True, False, False, True], linewidth=0.1, fontsize=3)
 
     # Plot data
     try:
@@ -215,8 +216,9 @@ def sub_plot_area_at_threshold_basemap(ds, parameter, axis, year, threshold, vmi
         cbax = inset_locator.inset_axes(axis, width="40%", height="3%", loc="lower right", bbox_to_anchor=(0, 0.15, 1, 1),
                                     bbox_transform=axis.transAxes)
         cbar = plt.colorbar(pcm, cax = cbax,  orientation = 'horizontal')
-        cbar.ax.tick_params(labelsize = 7)
-        axis.set_title(f'Area <= {threshold} {unit}', fontsize=8)
+        cbar.ax.tick_params(labelsize = 6)
+        cbar.ax.patch.set_facecolor('white')
+        axis.set_title(f'Area <= {threshold} {unit}', fontsize=6)
     else:
         # pcm = m.pcolormesh(lon, lat, data, color=color)
         pcm = m.contourf(lon, lat, data,  levels=levels, colors=[color], hatches = hatches)
@@ -231,6 +233,8 @@ def sub_plot_error_area_at_threshold_basemap(ds, parameter, axis, year, vmin, vm
 
     # Plot land borders
     m.drawcoastlines(linewidth=0.5, color='gray')
+    m.drawmeridians(np.arange(9, 31, 4), labels=[True, False, False, True], linewidth=0.1, fontsize=3)
+    m.drawparallels(np.arange(54, 67, 1), labels=[True, False, False, True], linewidth=0.1, fontsize=3)
 
     # Plot data
     try:
@@ -268,9 +272,7 @@ def sub_plot_error_area_at_threshold_basemap(ds, parameter, axis, year, vmin, vm
     cbar.set_ticks(levels)
 
     # Add labels to the subplot with adjusted text size
-    axis.set_title(f'Error at <= {threshold} {unit} depth', fontsize=8)
-    axis.set_xlabel('Longitude', fontsize=8)
-    axis.set_ylabel('Latitude', fontsize=8)
+    axis.set_title(f'Error at <= {threshold} {unit} depth', fontsize=6)
 
 def sub_plot_errorfields_basemap(ds, parameter, axis, year, show_depth, vmin, vmax):
 
@@ -300,54 +302,56 @@ def sub_plot_errorfields_basemap(ds, parameter, axis, year, show_depth, vmin, vm
 
     cbar.set_ticks(levels)
 
-    axis.set_title(f'Errorfield at {show_depth} m', fontsize=8)
-    axis.set_xlabel('Longitude', fontsize=8)
-    axis.set_ylabel('Latitude', fontsize=8)
+    axis.set_title(f'Errorfield at {show_depth} m', fontsize=6)
 
-def plot(results_dir, netcdf_filename, year, season, ds):
-    # in umol/l
+def plot(results_dir, netcdf_filename, year, season, ds, threshold_list):
     # 1 ml/l of O2 is approximately 43.570 µmol/kg
     # (assumes a molar volume of O2 of 22.392 l/mole and
     # a constant seawater potential density of 1025 kg/m3).
     # https://www.nodc.noaa.gov/OC5/WOD/wod18-notes.html
-    hypox = 90
-    anox = 9
     unit = 'umol/l'
-    # Select a time index from year and depth level from show_depth
-    
-    ds['obsyear'] = ds['obstime'].values.astype('datetime64[Y]')
+    #Fullt sätt att fixa till den sträng som threshold_list verkar ha blivit när det var inne en sväng i julia.
+    threshold_list = eval(threshold_list.replace("Any", ""))
 
-    # Plot the data on a map
-    #plt.style.use('dark_background')
-
+    n_figs = len(threshold_list)
+    print(n_figs)
     # plot of areas at thresholds
     # Create a 2x2 grid of subplots
-    fig, axs = plt.subplots(2, 2, figsize=(10, 4.5))
+    fig, axs = plt.subplots(2, n_figs, figsize=(10, 4.5))
     # Adjust the spacing between subplots
     fig.tight_layout()
 
-    sub_plot_error_area_at_threshold_basemap(ds, parameter='Relerr_per_grid_at_min_90_depth', axis=axs[0, 0], year=year,
-                                             vmin=0, vmax=1, threshold=90)
-    sub_plot_area_at_threshold_basemap(ds, parameter='Min_depth_90', axis=axs[1, 0], year=year, threshold=90, vmin=50, vmax=200,)
-    sub_plot_error_area_at_threshold_basemap(ds, parameter='Relerr_per_grid_at_min_0_depth', axis=axs[0, 1], year=year, threshold=0, vmin=0, vmax=1)
-    sub_plot_area_at_threshold_basemap(ds, parameter='Min_depth_0', axis=axs[1, 1], year=year, threshold=0, vmin=50, vmax=200)
+    for index, threshold in enumerate(threshold_list):
+        # Select a time index from year and depth level from show_depth
+        ds['obsyear'] = ds['obstime'].values.astype('datetime64[Y]')
+
+        sub_plot_error_area_at_threshold_basemap(ds, parameter=f'Relerr_per_grid_at_min_{threshold}_depth', axis=axs[0, index], year=year,
+                                                 vmin=0, vmax=1, threshold=threshold)
+        sub_plot_area_at_threshold_basemap(ds, parameter=f'Min_depth_{threshold}', axis=axs[1, index], year=year, threshold=threshold, vmin=50, vmax=150,)
+
     # Add title and labels
     # Set the title for the whole figure
-    fig.suptitle(f'Hypoxia and anoxia:  {year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
-
+    if 0 in threshold_list:
+        fig.suptitle(f'Hypoxia and anoxia:  {year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='bottom')
+    else:
+        fig.suptitle(f'{year} {season}', fontsize=8, x=0.5, y=0.53, horizontalalignment='center',
+                     verticalalignment='center')
     # Save the plot
     plt.savefig(f'{results_dir}/figures/maps_{year}_areas_{netcdf_filename}.png', dpi=300,
                 transparent=False)
-    
     plt.close()
 
     # plots of results at 4 different depths 10, 40, 50, 60
     fig, axs = plt.subplots(2, 4, figsize=(10, 4.5))
     # Adjust the spacing between subplots
     fig.tight_layout()  # (left, bottom, width, height)
+    if 0 in threshold_list:
+        vmin_o2 = -45
+        vmax_o2 = 180 + 45
+    else:
+        vmin_o2 = 90
+        vmax_o2 = 360
 
-    vmin_o2 = -45
-    vmax_o2 = 180 + 45
     # 1111111 Plot the data on the 1st subplot
     # on the 1st and 2nd plot we show oxygen set min and max for colorscale
     sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, 0], year=year, show_depth=10, vmin=vmin_o2,
@@ -376,7 +380,7 @@ def plot(results_dir, netcdf_filename, year, season, ds):
 
     # Add title and labels
     # Set the title for the whole figure
-    fig.suptitle(f'Hypoxia and anoxia:  {year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
+    #fig.suptitle(f'Hypoxia and anoxia:  {year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
 
     # Save the plot
     plt.savefig(f'{results_dir}/figures/maps_{year}_surf_{netcdf_filename}.png', dpi=300, transparent=False)
@@ -387,8 +391,13 @@ def plot(results_dir, netcdf_filename, year, season, ds):
     # Adjust the spacing between subplots
     fig.tight_layout() # (left, bottom, width, height)
 
-    vmin_o2 = -45
-    vmax_o2 = 180+45
+    if 0 in threshold_list:
+        vmin_o2 = -45
+        vmax_o2 = 180 + 45
+    else:
+        vmin_o2 = 90
+        vmax_o2 = 360
+
     # 1111111 Plot the data on the 1st subplot
     # on the 1st and 2nd plot we show oxygen set min and max for colorscale
     sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, 0], year=year, show_depth=60, vmin=vmin_o2, vmax=vmax_o2)
@@ -416,7 +425,7 @@ def plot(results_dir, netcdf_filename, year, season, ds):
 
     # Add title and labels
     # Set the title for the whole figure
-    fig.suptitle(f'Hypoxia and anoxia:  {year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
+    fig.suptitle(f'{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
 
     # Save the plot
     plt.savefig(f'{results_dir}/figures/maps_{year}_halo_{netcdf_filename}.png', dpi = 300, transparent=False)
@@ -427,8 +436,12 @@ def plot(results_dir, netcdf_filename, year, season, ds):
     # Adjust the spacing between subplots
     fig.tight_layout()  # (left, bottom, width, height)
 
-    vmin_o2 = -45
-    vmax_o2 = 180 + 45
+    if 0 in threshold_list:
+        vmin_o2 = -45
+        vmax_o2 = 180 + 45
+    else:
+        vmin_o2 = 90
+        vmax_o2 = 360
     # 1111111 Plot the data on the 1st subplot
     # on the 1st and 2nd plot we show oxygen set min and max for colorscale
     sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, 0], year=year, show_depth=100, vmin=vmin_o2,
@@ -457,7 +470,7 @@ def plot(results_dir, netcdf_filename, year, season, ds):
 
     # Add title and labels
     # Set the title for the whole figure
-    fig.suptitle(f'Hypoxia and anoxia:  {year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
+    fig.suptitle(f'{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
 
     # Save the plot
     plt.savefig(f'{results_dir}/figures/maps_{year}_deep_{netcdf_filename}.png', dpi=300, transparent=False)
@@ -468,40 +481,60 @@ def plot(results_dir, netcdf_filename, year, season, ds):
     # Adjust the spacing between subplots
     fig.tight_layout()  # (left, bottom, width, height)
 
-    sub_plot_area_at_threshold_basemap(ds, parameter='90_mask_firstlayer', axis=axs, year=year, colorbar=False, color = 'grey',
-                                       threshold=90)
-    sub_plot_area_at_threshold_basemap(ds, parameter='0_mask_firstlayer', axis=axs, year=year, colorbar=False, color = '#303030',
-                                       threshold=0)
-    sub_plot_area_at_threshold_basemap(ds, parameter='Relerr_per_grid_at_min_90_depth', axis=axs, year=year, colorbar=False, color = 'none', hatches=[10*'/'],
-                                       threshold=90)
-    sub_plot_area_at_threshold_basemap(ds, parameter='Relerr_per_grid_at_min_0_depth', axis=axs, year=year, colorbar=False, color = 'none', hatches=[10*"\\"],
-                                       threshold=0)
+    # Vänder på threshold_list för att högst threshold skall hamna underst.
+    threshold_list.reverse()
+    color_list = ['grey', '#303030', 'k']
+    hatches_list = [10*'/', 10*"\\", 10*'|']
+    for index, threshold in enumerate(threshold_list):
+        #for threshold, index in threshold_list:
+        sub_plot_area_at_threshold_basemap(ds, parameter=f'{threshold}_mask_firstlayer', axis=axs, year=year, colorbar=False, color = color_list[index],
+                                       threshold=threshold)
+
+    for index, threshold in enumerate(threshold_list):
+        sub_plot_area_at_threshold_basemap(ds, parameter=f'Relerr_per_grid_at_min_{threshold}_depth', axis=axs, year=year, colorbar=False, color = 'none', hatches=hatches_list[index],threshold=threshold)
+
     sub_plot_only_observations(ds, axis=axs, year=year, colorbar=False, color = 'r')
 
     # Lägg till en "fejk" legend
-    fake_labels = ['Hypoxia <90 µmol/l', 'Anoxia <= 0 µmol/l','Error field <90 µmol/l','Error field <=0 µmol/l']
-    fake_colors = ['grey', '#303030','none','none']
-    fake_hatches = ['','',10*'/', 10*"\\"]
+    if 0 in threshold_list:
+        fake_labels = ['<180 µmol/l', '<90 µmol/l', '<=0 µmol/l','Error field <180 µmol/l', 'Error field <90 µmol/l', 'Error field <=0 µmol/l']
+        fake_colors = ['grey', '#303030','k','none', 'none','none']
+        fake_hatches = ['', '','', 10 * '/', 10 * "\\",10*'|']
+        # Skapa proxy-objekt för legenden
+        patches = [mpatches.Patch(facecolor=color, hatch=hatch, label=label)
+                   for color, hatch, label in zip(fake_colors, fake_hatches, fake_labels)]
+
+        # Lägg till en "fejk" röd marker 'o'
+        fake_marker = plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='red', markeredgecolor='k', markersize=2, label='Observations')
+        # Lägg till legenden
+        axs.legend(handles=patches + [fake_marker], loc='lower right', fontsize=7)
+        # Add title and labels
+        # Set the title for the whole figure
+        fig.suptitle(f'Hypoxia and anoxia:  {year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
+                     verticalalignment='top')
+    else:
+        fake_labels = ['<270 µmol/l', '<180 µmol/l', '<90 µmol/l','Error field <270 µmol/l', 'Error field <180 µmol/l', 'Error field <90 µmol/l']
+        fake_colors = ['grey', '#303030','k','none', 'none','none']
+        fake_hatches = ['', '','', 10 * '/', 10 * "\\",10*'|']
+        # Skapa proxy-objekt för legenden
+        patches = [mpatches.Patch(facecolor=color, hatch=hatch, label=label)
+                   for color, hatch, label in zip(fake_colors, fake_hatches, fake_labels)]
+
+        # Lägg till en "fejk" röd marker 'o'
+        fake_marker = plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='red', markeredgecolor='k',
+                                 markersize=2, label='Observations')
+        # Lägg till legenden
+        axs.legend(handles=patches + [fake_marker], loc='lower right', fontsize=6)
+        # Add title and labels
+        # Set the title for the whole figure
+        fig.suptitle(f'{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
+                     verticalalignment='top')
+        print("Lägg till legend")
     #fake_marker =['none','none','none','none','o',]
-
-    # Skapa proxy-objekt för legenden
-    patches = [mpatches.Patch(facecolor=color, hatch=hatch, label=label)
-               for color, hatch, label in zip(fake_colors, fake_hatches, fake_labels)]
-
-    # Lägg till en "fejk" röd marker 'o'
-    fake_marker = plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='red', markeredgecolor='k', markersize=2, label='Observations')
-
-    # Lägg till legenden
-    axs.legend(handles=patches + [fake_marker], loc='lower right', fontsize=7)
-
-    # Add title and labels
-    # Set the title for the whole figure
-    fig.suptitle(f'Hypoxia and anoxia:  {year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
 
     # Save the plot
     plt.savefig(f'{results_dir}/figures/maps_{year}_overview_{netcdf_filename}.png', dpi=300, transparent=False)
     plt.close()
-
 
 ## extract values that are within our limits, save to a new variable and nc-file. ####
 
@@ -510,29 +543,33 @@ def read_processed_nc(results_dir,file_list,year_list: json):
 
     for netcdf_filename in file_list:
         print(f'plto from {netcdf_filename}')
-        ds = xr.open_dataset(f"{results_dir}nc/processed/{netcdf_filename}")
+        ds = xr.open_dataset(f"{results_dir}/nc/processed/{netcdf_filename}")
         season = ds.attrs['season']
         epsilon = ds.attrs['epsilon']
+        threshold_list = ds.attrs['threshold_list']
         corrlen = ds.attrs['horizontal correlation length m']
         start_year = ds.attrs['start year']
         end_year = ds.attrs['end year']
 
-        # 
+        print(repr(ds.attrs['threshold_list']))
+        repr(ds.attrs['threshold_list'])
+
         for year in year_list:
             # str(year) testa om det inte funkar.
             if year not in range(int(start_year), int(end_year)+1):
                     pass
             print(f'plotting {year}')
-            plot(results_dir, netcdf_filename, year, season, ds)
+            plot(results_dir, netcdf_filename, year, season, ds, threshold_list)
 
 if __name__ == "__main__":
     print("running")
     # Result directory
     results_dir = "//winfs-proj/proj/havgem/DIVA/syrekartor/resultat/"
-    #results_dir = "C:/LenaV/code/DIVAnd/resultat/"
+    results_dir = "C:/LenaV/code/DIVAnd/resultat/"
+    results_dir = "C:\Work\DIVAnd\Oxygen_maps\resultat\Bothnian_Bay"
 
-    file_list = ["Oxygen_1961-1961_Spring_0.2_80000_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked_varcorrlenz.nc"]
-    year_list = json.dumps([1961])
+    file_list = ["Oxygen_2020-2020_Autumn_0.2_80000_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked_varcorrlenz_NBK.nc"]
+    year_list = json.dumps([2020])
     ##ear_list = json.dumps([1960, 1961, 1962, 1963, 1964, 1965, 1966, 1967, 1968, 1969, 1970, 1971, 1972, 1973, 1974, 1975, 1976, 1977, 1978,
     # 1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997,
     # 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016,

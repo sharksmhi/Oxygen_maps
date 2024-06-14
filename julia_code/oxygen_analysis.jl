@@ -27,7 +27,6 @@ using PyCall
 args= ARGS
 input_dir = args[1]
 results_dir = args[2]
-
 data_fname = args[3]
 year_list = JSON.parse(args[4])
 month_list = JSON.parse(args[5])
@@ -40,6 +39,18 @@ w_depth = JSON.parse(args[11])
 w_days = JSON.parse(args[12])
 depthr = JSON.parse(args[13])
 lenz_ = JSON.parse(args[14])
+lonr = args[15]
+latr = args[16]
+basin = args[17]
+threshold_list = JSON.parse(args[18])
+
+#Fix lonr/latr string
+#dx = 0.05
+dy = dx
+lonr = replace(lonr, "dx" => string(dx))
+latr = replace(latr, "dy" => string(dy))
+lonr= eval(Meta.parse(lonr))
+latr= eval(Meta.parse(latr))
 
 # ## Configuration
 # * Define variabel and set horizontal, vertical and temporal resolutions.
@@ -69,10 +80,10 @@ end
 # Sätt horisontell uppplösning i grader
 # 0.05 motsvarra ca 5km
 #dx, dy = 0.125, 0.125  #Karin dx, dy = 0.1, 0.1
-dy = dx #0.05, 0.05  #Karin dx, dy = 0.1, 0.1
+#dy = dx #0.05, 0.05  #Karin dx, dy = 0.1, 0.1
 #Dic-havsområden, ytsnitt, depthr, lenz_
-lonr = 9.:dx:31.
-latr = 53.5:dy:61.
+#lonr = 16.5:dx:25.5
+#latr = 59.5:dy:66.
 
 # Time origin for the NetCDF file
 timeorigin = DateTime(1900,1,1,0,0,0);
@@ -122,11 +133,16 @@ new_mask = (label .== 1);
 grid_bx = [i for i in xmask, j in ymask];
 grid_by = [j for i in xmask, j in ymask];
 mask_edit = copy(new_mask);
-#mask_edit = copy(mmask);
-sel_mask1 = (grid_by .>= 57.75) .& (grid_bx .<= 12.2);
-sel_mask2 = (grid_by .>= 57.4) .& (grid_by .< 57.75) .& (grid_bx .<= 10.4);
-sel_mask3 = (grid_by .>= 57.) .& (grid_by .< 57.4) .& (grid_bx .<= 10.);
-sel_mask4 = (grid_by .>= 60.2) .& (grid_bx .>= 15.) .& (grid_bx .<= 25.);;
+#mask_edit = copy(mmask);                                                           #Maska bort:
+sel_mask1 = (grid_by .>= 57.75) .& (grid_bx .<= 12.2);                              #Skagerrak
+sel_mask2 = (grid_by .>= 57.4) .& (grid_by .< 57.75) .& (grid_bx .<= 10.4);         #Skagerrak
+sel_mask3 = (grid_by .>= 57.) .& (grid_by .< 57.4) .& (grid_bx .<= 10.);            #Skagerrak
+
+if basin == "Bothnian Bay"
+    sel_mask4 = (grid_by .<= 60.2) .& (grid_bx .>= 9.) .& (grid_bx .<= 31.);          #Eg. Östersjön
+else
+    sel_mask4 = (grid_by .>= 60.2) .& (grid_bx .>= 15.) .& (grid_bx .<= 25.);         #Bottniska viken
+end
 new_mask = mask_edit .* .!sel_mask1 .* .!sel_mask2 .* .!sel_mask3 .* .!sel_mask4;
 
 # Ökas slen så minskas avståndet från kusten där len är mindre.
@@ -197,6 +213,7 @@ for monthlist_index in 1:length(month_list)
     @info("Creating metadata dicitonary for the season $(season)")
     metadata_season = OrderedDict(
         # set attributes for DVIA run from our settings
+        "threshold_list" => "$threshold_list",
         "season" => season,
         "epsilon" => "$epsilon",
         "horizontal correlation length m" => "$lx",
@@ -271,21 +288,30 @@ for monthlist_index in 1:length(month_list)
         "DIVAnd_version" => "2.7.5",
         "DIVA_code_doi" => "10.5281/zenodo.4715361",
         "DIVA_references" => "Barth, A.; Beckers, J.-M.; Troupin, C.; Alvera-Azcárate, A. & Vandenbulcke, L.
-    divand-1.0: n-dimensional variational data analysis for ocean observations
-    Geoscientific Model Development, 2014, 7, 225-241. DOI: :10.5194/gmd-7-225-2014"); 
+        divand-1.0: n-dimensional variational data analysis for ocean observations
+        Geoscientific Model Development, 2014, 7, 225-241. DOI: :10.5194/gmd-7-225-2014");
 
     metadata[monthlist_index]=metadata_season
+
+    ncglobalattrib = metadata_season
+
+    ncvarattrib = OrderedDict(
+        "standard_name" => "$(replace(varname,' '=>'_'))",
+        "long_name" => "$varname",
+        "units" => "$unit")
+
+    @show(metadata_season)
+    @show(ncvarattrib)
 
     @info("starting DIVAnd computations for $(seasons[monthlist_index])")
     @info(Dates.now())
 
     # Time selection for the analyse. This was already defined together with yearlist, month_list, seasons
     TS = DIVAnd.TimeSelectorYearListMonthList(year_list,month_list[monthlist_index:monthlist_index])
-    #@show TS;
 
     # File name based on the variable (but all spaces are replaced by _)
     nc_filename = "$(replace(varname,' '=>'_'))_$(minimum(year_list))-$(maximum(year_list))_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(bath_file_name)_varcorrlenz_NBK.nc"
-    nc_filepath = joinpath("$(results_dir)nc/O2", nc_filename)
+    nc_filepath = joinpath("$(results_dir)/nc/O2", nc_filename)
 
     #Append the created files to file_list
     push!(file_list, nc_filename)
@@ -293,9 +319,10 @@ for monthlist_index in 1:length(month_list)
     if isfile(nc_filepath)
        rm(nc_filepath) # delete the previous analysis
     end
+
     @info("Will write results in $nc_filepath")
-    # create attributes for the netcdf file (need an internet connexion)
-    ncglobalattrib,ncvarattrib = SDNMetadata(metadata_season,nc_filepath,varname,lonr,latr)
+    # create attributes for the netcdf file (need an internet connexion) and does sometimes not work. We fixed this by doing our own attributes.
+    #ncglobalattrib,ncvarattrib = SDNMetadata(metadata_season,nc_filepath,varname,lonr,latr)
 
     @time dbinfo = diva3d((lonr,latr,depthr,TS),
               (obslon,obslat,obsdepth,obstime_shifted),
@@ -321,9 +348,7 @@ for monthlist_index in 1:length(month_list)
        );
 
     # Save the observation metadata in the NetCDF file
-    #DIVAnd.saveobs(nc_filepath,(obslon,obslat,obsdepth,obstime),obsid,used = dbinfo[:used])
     DIVAnd.saveobs(nc_filepath,"Oxygen_data", obsval, (obslon,obslat,obsdepth,obstime),obsid, used = dbinfo[:used])
-
 end
 
 # Serialize the list of filenames to JSON and print it

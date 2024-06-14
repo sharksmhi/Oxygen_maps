@@ -106,7 +106,7 @@ def calculate_areas(results_dir, file_list, threshold_list, save_area_data=False
     fig, axs = plt.subplots(1, 1, figsize=(10, 8))
     fig2, axs2 = plt.subplots(1, 1, figsize=(10, 8))
     for netcdf_filename in file_list:
-        ds = xr.open_dataset(f"{results_dir}nc/O2/{netcdf_filename}")
+        ds = xr.open_dataset(f"{results_dir}/nc/O2/{netcdf_filename}")
         season = ds.attrs['season']
         start_year = ds.attrs['start year']
         end_year = ds.attrs['end year']
@@ -129,17 +129,17 @@ def calculate_areas(results_dir, file_list, threshold_list, save_area_data=False
         area_results.append(df)
 
         # save the updated dataset
-        print(f"writing to {results_dir}nc/processed/{netcdf_filename}...")
-        ds.to_netcdf(f'{results_dir}nc/processed/{netcdf_filename}') # rewrite to netcdf
+        print(f"writing to {results_dir}/nc/processed/{netcdf_filename}...")
+        ds.to_netcdf(f'{results_dir}/nc/processed/{netcdf_filename}') # rewrite to netcdf
 
     # combing area results from all seasons and saving to a textfile
     if save_area_data:
-        pd.concat(area_results).to_csv(f'{results_dir}area_data_{start_year}_{end_year}.txt', sep='\t', index=False)
+        pd.concat(area_results).to_csv(f'{results_dir}/area_data_{start_year}_{end_year}.txt', sep='\t', index=False)
 
 def area_data(results_dir,file_list):
     area_results=[]
     for netcdf_filename in file_list:
-        ds = xr.open_dataset(f"{results_dir}nc/processed/{netcdf_filename}", engine='h5netcdf')
+        ds = xr.open_dataset(f"{results_dir}/nc/processed/{netcdf_filename}", engine='h5netcdf')
         season = ds.attrs['season']
         start_year = ds.attrs['start year']
         end_year = ds.attrs['end year']
@@ -154,7 +154,7 @@ def area_data(results_dir,file_list):
         area_results.append(df)
 
     # combing area results from all seasons and saving to a textfile
-    pd.concat(area_results).to_csv(f'{results_dir}area_data_{start_year}_{end_year}.txt', sep='\t', index=False)
+    pd.concat(area_results).to_csv(f'{results_dir}/area_data_{start_year}_{end_year}.txt', sep='\t', index=False)
 
 if __name__ == "__main__":
     # Result directory
