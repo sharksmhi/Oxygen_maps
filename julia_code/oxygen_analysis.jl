@@ -44,6 +44,8 @@ latr = args[16]
 basin = args[17]
 threshold_list = JSON.parse(args[18])
 
+
+
 #Fix lonr/latr string
 #dx = 0.05
 dy = dx
@@ -100,12 +102,17 @@ bathname = joinpath(input_dir, "$(bath_file_name).nc")
 bathisglobal = true;
 bx,by,b = DIVAnd.extract_bath(bathname,bathisglobal,lonr,latr);
 
+basin = replace(basin,' '=>'_')
 #Load background field
 #filenamebackground = joinpath(input_dir, "$(replace(varname,' '=>'_'))_background_weighted_0.05_field_$(bath_file_name).nc")
-filenamebackground = joinpath(input_dir, "$(replace(varname,' '=>'_'))_background_weighted_$(dx)_field_$(bath_file_name).nc")
+filenamebackground = joinpath(input_dir, "$(replace(varname,' '=>'_'))_$(basin)_background_weighted_$(dx)_field_$(bath_file_name).nc")
 
 # year and month-list for background analysis
-year_list_background = [1960:1969,1970:1979,1980:1989,1990:1999,2000:2009,2010:2021];
+if basin == "Bothnian_Bay"
+    year_list_background = [1960:1969,1970:1979,1980:1989,1990:1999,2000:2004,2005:2009,2010:2014,2015:2019,2020:2024];
+else
+    year_list_background = [1960:1969,1970:1979,1980:1989,1990:1999,2000:2009,2010:2021];
+end
 TSbackground = DIVAnd.TimeSelectorYearListMonthList(year_list_background,month_list);
 
 # ## MASK
@@ -138,7 +145,7 @@ sel_mask1 = (grid_by .>= 57.75) .& (grid_bx .<= 12.2);                          
 sel_mask2 = (grid_by .>= 57.4) .& (grid_by .< 57.75) .& (grid_bx .<= 10.4);         #Skagerrak
 sel_mask3 = (grid_by .>= 57.) .& (grid_by .< 57.4) .& (grid_bx .<= 10.);            #Skagerrak
 
-if basin == "Bothnian Bay"
+if basin == "Bothnian_Bay"
     sel_mask4 = (grid_by .<= 60.2) .& (grid_bx .>= 9.) .& (grid_bx .<= 31.);          #Eg. Östersjön
 else
     sel_mask4 = (grid_by .>= 60.2) .& (grid_bx .>= 15.) .& (grid_bx .<= 25.);         #Bottniska viken
@@ -340,7 +347,7 @@ for monthlist_index in 1:length(month_list)
               mask = new_mask,
               solver = :direct,
               niter_e = 1,
-              #background = DIVAnd.backgroundfile(filenamebackground,varname,TSbackground),
+              background = DIVAnd.backgroundfile(filenamebackground,varname,TSbackground),
               error_thresholds = error_thresholds,
               surfextend = true,
               alphabc = 0,

@@ -217,7 +217,7 @@ def sub_plot_area_at_threshold_basemap(ds, parameter, axis, year, threshold, vmi
                                     bbox_transform=axis.transAxes)
         cbar = plt.colorbar(pcm, cax = cbax,  orientation = 'horizontal')
         cbar.ax.tick_params(labelsize = 6)
-        cbar.ax.patch.set_facecolor('white')
+        #cbar.ax.patch.set_facecolor('white')
         axis.set_title(f'Area <= {threshold} {unit}', fontsize=6)
     else:
         # pcm = m.pcolormesh(lon, lat, data, color=color)
@@ -299,9 +299,7 @@ def sub_plot_errorfields_basemap(ds, parameter, axis, year, show_depth, vmin, vm
 
     # Change vmin and vmax after the plot is created
     pcm.set_clim(vmin=vmin, vmax=vmax)
-
     cbar.set_ticks(levels)
-
     axis.set_title(f'Errorfield at {show_depth} m', fontsize=6)
 
 def plot(results_dir, netcdf_filename, year, season, ds, threshold_list):
@@ -380,7 +378,7 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list):
 
     # Add title and labels
     # Set the title for the whole figure
-    #fig.suptitle(f'Hypoxia and anoxia:  {year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
+    fig.suptitle(f'{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
 
     # Save the plot
     plt.savefig(f'{results_dir}/figures/maps_{year}_surf_{netcdf_filename}.png', dpi=300, transparent=False)
@@ -476,6 +474,7 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list):
     plt.savefig(f'{results_dir}/figures/maps_{year}_deep_{netcdf_filename}.png', dpi=300, transparent=False)
     plt.close()
 
+
     # plots of results all observations and hypox area and with anox area overlayed
     fig, axs = plt.subplots(1, 1, figsize=(10, 4.5))
     # Adjust the spacing between subplots
@@ -483,8 +482,9 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list):
 
     # Vänder på threshold_list för att högst threshold skall hamna underst.
     threshold_list.reverse()
-    color_list = ['grey', '#303030', 'k']
-    hatches_list = [10*'/', 10*"\\", 10*'|']
+    color_list = ['lightgrey', 'grey', '#303030']
+    hatches_list = [25 * '/', 25 * "\\",25*'|']
+
     for index, threshold in enumerate(threshold_list):
         #for threshold, index in threshold_list:
         sub_plot_area_at_threshold_basemap(ds, parameter=f'{threshold}_mask_firstlayer', axis=axs, year=year, colorbar=False, color = color_list[index],
@@ -492,13 +492,14 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list):
 
     for index, threshold in enumerate(threshold_list):
         sub_plot_area_at_threshold_basemap(ds, parameter=f'Relerr_per_grid_at_min_{threshold}_depth', axis=axs, year=year, colorbar=False, color = 'none', hatches=hatches_list[index],threshold=threshold)
+        print(hatches_list[index])
 
-    sub_plot_only_observations(ds, axis=axs, year=year, colorbar=False, color = 'r')
+    sub_plot_only_observations(ds, axis=axs, year=year, colorbar=False, color = 'r',observation_span = 500)
 
-    # Lägg till en "fejk" legend
+    # Lägg till en "fejk" legend om syrefritt är med
     if 0 in threshold_list:
         fake_labels = ['<180 µmol/l', '<90 µmol/l', '<=0 µmol/l','Error field <180 µmol/l', 'Error field <90 µmol/l', 'Error field <=0 µmol/l']
-        fake_colors = ['grey', '#303030','k','none', 'none','none']
+        fake_colors = ['lightgrey', 'grey', '#303030','none', 'none','none']
         fake_hatches = ['', '','', 10 * '/', 10 * "\\",10*'|']
         # Skapa proxy-objekt för legenden
         patches = [mpatches.Patch(facecolor=color, hatch=hatch, label=label)
@@ -512,9 +513,10 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list):
         # Set the title for the whole figure
         fig.suptitle(f'Hypoxia and anoxia:  {year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
                      verticalalignment='top')
-    else:
-        fake_labels = ['<270 µmol/l', '<180 µmol/l', '<90 µmol/l','Error field <270 µmol/l', 'Error field <180 µmol/l', 'Error field <90 µmol/l']
-        fake_colors = ['grey', '#303030','k','none', 'none','none']
+    else: #om bottniska viken.
+        fake_labels = [f'<{threshold_list[0]} µmol/l', f'<{threshold_list[1]} µmol/l', f'<{threshold_list[2]} µmol/l',
+                       f'Error field <{threshold_list[0]} µmol/l', f'Error field <{threshold_list[1]} µmol/l', f'Error field <{threshold_list[2]} µmol/l']
+        fake_colors = ['lightgrey', 'grey', '#303030','none', 'none','none']
         fake_hatches = ['', '','', 10 * '/', 10 * "\\",10*'|']
         # Skapa proxy-objekt för legenden
         patches = [mpatches.Patch(facecolor=color, hatch=hatch, label=label)
@@ -522,14 +524,15 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list):
 
         # Lägg till en "fejk" röd marker 'o'
         fake_marker = plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='red', markeredgecolor='k',
-                                 markersize=2, label='Observations')
+                                 markersize=3, label='Observations')
         # Lägg till legenden
         axs.legend(handles=patches + [fake_marker], loc='lower right', fontsize=6)
         # Add title and labels
         # Set the title for the whole figure
         fig.suptitle(f'{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
                      verticalalignment='top')
-        print("Lägg till legend")
+        if len(threshold_list) < 3:
+            print("Bara två thresholds, ändra legenden!")
     #fake_marker =['none','none','none','none','o',]
 
     # Save the plot
@@ -543,7 +546,7 @@ def read_processed_nc(results_dir,file_list,year_list: json):
 
     for netcdf_filename in file_list:
         print(f'plto from {netcdf_filename}')
-        ds = xr.open_dataset(f"{results_dir}/nc/processed/{netcdf_filename}")
+        ds = xr.open_dataset(f"{results_dir}/nc/processed/{netcdf_filename}", engine='h5netcdf')
         season = ds.attrs['season']
         epsilon = ds.attrs['epsilon']
         threshold_list = ds.attrs['threshold_list']
@@ -566,12 +569,12 @@ if __name__ == "__main__":
     # Result directory
     results_dir = "//winfs-proj/proj/havgem/DIVA/syrekartor/resultat/"
     results_dir = "C:/LenaV/code/DIVAnd/resultat/"
-    results_dir = "C:\Work\DIVAnd\Oxygen_maps\resultat\Bothnian_Bay"
+    results_dir = "C:/Work/DIVAnd/Oxygen_maps/resultat/Bothnian_Bay/"
 
-    file_list = ["Oxygen_2020-2020_Autumn_0.2_80000_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked_varcorrlenz_NBK.nc"]
-    year_list = json.dumps([2020])
+    file_list = ["Oxygen_2000-2022_Summer_0.2_80000_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked_varcorrlenz_NBK.nc"]
+    year_list = json.dumps([2000])
     ##ear_list = json.dumps([1960, 1961, 1962, 1963, 1964, 1965, 1966, 1967, 1968, 1969, 1970, 1971, 1972, 1973, 1974, 1975, 1976, 1977, 1978,
     # 1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997,
     # 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016,
     # 2017, 2018, 2019, 2020, 2021]);
-    read_processed_nc(results_dir,file_list, year_list)
+    read_processed_nc(results_dir, file_list, year_list)
