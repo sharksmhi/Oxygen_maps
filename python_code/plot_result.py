@@ -498,9 +498,11 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list):
 
     # Lägg till en "fejk" legend om syrefritt är med
     if 0 in threshold_list:
-        fake_labels = ['<180 µmol/l', '<90 µmol/l', '<=0 µmol/l','Error field <180 µmol/l', 'Error field <90 µmol/l', 'Error field <=0 µmol/l']
-        fake_colors = ['lightgrey', 'grey', '#303030','none', 'none','none']
-        fake_hatches = ['', '','', 10 * '/', 10 * "\\",10*'|']
+        fake_labels = [f'<{threshold_list[0]} µmol/l', f'<{threshold_list[1]} µmol/l', f'<{threshold_list[2]} µmol/l',
+                       f'Error field <{threshold_list[0]} µmol/l', f'Error field <{threshold_list[1]} µmol/l',
+                       f'Error field <{threshold_list[2]} µmol/l']
+        fake_colors = [color_list[0], color_list[1], color_list[2],'none', 'none','none']
+        fake_hatches = ['', '','', hatches_list[0], hatches_list[1],hatches_list[2]]
         # Skapa proxy-objekt för legenden
         patches = [mpatches.Patch(facecolor=color, hatch=hatch, label=label)
                    for color, hatch, label in zip(fake_colors, fake_hatches, fake_labels)]
@@ -516,8 +518,8 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list):
     else: #om bottniska viken.
         fake_labels = [f'<{threshold_list[0]} µmol/l', f'<{threshold_list[1]} µmol/l', f'<{threshold_list[2]} µmol/l',
                        f'Error field <{threshold_list[0]} µmol/l', f'Error field <{threshold_list[1]} µmol/l', f'Error field <{threshold_list[2]} µmol/l']
-        fake_colors = ['lightgrey', 'grey', '#303030','none', 'none','none']
-        fake_hatches = ['', '','', 10 * '/', 10 * "\\",10*'|']
+        fake_colors = [color_list[0], color_list[1], color_list[2],'none', 'none','none']
+        fake_hatches = ['', '','', hatches_list[0], hatches_list[1],hatches_list[2]]
         # Skapa proxy-objekt för legenden
         patches = [mpatches.Patch(facecolor=color, hatch=hatch, label=label)
                    for color, hatch, label in zip(fake_colors, fake_hatches, fake_labels)]
@@ -572,7 +574,7 @@ if __name__ == "__main__":
     results_dir = "C:/Work/DIVAnd/Oxygen_maps/resultat/Bothnian_Bay/"
 
     file_list = ["Oxygen_2000-2022_Summer_0.2_80000_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked_varcorrlenz_NBK.nc"]
-    year_list = json.dumps([2000])
+    year_list = json.dumps([2001])
     ##ear_list = json.dumps([1960, 1961, 1962, 1963, 1964, 1965, 1966, 1967, 1968, 1969, 1970, 1971, 1972, 1973, 1974, 1975, 1976, 1977, 1978,
     # 1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997,
     # 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016,
