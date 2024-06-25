@@ -47,24 +47,27 @@ end
 
 # ## Load data big files created by program "syrekartor_data_proc"
 #fname = "SHARK_EMODNET.txt"
-data_fname = "EMODNET_SHARK_ICES_240604.txt"
+data_fname = "EMODNET_SHARK_ICES_240620.txt"
 @time obsval,obslon,obslat,obsdepth,obstime,obsid = loadbigfile(joinpath(location, "data/$data_fname"));
 
 dx, dy = 0.05, 0.05         #~5km?
 #Bottniska viken
-lonr = 16.5:dx:27.
-latr = 60.0:dy:66.0
-basin = "Bothnian_Bay"
+#lonr = 16.5:dx:27.
+#latr = 60.0:dy:66.0
+basin = "Kattegat"
 @show(basin)
-#Eg Östersjön
-#lonr = 9.:dx:31.
-#latr = 53.5:dy:61.0
+#Eg Östersjön o Kattegatt
+lonr = 9.:dx:31.
+latr = 53.5:dy:61.0
 #basin ="Baltic_Proper"
-timerange = [Date(1960,1,1),Date(2021,12,31)];
+timerange = [Date(1960,1,1),Date(2022,12,31)];
+#Kattegat
+depthr = [0., 5., 10., 12.5, 15., 17.5, 20., 22.5,  25., 27.5, 30., 32.5, 35., 40., 50., 55., 60., 65., 70., 75., 80.]
+lenz_ = [10., 10., 10., 5., 5.,   5.,  5.,   5.,    5.,  5.,   5.,  5.,  10., 20., 10., 10., 10., 10., 10., 10., 10.]
 #bothnian Bay
-depthr = [0., 10., 20., 25., 30., 35., 40., 50., 55., 60., 65., 70., 75., 80., 85., 90., 95., 100., 105., 110., 115., 120., 125., 130., 135., 140., 145.,150.,175.,200.];
-lenz_ = [20., 20., 20., 10., 10., 10., 20., 20., 10., 10., 10., 10., 10., 10., 10., 10., 10., 50., 50., 50., 50.,
-             50., 50., 50., 50., 50., 50., 50., 50., 100.];
+#depthr = [0., 10., 20., 25., 30., 35., 40., 50., 55., 60., 65., 70., 75., 80., 85., 90., 95., 100., 105., 110., 115., 120., 125., 130., 135., 140., 145.,150.,175.,200.];
+#lenz_ = [20., 20., 20., 10., 10., 10., 20., 20., 10., 10., 10., 10., 10., 10., 10., 10., 10., 50., 50., 50., 50.,
+#             50., 50., 50., 50., 50., 50., 50., 50., 100.];
 #Baltic Proper
 #depthr = [0., 10., 20., 25., 30., 35., 40., 50., 55., 60., 65., 70., 75., 80., 85., 90., 95., 100., 105., 110., 115., 120., 125., 130., 135., 140., 145.,150.,175.,200.,250.,300.];
 #lenz_ = [20., 20., 20., 10., 10., 10., 20., 20., 10., 10., 10., 10., 10., 10., 10., 10., 10., 50., 50., 50., 50.,
@@ -73,6 +76,7 @@ lenz_ = [20., 20., 20., 10., 10., 10., 20., 20., 10., 10., 10., 10., 10., 10., 1
 # year and month-list for background analysis
 #Botnian Bay
 yearlist = [1960:1969,1970:1979,1980:1989,1990:1999,2000:2004,2005:2009,2010:2014,2015:2019,2020:2024];
+#year_list =[1960:2024]
 #Baltic Proper
 #yearlist = [1960:1964,1965:1969,1970:1974,1975:1979,1980:1984,1985:1989,1990:1994,1995:1999,2000:2004,2005:2009,2010:2014,2015:2019,2020:2024];
 month_list = [ [11,12,1,2], [3,4,5], [6,7,8], [8,9,10]];  # Seasonal climatology
@@ -115,8 +119,8 @@ new_mask = mask_edit .* .!sel_mask1 .* .!sel_mask2 .* .!sel_mask3 .* .!sel_mask4
 
 # ## Analysis parameters
 sz = (length(lonr), length(latr), length(depthr));
-lenx = fill(80_000.,sz)   # 200 km
-leny = fill(80_000.,sz)   # 200 km
+lenx = fill(40_000.,sz)   # 200 km
+leny = fill(40_000.,sz)   # 200 km
 #lenz = [min(max(10.,depthr[k]/150),300.) for i = 1:sz[1], j = 1:sz[2], k = 1:sz[3]]
 #lenz = fill(10,sz);      # 25 m
 lenz =  [lenz_[k] for i = 1:sz[1], j = 1:sz[2], k = 1:sz[3]];
@@ -145,7 +149,7 @@ epsilon_weighted = epsilon * rdiag;
 obstime_shifted = copy(obstime)
 obstime_shifted[Dates.month.(obstime) .== 12 .& Dates.month.(obstime) .== 11] .+= Dates.Year(1)
 
-filenamebackground = joinpath(outputdir, "$(replace(varname,' '=>'_'))_$(basin)_background_weighted_0.05_field_$(bath_file_name)")
+filenamebackground = joinpath(outputdir, "$(replace(varname,' '=>'_'))_$(basin)_background_weighted_0.05_field_$(bath_file_name)_1960_2024")
 
 dbinfo = @time diva3d((lonr,latr,depthr,TSbackground),
            (obslon,obslat,obsdepth,obstime_shifted), obsval,

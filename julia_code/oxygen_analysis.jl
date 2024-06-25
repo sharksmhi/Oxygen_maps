@@ -299,9 +299,7 @@ for monthlist_index in 1:length(month_list)
         Geoscientific Model Development, 2014, 7, 225-241. DOI: :10.5194/gmd-7-225-2014");
 
     metadata[monthlist_index]=metadata_season
-
     ncglobalattrib = metadata_season
-
     ncvarattrib = OrderedDict(
         "standard_name" => "$(replace(varname,' '=>'_'))",
         "long_name" => "$varname",
@@ -317,7 +315,7 @@ for monthlist_index in 1:length(month_list)
     TS = DIVAnd.TimeSelectorYearListMonthList(year_list,month_list[monthlist_index:monthlist_index])
 
     # File name based on the variable (but all spaces are replaced by _)
-    nc_filename = "$(replace(varname,' '=>'_'))_$(minimum(year_list))-$(maximum(year_list))_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(bath_file_name)_varcorrlenz_NBK.nc"
+    nc_filename = "$(replace(varname,' '=>'_'))_$(minimum(year_list))-$(maximum(year_list))_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(bath_file_name)_varcorrlenz.nc"
     nc_filepath = joinpath("$(results_dir)/nc/O2", nc_filename)
 
     #Append the created files to file_list
@@ -342,7 +340,8 @@ for monthlist_index in 1:length(month_list)
               ncvarattrib = ncvarattrib,
               ncglobalattrib = ncglobalattrib,
               timeorigin = timeorigin,
-              #transform = Anam.loglin(epsilon),
+              #Nedan anges epsilon inte epsilon2: Dvs ngt litet.
+              #transform = Anam.loglin(0.00001),
               #transform = Anam.loglin(-5.),
               mask = new_mask,
               solver = :direct,

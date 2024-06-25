@@ -9,7 +9,6 @@ from python_code import plot_result
 from pathlib import Path
 from sys import stdout
 
-
 def run_julia_function(args):
     try:
         # Run Julia script using subprocess and pass function name and arguments
@@ -34,8 +33,7 @@ if __name__ == "__main__":
     # results_dir = "C:/LenaV/code/DIVAND/resultat/"
     #results_dir = "C:/Work/DIVAnd/Oxygen_maps/resultat/"
     # Input data filename
-    #data_fname = "EMODNET_SHARK_ICES.txt"
-    data_fname = "EMODNET_SHARK_ICES_240610.txt"
+    data_fname = "EMODNET_SHARK_ICES_240620.txt"
 
    #Definiera basins
     basin_dict = [
@@ -72,8 +70,16 @@ if __name__ == "__main__":
         },
         {
             "Basin": "Kattegat",
-            "lonr": '9.:dx:13.',
-            "latr": '53.8:dy:57.75.'
+            "lonr": '9.:dx:13.1',
+            "latr": '53.8:dy:57.75',
+            "lenf": json.dumps(40000),
+            "epsilon": json.dumps(0.2),
+            "dx": json.dumps(0.05),
+            "threshold_list": json.dumps([0, 90, 180]),
+            "depthr": json.dumps(
+                [0., 5., 10., 12.5, 15., 17.5, 20., 22.5,  25., 27.5, 30., 32.5, 35., 40., 50., 55., 60., 65., 70., 75., 80.]),
+            "lenz_": json.dumps(
+                [10., 10., 10., 5., 5.,   5.,  5.,   5.,    5.,  5.,   5.,  5.,  10., 20., 10., 10., 10., 10., 10., 10., 10.])
         }
     ]
     # Initialize variables
@@ -90,7 +96,8 @@ if __name__ == "__main__":
     # Här bestämmer vi vilka bassäng som skall analyseras
     # Hämta info från vald bassäng
     for item in basin_dict:
-        if item["Basin"] == "Bothnian Bay":
+        if item["Basin"] == "Kattegat":
+        #if item["Basin"] == "Bothnian Bay":
         #if item["Basin"] == "Baltic Proper":
             basin = item["Basin"]
             lonr = item["lonr"]
@@ -128,8 +135,8 @@ if __name__ == "__main__":
     #1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997,
     #1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016,
     #2017, 2018, 2019, 2020, 2021, 2022])
-    year_list = json.dumps([2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016,
-    2017, 2018, 2019, 2020, 2021, 2022])
+    year_list = json.dumps([2000, 2001])
+    #year_list = json.dumps([2000])
 
     seasons_dict = {
                 "Winter": [11,12,1,2],
