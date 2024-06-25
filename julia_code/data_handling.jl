@@ -66,6 +66,7 @@ fname_shark = joinpath(location, "data/all_baltic/sharkweb_btlctd_02_240603.txt"
 datafile_emod_btl = joinpath(location, "data/all_baltic/BTLdata_from_ALL_emodnet-chem_v2023_2022.txt")
 @time obsval_emod_btl,obslon_emod_btl,obslat_emod_btl,obsdepth_emod_btl,obstime_emod_btl,obsid_emod_btl = ODVspreadsheet.load(Float64,[datafile_emod_btl],
                            ["Water body dissolved oxygen concentration"]; nametype = :localname );
+
 @show("Loading EMODNET CTD...")
 datafile_emod_ctd = joinpath(location, "data/all_baltic/CTDdata_from_ALL_emodnet-chem_v2023_2022.txt")
 @time obsval_emod_ctd,obslon_emod_ctd,obslat_emod_ctd,obsdepth_emod_ctd,obstime_emod_ctd,obsid_emod_ctd = ODVspreadsheet.load(Float64,[datafile_emod_ctd],
@@ -203,7 +204,7 @@ PyPlot.savefig(joinpath(figdir,"$(figname)"), dpi=300);
 PyPlot.close_figs()
 
 df  = DataFrame(obslon=obslon,obslat=obslat,obsval=obsval,obsdepth=obsdepth,obsdepth1=obsdepth,obsdepth2=obsdepth,obsdepth3=obsdepth,obsdepth4=obsdepth,obsdepth5=obsdepth,obstime=obstime,obsid=obsid)
-filename = "EMODNET_SHARK_ICES_240610"
+filename = "EMODNET_SHARK_ICES_240620"
 CSV.write(joinpath(outputdir, "$(filename).txt"), df, delim="\t", writeheader=false)
 #DIVAnd.saveobs(joinpath(outputdir, "$(filename).nc"),varname, obsval, (obslon,obslat,obsdepth,obstime),obsid)
 

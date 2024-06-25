@@ -312,7 +312,6 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list):
     threshold_list = eval(threshold_list.replace("Any", ""))
 
     n_figs = len(threshold_list)
-    print(n_figs)
     # plot of areas at thresholds
     # Create a 2x2 grid of subplots
     fig, axs = plt.subplots(2, n_figs, figsize=(10, 4.5))
@@ -474,7 +473,6 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list):
     plt.savefig(f'{results_dir}/figures/maps_{year}_deep_{netcdf_filename}.png', dpi=300, transparent=False)
     plt.close()
 
-
     # plots of results all observations and hypox area and with anox area overlayed
     fig, axs = plt.subplots(1, 1, figsize=(10, 4.5))
     # Adjust the spacing between subplots
@@ -482,8 +480,8 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list):
 
     # Vänder på threshold_list för att högst threshold skall hamna underst.
     threshold_list.reverse()
-    color_list = ['lightgrey', 'grey', '#303030']
-    hatches_list = [25 * '/', 25 * "\\",25*'|']
+    color_list = ['lightgrey', 'darkgrey', 'grey']
+    hatches_list = [10 * '/', 10 * "\\",10*'|']
 
     for index, threshold in enumerate(threshold_list):
         #for threshold, index in threshold_list:
@@ -491,8 +489,7 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list):
                                        threshold=threshold)
 
     for index, threshold in enumerate(threshold_list):
-        sub_plot_area_at_threshold_basemap(ds, parameter=f'Relerr_per_grid_at_min_{threshold}_depth', axis=axs, year=year, colorbar=False, color = 'none', hatches=hatches_list[index],threshold=threshold)
-        print(hatches_list[index])
+        sub_plot_area_at_threshold_basemap(ds, parameter=f'Relerr_per_grid_at_min_{threshold}_depth', axis=axs, year=year, colorbar=False, color = 'none', hatches=[hatches_list[index]],threshold=threshold)
 
     sub_plot_only_observations(ds, axis=axs, year=year, colorbar=False, color = 'r',observation_span = 500)
 
@@ -526,7 +523,7 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list):
 
         # Lägg till en "fejk" röd marker 'o'
         fake_marker = plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='red', markeredgecolor='k',
-                                 markersize=3, label='Observations')
+                                 markersize=4, label='Observations', markeredgewidth=0.5)
         # Lägg till legenden
         axs.legend(handles=patches + [fake_marker], loc='lower right', fontsize=6)
         # Add title and labels

@@ -19,7 +19,7 @@ df = pd.read_table(file_path+file_name, delimiter="\t")
 # Replace invalid hours with '0000'
 df.loc[df["Sampling time (start)"].isin(['-9', '2400', '',np.nan]), "Sampling time (start)"] = '00:00'
 
-# Get day from "Samling date"
+# Get day from "Sampling date"
 df['Day'] = df["Sampling date"].apply(lambda x: x.split("-")[2])
 
 # Combine the date and hour columns into a new column 'date_time'
@@ -52,7 +52,7 @@ df_filtered = df.dropna(subset=["DOXY_umol"])
 
 # Define the order of columns for the output files
 #column_list = ["Longdeg", "Latdeg", "DOXY(umol/l)", "Pressure(Dbars)", "TEMP", "PSAL", "H2SX(umol/l)", "St_No", "Year", "date_time", "ID", "Mnth", "Dy", "Hr"]
-column_list = ["Sample longitude (DD)", "Sample latitude (DD)", "DOXY_umol", "Sampling depth (m)", "Temperature bottle (C)", "Salinity bottle (o/oo psu)", "Hydrogen sulphide H2S (umol/l)", "Visit event identifier", "Year", "date_time", "Sampling platform (code)", "Month", "Day", "Sampling time (start)"]
+column_list = ["Sample longitude (DD)", "Sample latitude (DD)", "DOXY_umol", "Sampling depth (m)", "Temperature bottle (C)", "Salinity bottle (o/oo psu)", "Hydrogen sulphide H2S (umol/l)", "Visit event identifier", "Year", "date_time","Sampling platform (code)", "Month", "Day", "Sampling time (start)"]
 
 # Write the filtered data to two output files, one with headers and one without
 # df_filtered[column_list].to_csv(file_path+"bot.txt", index=False, sep='\t')
