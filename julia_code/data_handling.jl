@@ -5,7 +5,7 @@ syrekartor_data_proc:
 - Date: 2023-08-30
 
 Program to handle O2 data before DIVAnd.
-Emodnet, SHARKweb anb ICES data
+Emodnet, SHARKweb, ICES and SYKE data
 -Load data
 -Removes duplicates, with the help of DIVA-funktions.
 -Handles both BTL and CTD-data. BTL-data is prioritiz
@@ -75,12 +75,18 @@ datafile_emod_ctd = joinpath(location, "data/all_baltic/CTDdata_from_ALL_emodnet
 datafile_ices_btlctd = joinpath(location, "data/all_baltic/ICES_btl_lowres_ctd_02_NEW.txt")
 @time obsval_ices_btlctd,obslon_ices_btlctd,obslat_ices_btlctd,obsdepth_ices_btlctd,obstime_ices_btlctd,obsid_ices_btlctd = loadbigfile(datafile_ices_btlctd);
 
+@show("Loading SYKE data...")
+datafile_syke_btlctd = joinpath(location, "data/syke_data.txt")
+@time obsval_syke_btlctd,obslon_syke_btlctd,obslat_syke_btlctd,obsdepth_syke_btlctd,obstime_syke_btlctd,obsid_syke_btlctd = loadbigfile(datafile_syke_btlctd);
+
+
 @show(length(obsval_emod_btl));
 @show(length(obsval_emod_ctd));
 @show(length(obsval_shark));
 @show(length(obsval_ices_btlctd));
+@show(length(obsval_syke_btlctd));
 
-# ## Remove low res CTD when BTL is available.
+# ## EMODNET: Remove low res CTD when BTL is available.
 # ## Criteria (can be adapted according to the application):
 # Horizontal distance: 0.01 degree (about 1km)
 xy_dist = 0.01
@@ -171,15 +177,50 @@ pcdupl = round(ndupl / length(obslon_ices_btlctd) * 100; digits=2);
 @info("Number of possible duplicates in emodnetSHARKweb/ICES: $ndupl")
 @info("Percentage of duplicates: $pcdupl%")
 # ## If you decide to combine the 2 (or more) datasets:
-newpoints = isempty.(dupl);
+newpoints_ICES = isempty.(dupl);
 @info("Number of new points: $(sum(newpoints)))")
 
-obslon = [obslon_emodshark; obslon_ices_btlctd[newpoints]];
-obslat = [obslat_emodshark; obslat_ices_btlctd[newpoints]];
-obsdepth = [obsdepth_emodshark; obsdepth_ices_btlctd[newpoints]];
-obstime = [obstime_emodshark; obstime_ices_btlctd[newpoints]];
-obsval = [obsval_emodshark; obsval_ices_btlctd[newpoints]];
-obsid = [obsid_emodshark; obsid_ices_btlctd[newpoints]];
+obslon_emodsharkices = [obslon_emodshark; obslon_ices_btlctd[newpoints_ICES]];
+obslat_emodsharkices = [obslat_emodshark; obslat_ices_btlctd[newpoints_ICES]];
+obsdepth_emodsharkices = [obsdepth_emodshark; obsdepth_ices_btlctd[newpoints_ICES]];
+obstime_emodsharkices = [obstime_emodshark; obstime_ices_btlctd[newpoints_ICES]];
+obsval_emodsharkices = [obsval_emodshark; obsval_ices_btlctd[newpoints_ICES]];
+obsid_emodsharkices = [obsid_emodshark; obsid_ices_btlctd[newpoints_ICES]];
+
+
+# ## Remove SYKE data when EMODnet_SHARK_ICES data is available.
+# Remove true duplicates, hence when exactly the same data is found in both datasets.
+# ## Criteria (can be adapted according to the application):
+# Horizontal distance: 0.01 degree (about 1km)
+xy_dist = 0.05
+# Vertical separation: 0.01 m depth
+depth_dist= 1
+#Time separation: 10 minute.
+time_sep = 60
+#obsval difference: 1 µmol/l correspond to ~pyttelite ml/l
+obsval_diff = 1
+
+@time dupl = DIVAnd.Quadtrees.checkduplicates(
+    (obslon_emodsharkices,obslat_emodsharkices,obsdepth_emodsharkices,obstime_emodsharkices), obsval_emodsharkices,
+    (obslon_syke_btlctd,obslat_syke_btlctd,obsdepth_syke_btlctd,obstime_syke_btlctd),obsval_syke_btlctd,
+    (xy_dist,xy_dist,depth_dist,time_sep/(24*60)),obsval_diff);
+
+# ## Find the indices of the possible duplicates:
+index = findall(.!isempty.(dupl));
+ndupl = length(index);
+pcdupl = round(ndupl / length(obslon_ices_btlctd) * 100; digits=2);
+@info("Number of possible duplicates in emodnetSHARKwebICES/SYKE: $ndupl")
+@info("Percentage of duplicates: $pcdupl%")
+# ## If you decide to combine the 2 (or more) datasets:
+newpoints_SYKE = isempty.(dupl);
+@info("Number of new points: $(sum(newpoints)))")
+
+obslon = [obslon_emodsharkices; obslon_syke_btlctd[newpoints_SYKE]];
+obslat = [obslat_emodsharkices; obslat_syke_btlctd[newpoints_SYKE]];
+obsdepth = [obsdepth_emodsharkices; obsdepth_syke_btlctd[newpoints_SYKE]];
+obstime = [obstime_emodsharkices; obstime_syke_btlctd[newpoints_SYKE]];
+obsval = [obsval_emodsharkices; obsval_syke_btlctd[newpoints_SYKE]];
+obsid = [obsid_emodsharkices; obsid_syke_btlctd[newpoints_SYKE]];
 
 # ## Create a plot showing the additional data points:
 figure("Additional-Data")
@@ -193,8 +234,11 @@ xlim(8, 31);
 plot(obslon_emod, obslat_emod, "bo", markersize=.2, label="Emodnet")
 plot(obslon_shark[newpoints_shark], obslat_shark[newpoints_shark], "go",
    markersize=.2, label="Additional data\nfrom SHARKweb")
-plot(obslon_ices_btlctd[newpoints], obslat_ices_btlctd[newpoints], "ro", mfc="none",
+plot(obslon_ices_btlctd[newpoints_ICES], obslat_ices_btlctd[newpoints_ICES], "ro", mfc="none",
    markersize=.2, label="Additional data\nfrom ICES BTL lowres CTD")
+plot(obslon_syke_btlctd[newpoints_SYKE], obslat_syke_btlctd[newpoints_SYKE], "yo", mfc="none",
+   markersize=.2, label="Additional data\nfrom SYKE")
+
 
 legend(loc=3, fontsize=4)
 gca().set_aspect(aspectratio)
@@ -204,7 +248,7 @@ PyPlot.savefig(joinpath(figdir,"$(figname)"), dpi=300);
 PyPlot.close_figs()
 
 df  = DataFrame(obslon=obslon,obslat=obslat,obsval=obsval,obsdepth=obsdepth,obsdepth1=obsdepth,obsdepth2=obsdepth,obsdepth3=obsdepth,obsdepth4=obsdepth,obsdepth5=obsdepth,obstime=obstime,obsid=obsid)
-filename = "EMODNET_SHARK_ICES_240620"
+filename = "EMODNET_SHARK_ICES_SYKE_240913"
 CSV.write(joinpath(outputdir, "$(filename).txt"), df, delim="\t", writeheader=false)
 #DIVAnd.saveobs(joinpath(outputdir, "$(filename).nc"),varname, obsval, (obslon,obslat,obsdepth,obstime),obsid)
 
