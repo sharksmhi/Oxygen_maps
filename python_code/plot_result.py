@@ -552,7 +552,7 @@ def read_processed_nc(results_dir,file_list,year_list: json):
 
     for netcdf_filename in file_list:
         print(f'plto from {netcdf_filename}')
-        ds = xr.open_dataset(f"{results_dir}/nc/processed/{netcdf_filename}", engine='h5netcdf')
+        ds = xr.open_dataset(f"{results_dir}/processed/{netcdf_filename}", engine='h5netcdf')
         season = ds.attrs['season']
         epsilon = ds.attrs['epsilon']
         threshold_list = ds.attrs['threshold_list']

@@ -322,7 +322,7 @@ for monthlist_index in 1:length(month_list)
 
     # File name based on the variable (but all spaces are replaced by _)
     nc_filename = "$(replace(varname,' '=>'_'))_$(minimum(year_list))-$(maximum(year_list))_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(bath_file_name)_varcorrlenz.nc"
-    nc_filepath = joinpath("$(results_dir)/nc/O2", nc_filename)
+    nc_filepath = joinpath("$(results_dir)/DIVArun", nc_filename)
 
     #Append the created files to file_list
     push!(file_list, nc_filename)

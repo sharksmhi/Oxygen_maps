@@ -7,7 +7,9 @@ import json
 from python_code import calculate_areas as calculate_areas
 from python_code import plot_result
 from pathlib import Path
+import numpy as np
 from sys import stdout
+import datetime as dt
 
 def run_julia_function(args):
     try:
@@ -112,6 +114,23 @@ if __name__ == "__main__":
             depthr = item.get("depthr", [])
             lenz_ = item.get("lenz_", [])
 
+    # Läs in JSON-filen
+    with open('settings.json', 'r') as file:
+        settings = json.load(file)
+    basin = "Baltic_Proper"
+    lonr_range = settings[basin]["lonr"]
+    latr_range = settings[basin]["latr"]
+    dx = settings[basin]["dx"]
+    dy = settings[basin]["dy"]
+    # Skapa intervall (range) i Julia med angivet dx
+    lonr = np.arange(lonr_range[0], lonr_range[1] + dx, dx)
+    latr = np.arange(latr_range[0], latr_range[1] + dx, dx)
+    epsilon = settings[basin]["epsilon"]
+    depthr = settings[basin]["depthr"]
+    lenz_ = settings[basin]["lenz_"]
+    lenf = settings[basin]["lenf"]
+    threshold_list = settings[basin]["threshold_list"]
+
     # Visa extracted information
     print("Show the setup for the choosen basin: ", basin)
     print("lonr:", lonr)
@@ -124,12 +143,16 @@ if __name__ == "__main__":
     print("lenz_ list:", lenz_)
 
     #Samlar ihop resultaten:
-    results_dir = Path(f"C:/Work/DIVAnd/Oxygen_maps/resultat/{basin.replace(' ', '_')}/")
+    today = dt.datetime.now().strftime("%Y%m%d_%H%M") 
+
+    results_dir = Path(f"resultat/{basin.replace(' ', '_')}/{today}/")
     results_dir.mkdir(parents=True, exist_ok=True)
     Path(results_dir, "figures/").mkdir(parents=True, exist_ok=True)
     Path(results_dir, "nc/").mkdir(parents=True, exist_ok=True)
     Path(results_dir, "nc/O2/").mkdir(parents=True, exist_ok=True)
     Path(results_dir, "nc/processed/").mkdir(parents=True, exist_ok=True)
+    Path(results_dir, "DIVArun/").mkdir(parents=True, exist_ok=True)
+    Path(results_dir, "processed/").mkdir(parents=True, exist_ok=True)
     #print(results_dir)
     #results_dir = str(results_dir) + '\\'
     #exit()
