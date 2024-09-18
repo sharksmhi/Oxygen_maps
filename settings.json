@@ -6,7 +6,7 @@
     "Baltic_Proper": {
             "lonr": [9,31],
             "latr": [53.5,60.2],
-            "lenf": 80000,
+            "lenf": 80000.0,
             "epsilon": 0.2,
             "dx": 0.05,
             "dy": 0.05, 
@@ -21,7 +21,7 @@
     "Gulf_of_Bothnia":{
             "lonr": [16.5,27],
             "latr": [60.2,66],
-            "lenf": 80000,
+            "lenf": 80000.0,
             "epsilon": 0.2,
             "dx": 0.05,
             "dy": 0.05,
