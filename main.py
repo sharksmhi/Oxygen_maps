@@ -33,13 +33,15 @@ if __name__ == "__main__":
     # results_dir = "C:/LenaV/code/DIVAND/resultat/"
     #results_dir = "C:/Work/DIVAnd/Oxygen_maps/resultat/"
     # Input data filename
-    data_fname = "EMODNET_SHARK_ICES_240620.txt"
+    #data_fname = "EMODNET_SHARK_ICES_240620.txt"
+    data_fname = "EMODNET_SHARK_ICES_SYKE_240913.txt"
 
    #Definiera basins
     basin_dict = [
         {
             "Basin": "Baltic Proper",
-            "lonr": '9.:dx:31',
+            "lonr": '14.:dx:31',
+            #"lonr": '9.:dx:31',
             "latr": '53.5:dy:61',
             "lenf": json.dumps(80000),
             "epsilon": json.dumps(0.2),
@@ -70,9 +72,10 @@ if __name__ == "__main__":
         },
         {
             "Basin": "Kattegat",
-            "lonr": '9.:dx:13.1',
+            #"lonr": '9.:dx:13.1',
+            "lonr": '9.:dx:15',
             "latr": '53.8:dy:57.75',
-            "lenf": json.dumps(40000),
+            "lenf": json.dumps(40000.0),
             "epsilon": json.dumps(0.2),
             "dx": json.dumps(0.05),
             "threshold_list": json.dumps([0, 90, 180]),
@@ -182,7 +185,7 @@ if __name__ == "__main__":
 
     for season in json.loads(seasons):
 
-        file_list.append(f"Oxygen_{min(json.loads(year_list))}-{max(json.loads(year_list))}_{season}_{json.loads(epsilon)}_{lenf}_{json.loads(dx)}_{w_depth}_{w_days}_{bath_file_name}_varcorrlenz_NBK.nc")
+        file_list.append(f"Oxygen_{min(json.loads(year_list))}-{max(json.loads(year_list))}_{season}_{json.loads(epsilon)}_{lenf}_{json.loads(dx)}_{w_depth}_{w_days}_{bath_file_name}_varcorrlenz.nc")
     
     # file_list = [
     #     "Oxygen_background_weighted_0.03_field_gebco_30sec_4.nc",

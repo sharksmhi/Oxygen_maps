@@ -4,6 +4,7 @@
 # ### Based on copy from Karin Wesslander and DIVA workshop notebooks
 
 # calculates background fields for ten year periods, winter, spring, summer, autumn. Saves to netcdf
+# Run seperate for each basin...
 
 # #### Add necessary packages
 #using Pkg
@@ -33,7 +34,7 @@ unit = "umol/l";
 # ## Where to save the result. Create path if not there.
 # File name based on the variable (but all spaces are replaced by _) _varlenz
 # NC-files
-location = "//winfs-proj/proj/havgem/DIVA/syrekartor/"
+location = "C:/Work/DIVAnd/Oxygen_maps/"
 outputdir = joinpath(location, "resultat/nc/$(savevar)/");
 if !isdir(outputdir)
     mkpath(outputdir)
@@ -47,38 +48,56 @@ end
 
 # ## Load data big files created by program "syrekartor_data_proc"
 #fname = "SHARK_EMODNET.txt"
-data_fname = "EMODNET_SHARK_ICES_240620.txt"
+data_fname = "EMODNET_SHARK_ICES_SYKE_240913.txt"
 @time obsval,obslon,obslat,obsdepth,obstime,obsid = loadbigfile(joinpath(location, "data/$data_fname"));
 
 dx, dy = 0.05, 0.05         #~5km?
+
 #Bottniska viken
+#basin = "Bothnian_Bay"
 #lonr = 16.5:dx:27.
 #latr = 60.0:dy:66.0
-basin = "Kattegat"
-@show(basin)
+#depthr = [0., 10., 20., 25., 30., 35., 40., 50., 55., 60., 65., 70., 75., 80., 85., 90., 95., 100., 105., 110.,
+#                 115., 120., 125., 130., 135., 140., 145., 150., 175., 200.];
+#lenz_ = [20., 20., 20., 10., 10., 10., 20., 20., 10., 10., 10., 10., 10., 10., 10., 10., 10., 50., 50., 50.,
+#                 50., 50., 50., 50., 50., 50., 50., 50., 50., 100.];
+#dxy = 80_000.
+#yearlist = [1960:1969,1970:1979,1980:1989,1990:1999,2000:2009,2010:2019,2020:2024];
+#years = "10_year"
+
 #Eg Östersjön o Kattegatt
-lonr = 9.:dx:31.
-latr = 53.5:dy:61.0
-#basin ="Baltic_Proper"
+basin ="Baltic_Proper"
+lonr = 14.:dx:31.
+latr = 53.5:dy:60.2
+depthr = [0., 10., 20., 25., 30., 35., 40., 50., 55., 60., 65., 70., 75., 80., 85., 90., 95., 100., 105., 110.,
+             115., 120., 125., 130., 135., 140., 145., 150., 175., 200., 250., 300.];
+lenz_ = [20., 20., 20., 10., 10., 10., 20., 20., 10., 10., 10., 10., 10., 10., 10., 10., 10., 50., 50., 50., 50.,
+             50., 50., 50., 50., 50., 50., 50., 50., 100., 100., 100.];
+dxy = 80_000.
+yearlist = [1960:1969,1970:1979,1980:1989,1990:1999,2000:2009,2010:2019,2020:2024];
+years = "10_year"
+##yearlist = [1960:1964,1965:1969,1970:1974,1975:1979,1980:1984,1985:1989,1990:1994,1995:1999,2000:2004,2005:2009,2010:2014,2015:2019,2020:2024];
+
+
+#Kattegatt
+#basin = "Kattegat"
+#lonr = 9:dx:15.
+#latr = 53.8:dy:57.75
+#depthr = [0., 5., 10., 12.5, 15., 17.5, 20., 22.5,  25., 27.5, 30., 32.5, 35., 40., 50., 55., 60., 65., 70., 75., 80.]
+#lenz_ = [10., 10., 10., 5., 5.,   5.,  5.,   5.,    5.,  5.,   5.,  5.,  10., 20., 10., 10., 10., 10., 10., 10., 10.]
+#dxy = 40_000.
+#yearlist = [1960:1969,1970:1979,1980:1989,1990:1999,2000:2009,2010:2019,2020:2024];
+#years = "10_year"
+
 timerange = [Date(1960,1,1),Date(2022,12,31)];
-#Kattegat
-depthr = [0., 5., 10., 12.5, 15., 17.5, 20., 22.5,  25., 27.5, 30., 32.5, 35., 40., 50., 55., 60., 65., 70., 75., 80.]
-lenz_ = [10., 10., 10., 5., 5.,   5.,  5.,   5.,    5.,  5.,   5.,  5.,  10., 20., 10., 10., 10., 10., 10., 10., 10.]
-#bothnian Bay
-#depthr = [0., 10., 20., 25., 30., 35., 40., 50., 55., 60., 65., 70., 75., 80., 85., 90., 95., 100., 105., 110., 115., 120., 125., 130., 135., 140., 145.,150.,175.,200.];
-#lenz_ = [20., 20., 20., 10., 10., 10., 20., 20., 10., 10., 10., 10., 10., 10., 10., 10., 10., 50., 50., 50., 50.,
-#             50., 50., 50., 50., 50., 50., 50., 50., 100.];
-#Baltic Proper
-#depthr = [0., 10., 20., 25., 30., 35., 40., 50., 55., 60., 65., 70., 75., 80., 85., 90., 95., 100., 105., 110., 115., 120., 125., 130., 135., 140., 145.,150.,175.,200.,250.,300.];
-#lenz_ = [20., 20., 20., 10., 10., 10., 20., 20., 10., 10., 10., 10., 10., 10., 10., 10., 10., 50., 50., 50., 50.,
-#             50., 50., 50., 50., 50., 50., 50., 50., 100., 100., 100.])
+
 #BACKGROUND
 # year and month-list for background analysis
-#Botnian Bay
-yearlist = [1960:1969,1970:1979,1980:1989,1990:1999,2000:2004,2005:2009,2010:2014,2015:2019,2020:2024];
+#Bothnian Bay
+
 #year_list =[1960:2024]
 #Baltic Proper
-#yearlist = [1960:1964,1965:1969,1970:1974,1975:1979,1980:1984,1985:1989,1990:1994,1995:1999,2000:2004,2005:2009,2010:2014,2015:2019,2020:2024];
+
 month_list = [ [11,12,1,2], [3,4,5], [6,7,8], [8,9,10]];  # Seasonal climatology
 TSbackground = DIVAnd.TimeSelectorYearListMonthList(yearlist,month_list);
 seasons=["Winter","Spring","Summer","Autumn"]
@@ -110,17 +129,21 @@ sel_mask1 = (grid_by .>= 57.75) .& (grid_bx .<= 12.2);                          
 sel_mask2 = (grid_by .>= 57.4) .& (grid_by .< 57.75) .& (grid_bx .<= 10.4);         #Skagerrak
 sel_mask3 = (grid_by .>= 57.) .& (grid_by .< 57.4) .& (grid_bx .<= 10.);            #Skagerrak
 
+## If basin is....exclude other basins.
 if basin == "Bothnian_Bay"
-    sel_mask4 = (grid_by .<= 60.2) .& (grid_bx .>= 9.) .& (grid_bx .<= 31.);          #Eg. Östersjön
-else
-    sel_mask4 = (grid_by .>= 60.2) .& (grid_bx .>= 15.) .& (grid_bx .<= 25.);         #Bottniska viken
+    sel_mask4 = (grid_by .<= 60.2) .& (grid_bx .>= 9.) .& (grid_bx .<= 31.);          #Eg. Östersjön & Kattegatt
+elseif basin == "Baltic_Proper"
+    sel_mask4 = ((grid_by .>= 60.2) .& (grid_bx .>= 15.) .& (grid_bx .<= 25.)) .& (grid_bx .<= 14.);         #Bottniska viken & Kattegatt
+elseif basin == "Kattegat"
+    sel_mask4 = (grid_by .>= 53) .& (grid_bx .>= 15.);         #Eg. Östersjön och Bottniska viken
 end
 new_mask = mask_edit .* .!sel_mask1 .* .!sel_mask2 .* .!sel_mask3 .* .!sel_mask4;
 
 # ## Analysis parameters
 sz = (length(lonr), length(latr), length(depthr));
-lenx = fill(40_000.,sz)   # 200 km
-leny = fill(40_000.,sz)   # 200 km
+#dxy = 40_000.
+lenx = fill(dxy,sz)   # 200 km
+leny = fill(dxy,sz)   # 200 km
 #lenz = [min(max(10.,depthr[k]/150),300.) for i = 1:sz[1], j = 1:sz[2], k = 1:sz[3]]
 #lenz = fill(10,sz);      # 25 m
 lenz =  [lenz_[k] for i = 1:sz[1], j = 1:sz[2], k = 1:sz[3]];
@@ -149,7 +172,7 @@ epsilon_weighted = epsilon * rdiag;
 obstime_shifted = copy(obstime)
 obstime_shifted[Dates.month.(obstime) .== 12 .& Dates.month.(obstime) .== 11] .+= Dates.Year(1)
 
-filenamebackground = joinpath(outputdir, "$(replace(varname,' '=>'_'))_$(basin)_background_weighted_0.05_field_$(bath_file_name)_1960_2024")
+filenamebackground = joinpath(outputdir, "$(replace(varname,' '=>'_'))_$(basin)_$(dxy)_$(epsilon)_$(years)_background_weighted_0.05_field_$(bath_file_name)")
 
 dbinfo = @time diva3d((lonr,latr,depthr,TSbackground),
            (obslon,obslat,obsdepth,obstime_shifted), obsval,

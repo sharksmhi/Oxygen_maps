@@ -76,9 +76,8 @@ datafile_ices_btlctd = joinpath(location, "data/all_baltic/ICES_btl_lowres_ctd_0
 @time obsval_ices_btlctd,obslon_ices_btlctd,obslat_ices_btlctd,obsdepth_ices_btlctd,obstime_ices_btlctd,obsid_ices_btlctd = loadbigfile(datafile_ices_btlctd);
 
 @show("Loading SYKE data...")
-datafile_syke_btlctd = joinpath(location, "data/syke_data.txt")
+datafile_syke_btlctd = joinpath(location, "data/all_baltic/syke_data_no_header.txt")
 @time obsval_syke_btlctd,obslon_syke_btlctd,obslat_syke_btlctd,obsdepth_syke_btlctd,obstime_syke_btlctd,obsid_syke_btlctd = loadbigfile(datafile_syke_btlctd);
-
 
 @show(length(obsval_emod_btl));
 @show(length(obsval_emod_ctd));
@@ -240,7 +239,7 @@ plot(obslon_syke_btlctd[newpoints_SYKE], obslat_syke_btlctd[newpoints_SYKE], "yo
    markersize=.2, label="Additional data\nfrom SYKE")
 
 
-legend(loc=3, fontsize=4)
+legend(loc=4, fontsize=4)
 gca().set_aspect(aspectratio)
 figname = "additional_data.png"
 @show joinpath(figdir,"$(figname)")

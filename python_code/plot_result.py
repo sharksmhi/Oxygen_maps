@@ -413,12 +413,15 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list):
 
     sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[1, 2], year=year, show_depth=80,
                                   vmin=0, vmax=0.5)
+    try:
+        sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, 3], year=year, show_depth=90,
+                                      vmin=vmin_o2, vmax=vmax_o2)
 
-    sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, 3], year=year, show_depth=90,
-                                  vmin=vmin_o2, vmax=vmax_o2)
+        sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[1, 3], year=year, show_depth=90,
+                                      vmin=0, vmax=0.5)
+    except ValueError:
+        pass
 
-    sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[1, 3], year=year, show_depth=90,
-                                  vmin=0, vmax=0.5)
 
     # Add title and labels
     # Set the title for the whole figure
@@ -441,29 +444,33 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list):
         vmax_o2 = 360
     # 1111111 Plot the data on the 1st subplot
     # on the 1st and 2nd plot we show oxygen set min and max for colorscale
-    sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, 0], year=year, show_depth=100, vmin=vmin_o2,
+    try:
+        sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, 0], year=year, show_depth=100, vmin=vmin_o2,
                                   vmax=vmax_o2)
 
-    sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[1, 0], year=year, show_depth=100,
+        sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[1, 0], year=year, show_depth=100,
                                  vmin=0, vmax=0.5)
 
-    sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, 1], year=year, show_depth=110,
+        sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, 1], year=year, show_depth=110,
                                   vmin=vmin_o2, vmax=vmax_o2)
 
-    sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[1, 1], year=year, show_depth=110,
+        sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[1, 1], year=year, show_depth=110,
                                  vmin=0, vmax=0.5)
 
-    sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, 2], year=year, show_depth=125,
+        sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, 2], year=year, show_depth=125,
                                   vmin=vmin_o2, vmax=vmax_o2)
 
-    sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[1, 2], year=year, show_depth=125,
+        sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[1, 2], year=year, show_depth=125,
                                  vmin=0, vmax=0.5)
 
-    sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, 3], year=year, show_depth=150,
+        sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, 3], year=year, show_depth=150,
                                   vmin=vmin_o2, vmax=vmax_o2)
 
-    sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[1, 3], year=year, show_depth=150,
+        sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[1, 3], year=year, show_depth=150,
                                  vmin=0, vmax=0.5)
+
+    except ValueError:
+        pass
 
     # Add title and labels
     # Set the title for the whole figure

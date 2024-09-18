@@ -105,13 +105,15 @@ bx,by,b = DIVAnd.extract_bath(bathname,bathisglobal,lonr,latr);
 basin = replace(basin,' '=>'_')
 #Load background field
 #filenamebackground = joinpath(input_dir, "$(replace(varname,' '=>'_'))_background_weighted_0.05_field_$(bath_file_name).nc")
-filenamebackground = joinpath(input_dir, "$(replace(varname,' '=>'_'))_$(basin)_background_weighted_$(dx)_field_$(bath_file_name).nc")
+filenamebackground = joinpath(input_dir,"$(replace(varname,' '=>'_'))_$(basin)_$(lenf)_0.1_10_year_background_weighted_$(dx)_field_$(bath_file_name).nc")
+@show(input_dir)
+@show(filenamebackground)
 
 # year and month-list for background analysis
 if basin == "Bothnian_Bay"
-    year_list_background = [1960:1969,1970:1979,1980:1989,1990:1999,2000:2004,2005:2009,2010:2014,2015:2019,2020:2024];
+    year_list_background = [1960:1969,1970:1979,1980:1989,1990:1999,2000:2009,2010:2019,2020:2024];
 else
-    year_list_background = [1960:1969,1970:1979,1980:1989,1990:1999,2000:2009,2010:2021];
+    year_list_background = [1960:1969,1970:1979,1980:1989,1990:1999,2000:2009,2010:2019,2020:2024];
 end
 TSbackground = DIVAnd.TimeSelectorYearListMonthList(year_list_background,month_list);
 
@@ -140,15 +142,19 @@ new_mask = (label .== 1);
 grid_bx = [i for i in xmask, j in ymask];
 grid_by = [j for i in xmask, j in ymask];
 mask_edit = copy(new_mask);
-#mask_edit = copy(mmask);                                                           #Maska bort:
+
+#Always exclude Skagerrak
 sel_mask1 = (grid_by .>= 57.75) .& (grid_bx .<= 12.2);                              #Skagerrak
 sel_mask2 = (grid_by .>= 57.4) .& (grid_by .< 57.75) .& (grid_bx .<= 10.4);         #Skagerrak
 sel_mask3 = (grid_by .>= 57.) .& (grid_by .< 57.4) .& (grid_bx .<= 10.);            #Skagerrak
 
+## If basin is....exclude other basins.
 if basin == "Bothnian_Bay"
-    sel_mask4 = (grid_by .<= 60.2) .& (grid_bx .>= 9.) .& (grid_bx .<= 31.);          #Eg. Östersjön
-else
-    sel_mask4 = (grid_by .>= 60.2) .& (grid_bx .>= 15.) .& (grid_bx .<= 25.);         #Bottniska viken
+    sel_mask4 = (grid_by .<= 60.2) .& (grid_bx .>= 9.) .& (grid_bx .<= 31.);                                 #Eg. Östersjön & Kattegatt
+elseif basin == "Baltic_Proper"
+    sel_mask4 = ((grid_by .>= 60.2) .& (grid_bx .>= 15.) .& (grid_bx .<= 25.)) .& (grid_bx .<= 9.);         #Bottniska viken & Kattegatt
+elseif basin == "Kattegat"
+    sel_mask4 = (grid_by .>= 53.) .& (grid_bx .>= 15.);                                                       #Eg. Östersjön och Bottniska viken
 end
 new_mask = mask_edit .* .!sel_mask1 .* .!sel_mask2 .* .!sel_mask3 .* .!sel_mask4;
 
