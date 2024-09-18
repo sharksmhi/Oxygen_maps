@@ -39,80 +39,80 @@ if __name__ == "__main__":
     data_fname = "EMODNET_SHARK_ICES_SYKE_240913.txt"
 
    #Definiera basins
-    basin_dict = [
-        {
-            "Basin": "Baltic Proper",
-            "lonr": '14.:dx:31',
-            #"lonr": '9.:dx:31',
-            "latr": '53.5:dy:61',
-            "lenf": json.dumps(80000),
-            "epsilon": json.dumps(0.2),
-            "dx": json.dumps(0.05),
-            "threshold_list" : json.dumps([0, 90, 180]),
-            "depthr": json.dumps([0., 10., 20., 25., 30., 35., 40., 50., 55., 60., 65., 70., 75., 80., 85., 90., 95., 100., 105., 110.,
-              115., 120., 125., 130., 135., 140., 145., 150., 175., 200., 250., 300.]),
-            "lenz_" : json.dumps([20., 20., 20., 10., 10., 10., 20., 20., 10., 10., 10., 10., 10., 10., 10., 10., 10., 50., 50., 50., 50.,
-             50., 50., 50., 50., 50., 50., 50., 50., 100., 100., 100.])
-        },
-        {
-            "Basin": "Bothnian Bay",
-            #lon = json.dumps([16.5, 25.5]),
-            "lonr": '16.5:dx:27',
-            "latr": '60:dy:66.',
-            "lenf": json.dumps(80000),
-            "epsilon": json.dumps(0.2),
-            "dx": json.dumps(0.05),
-            #                            3ml/l, 4ml/l 5ml/l
-            "threshold_list": json.dumps([135, 180, 225]),
-            "depthr": json.dumps(
-                [0., 10., 20., 25., 30., 35., 40., 50., 55., 60., 65., 70., 75., 80., 85., 90., 95., 100., 105., 110.,
-                 115., 120., 125., 130., 135., 140., 145., 150., 175., 200.]),
-            "lenz_": json.dumps(
-                [20., 20., 20., 10., 10., 10., 20., 20., 10., 10., 10., 10., 10., 10., 10., 10., 10., 50., 50., 50.,
-                 50.,
-                 50., 50., 50., 50., 50., 50., 50., 50., 100.])
-        },
-        {
-            "Basin": "Kattegat",
-            #"lonr": '9.:dx:13.1',
-            "lonr": '9.:dx:15',
-            "latr": '53.8:dy:57.75',
-            "lenf": json.dumps(40000.0),
-            "epsilon": json.dumps(0.2),
-            "dx": json.dumps(0.05),
-            "threshold_list": json.dumps([0, 90, 180]),
-            "depthr": json.dumps(
-                [0., 5., 10., 12.5, 15., 17.5, 20., 22.5,  25., 27.5, 30., 32.5, 35., 40., 50., 55., 60., 65., 70., 75., 80.]),
-            "lenz_": json.dumps(
-                [10., 10., 10., 5., 5.,   5.,  5.,   5.,    5.,  5.,   5.,  5.,  10., 20., 10., 10., 10., 10., 10., 10., 10.])
-        }
-    ]
-    # Initialize variables
-    basin = []
-    lonr = []
-    latr = []
-    lenf = []
-    epsilon = []
-    dx = []
-    threshold_list = []
-    depthr = []
-    lenz_ = []
-
-    # Här bestämmer vi vilka bassäng som skall analyseras
-    # Hämta info från vald bassäng
-    for item in basin_dict:
-        if item["Basin"] == "Kattegat":
-        #if item["Basin"] == "Bothnian Bay":
-        #if item["Basin"] == "Baltic Proper":
-            basin = item["Basin"]
-            lonr = item["lonr"]
-            latr = item["latr"]
-            lenf = item.get("lenf")
-            epsilon = item.get("epsilon")
-            dx = item.get("dx")
-            threshold_list = item.get("threshold_list", [])
-            depthr = item.get("depthr", [])
-            lenz_ = item.get("lenz_", [])
+    # basin_dict = [
+    #     {
+    #         "Basin": "Baltic Proper",
+    #         "lonr": '14.:dx:31',
+    #         #"lonr": '9.:dx:31',
+    #         "latr": '53.5:dy:61',
+    #         "lenf": json.dumps(80000),
+    #         "epsilon": json.dumps(0.2),
+    #         "dx": json.dumps(0.05),
+    #         "threshold_list" : json.dumps([0, 90, 180]),
+    #         "depthr": json.dumps([0., 10., 20., 25., 30., 35., 40., 50., 55., 60., 65., 70., 75., 80., 85., 90., 95., 100., 105., 110.,
+    #           115., 120., 125., 130., 135., 140., 145., 150., 175., 200., 250., 300.]),
+    #         "lenz_" : json.dumps([20., 20., 20., 10., 10., 10., 20., 20., 10., 10., 10., 10., 10., 10., 10., 10., 10., 50., 50., 50., 50.,
+    #          50., 50., 50., 50., 50., 50., 50., 50., 100., 100., 100.])
+    #     },
+    #     {
+    #         "Basin": "Bothnian Bay",
+    #         #lon = json.dumps([16.5, 25.5]),
+    #         "lonr": '16.5:dx:27',
+    #         "latr": '60:dy:66.',
+    #         "lenf": json.dumps(80000),
+    #         "epsilon": json.dumps(0.2),
+    #         "dx": json.dumps(0.05),
+    #         #                            3ml/l, 4ml/l 5ml/l
+    #         "threshold_list": json.dumps([135, 180, 225]),
+    #         "depthr": json.dumps(
+    #             [0., 10., 20., 25., 30., 35., 40., 50., 55., 60., 65., 70., 75., 80., 85., 90., 95., 100., 105., 110.,
+    #              115., 120., 125., 130., 135., 140., 145., 150., 175., 200.]),
+    #         "lenz_": json.dumps(
+    #             [20., 20., 20., 10., 10., 10., 20., 20., 10., 10., 10., 10., 10., 10., 10., 10., 10., 50., 50., 50.,
+    #              50.,
+    #              50., 50., 50., 50., 50., 50., 50., 50., 100.])
+    #     },
+    #     {
+    #         "Basin": "Kattegat",
+    #         #"lonr": '9.:dx:13.1',
+    #         "lonr": '9.:dx:15',
+    #         "latr": '53.8:dy:57.75',
+    #         "lenf": json.dumps(40000.0),
+    #         "epsilon": json.dumps(0.2),
+    #         "dx": json.dumps(0.05),
+    #         "threshold_list": json.dumps([0, 90, 180]),
+    #         "depthr": json.dumps(
+    #             [0., 5., 10., 12.5, 15., 17.5, 20., 22.5,  25., 27.5, 30., 32.5, 35., 40., 50., 55., 60., 65., 70., 75., 80.]),
+    #         "lenz_": json.dumps(
+    #             [10., 10., 10., 5., 5.,   5.,  5.,   5.,    5.,  5.,   5.,  5.,  10., 20., 10., 10., 10., 10., 10., 10., 10.])
+    #     }
+    # ]
+    # # Initialize variables
+    # basin = []
+    # lonr = []
+    # latr = []
+    # lenf = []
+    # epsilon = []
+    # dx = []
+    # threshold_list = []
+    # depthr = []
+    # lenz_ = []
+    #
+    # # Här bestämmer vi vilka bassäng som skall analyseras
+    # # Hämta info från vald bassäng
+    # for item in basin_dict:
+    #     if item["Basin"] == "Kattegat":
+    #     #if item["Basin"] == "Bothnian Bay":
+    #     #if item["Basin"] == "Baltic Proper":
+    #         basin = item["Basin"]
+    #         lonr = item["lonr"]
+    #         latr = item["latr"]
+    #         lenf = item.get("lenf")
+    #         epsilon = item.get("epsilon")
+    #         dx = item.get("dx")
+    #         threshold_list = item.get("threshold_list", [])
+    #         depthr = item.get("depthr", [])
+    #         lenz_ = item.get("lenz_", [])
 
     # Läs in JSON-filen
     with open('settings.json', 'r') as file:
@@ -120,16 +120,16 @@ if __name__ == "__main__":
     basin = "Baltic_Proper"
     lonr_range = settings[basin]["lonr"]
     latr_range = settings[basin]["latr"]
-    dx = settings[basin]["dx"]
-    dy = settings[basin]["dy"]
+    dx = json.dumps(settings[basin]["dx"])
+    dy = json.dumps(settings[basin]["dy"])
     # Skapa intervall (range) i Julia med angivet dx
-    lonr = np.arange(lonr_range[0], lonr_range[1] + dx, dx)
-    latr = np.arange(latr_range[0], latr_range[1] + dx, dx)
-    epsilon = settings[basin]["epsilon"]
-    depthr = settings[basin]["depthr"]
-    lenz_ = settings[basin]["lenz_"]
-    lenf = settings[basin]["lenf"]
-    threshold_list = settings[basin]["threshold_list"]
+    lonr = f"{lonr_range[0]}:{dx}:{lonr_range[1]}"
+    latr = f"{latr_range[0]}:{dy}:{latr_range[1]}"
+    epsilon = json.dumps(settings[basin]["epsilon"])
+    depthr = json.dumps(settings[basin]["depthr"])
+    lenz_ = json.dumps(settings[basin]["lenz_"])
+    lenf = json.dumps(settings[basin]["lenf"])
+    threshold_list = json.dumps(settings[basin]["threshold_list"])
 
     # Visa extracted information
     print("Show the setup for the choosen basin: ", basin)
