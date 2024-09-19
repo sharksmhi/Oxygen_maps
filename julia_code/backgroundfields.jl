@@ -61,7 +61,7 @@ json_content = read(joinpath(location, "settings.json"), String)
 # Parsar strängen som JSON
 settings = JSON.parse(json_content)
 
-basin ="Baltic_Proper"
+basin ="Kattegat"
 # Exempel på att hämta specifika värden
 lonr_range = settings[basin]["lonr"]
 latr_range = settings[basin]["latr"]
@@ -83,42 +83,14 @@ yearlist = [year[1]:year[2] for year in yearlist_json]
 years = settings[basin]["years"]
 
 
-
 #Bottniska viken
 #basin = "Gulf_of_Bothnia"
-#lonr = 16.5:dx:27.
-#latr = 60.0:dy:66.0
-#depthr = [0., 10., 20., 25., 30., 35., 40., 50., 55., 60., 65., 70., 75., 80., 85., 90., 95., 100., 105., 110.,
-#                 115., 120., 125., 130., 135., 140., 145., 150., 175., 200.];
-#lenz_ = [20., 20., 20., 10., 10., 10., 20., 20., 10., 10., 10., 10., 10., 10., 10., 10., 10., 50., 50., 50.,
-#                 50., 50., 50., 50., 50., 50., 50., 50., 50., 100.];
-#lenf = 80_000.
-#yearlist = [1960:1969,1970:1979,1980:1989,1990:1999,2000:2009,2010:2019,2020:2024];
-#years = "10_year"
 
 #Eg Östersjön o Kattegatt
 # basin ="Baltic_Proper"
-# lonr = 14.:dx:31.
-# latr = 53.5:dy:60.2
-# depthr = [0., 10., 20., 25., 30., 35., 40., 50., 55., 60., 65., 70., 75., 80., 85., 90., 95., 100., 105., 110.,
-#              115., 120., 125., 130., 135., 140., 145., 150., 175., 200., 250., 300.];
-# lenz_ = [20., 20., 20., 10., 10., 10., 20., 20., 10., 10., 10., 10., 10., 10., 10., 10., 10., 50., 50., 50., 50.,
-#              50., 50., 50., 50., 50., 50., 50., 50., 100., 100., 100.];
-# lenf = 80_000.
-# yearlist = [1960:1969,1970:1979,1980:1989,1990:1999,2000:2009,2010:2019,2020:2024];
-# years = "10_year"
-##yearlist = [1960:1964,1965:1969,1970:1974,1975:1979,1980:1984,1985:1989,1990:1994,1995:1999,2000:2004,2005:2009,2010:2014,2015:2019,2020:2024];
-
 
 #Kattegatt
 #basin = "Kattegat"
-#lonr = 9:dx:15.
-#latr = 53.8:dy:57.75
-#depthr = [0., 5., 10., 12.5, 15., 17.5, 20., 22.5,  25., 27.5, 30., 32.5, 35., 40., 50., 55., 60., 65., 70., 75., 80.]
-#lenz_ = [10., 10., 10., 5., 5.,   5.,  5.,   5.,    5.,  5.,   5.,  5.,  10., 20., 10., 10., 10., 10., 10., 10., 10.]
-#lenf = 40_000.
-#yearlist = [1960:1969,1970:1979,1980:1989,1990:1999,2000:2009,2010:2019,2020:2024];
-#years = "10_year"
 
 timerange = [Date(1960,1,1),Date(2022,12,31)];
 
@@ -180,8 +152,7 @@ leny = fill(lenf,sz)   # 200 km
 lenz =  [lenz_[k] for i = 1:sz[1], j = 1:sz[2], k = 1:sz[3]];
 len = (lenx, leny, lenz);
 epsilon = 0.1;
-epsilon = Float64.(settings["Global"]["epsilon"])
-
+epsilon = Float64.(settings["Global"]["epsilon_background"])
 
 w_depth = 5.
 w_days = 2.
