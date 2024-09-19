@@ -54,14 +54,20 @@ data_fname = "EMODNET_SHARK_ICES_SYKE_240913"
 @time obsval,obslon,obslat,obsdepth,obstime,obsid = loadbigfile(joinpath(location, "data/$data_fname.txt"));
 
 dx, dy = 0.05, 0.05         #~5km?
+#Bottniska viken
+basin = "Gulf_of_Bothnia"
 
+#Eg Östersjön o Kattegatt
+# basin ="Baltic_Proper"
+
+#Kattegatt
+#basin = "Kattegat"
 # Läs in filens innehåll som en sträng
 json_content = read(joinpath(location, "settings.json"), String)
 
 # Parsar strängen som JSON
 settings = JSON.parse(json_content)
 
-basin ="Kattegat"
 # Exempel på att hämta specifika värden
 lonr_range = settings[basin]["lonr"]
 latr_range = settings[basin]["latr"]
@@ -82,24 +88,7 @@ yearlist_json = settings[basin]["yearlist_background"]
 yearlist = [year[1]:year[2] for year in yearlist_json]
 years = settings[basin]["years"]
 
-
-#Bottniska viken
-#basin = "Gulf_of_Bothnia"
-
-#Eg Östersjön o Kattegatt
-# basin ="Baltic_Proper"
-
-#Kattegatt
-#basin = "Kattegat"
-
-timerange = [Date(1960,1,1),Date(2022,12,31)];
-
 #BACKGROUND
-# year and month-list for background analysis
-#Bothnian Bay
-
-#year_list =[1960:2024]
-#Baltic Proper
 
 month_list = [ [11,12,1,2], [3,4,5], [6,7,8], [8,9,10]];  # Seasonal climatology
 TSbackground = DIVAnd.TimeSelectorYearListMonthList(yearlist,month_list);

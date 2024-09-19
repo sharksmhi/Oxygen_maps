@@ -331,7 +331,7 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list):
         fig.suptitle(f'{year} {season}', fontsize=8, x=0.5, y=0.53, horizontalalignment='center',
                      verticalalignment='center')
     # Save the plot
-    plt.savefig(f'{results_dir}/figures/maps_{year}_areas_{netcdf_filename}.png', dpi=300,
+    plt.savefig(f'{results_dir}/figures/threshold_result{year}_{season}.png', dpi=300,
                 transparent=False)
     plt.close()
 
@@ -362,10 +362,10 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list):
 
     # Add title and labels
     # Set the title for the whole figure
-    fig.suptitle(f'{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
+    fig.suptitle(f'{year}_{season} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
 
     # Save the plot
-    plt.savefig(f'{results_dir}/figures/maps_{year}_surf_{netcdf_filename}.png', dpi=300, transparent=False)
+    plt.savefig(f'{results_dir}/figures/surf_{year}_{season}.png', dpi=300, transparent=False)
     plt.close()
 
     # plots of results at 4 different depths 60, 70, 80, 90
@@ -399,7 +399,7 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list):
     fig.suptitle(f'{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
 
     # Save the plot
-    plt.savefig(f'{results_dir}/figures/maps_{year}_halo_{netcdf_filename}.png', dpi = 300, transparent=False)
+    plt.savefig(f'{results_dir}/figures/halo_{year}_{season}.png', dpi = 300, transparent=False)
     plt.close()
 
     # plots of results at 4 different depths 100, 110, 125, 150
@@ -433,7 +433,7 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list):
     fig.suptitle(f'{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
 
     # Save the plot
-    plt.savefig(f'{results_dir}/figures/maps_{year}_deep_{netcdf_filename}.png', dpi=300, transparent=False)
+    plt.savefig(f'{results_dir}/figures/deep_{year}_{season}.png', dpi=300, transparent=False)
     plt.close()
 
     # plots of results all observations and hypox area and with anox area overlayed
@@ -498,7 +498,7 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list):
     #fake_marker =['none','none','none','none','o',]
 
     # Save the plot
-    plt.savefig(f'{results_dir}/figures/maps_{year}_overview_{netcdf_filename}.png', dpi=300, transparent=False)
+    plt.savefig(f'{results_dir}/figures/final_result_{year}_{season}.png', dpi=300, transparent=False)
     plt.close()
 
 ## extract values that are within our limits, save to a new variable and nc-file. ####

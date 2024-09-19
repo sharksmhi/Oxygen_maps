@@ -43,6 +43,8 @@ lonr = args[15]
 latr = args[16]
 basin = args[17]
 threshold_list = JSON.parse(args[18])
+bkg_filename = JSON.parse(args[19])
+year_list_background = JSON.parse(args[20])
 
 
 
@@ -103,18 +105,10 @@ bathisglobal = true;
 bx,by,b = DIVAnd.extract_bath(bathname,bathisglobal,lonr,latr);
 
 basin = replace(basin,' '=>'_')
-#Load background field
-#filenamebackground = joinpath(input_dir, "$(replace(varname,' '=>'_'))_background_weighted_0.05_field_$(bath_file_name).nc")
-filenamebackground = joinpath(input_dir,"$(replace(varname,' '=>'_'))_$(basin)_$(lenf)_0.1_10_year_background_weighted_$(dx)_field_$(bath_file_name).nc")
+# Load background field
 @show(input_dir)
-@show(filenamebackground)
+@show(bkg_filename)
 
-# year and month-list for background analysis
-if basin == "Bothnian_Bay"
-    year_list_background = [1960:1969,1970:1979,1980:1989,1990:1999,2000:2009,2010:2019,2020:2024];
-else
-    year_list_background = [1960:1969,1970:1979,1980:1989,1990:1999,2000:2009,2010:2019,2020:2024];
-end
 TSbackground = DIVAnd.TimeSelectorYearListMonthList(year_list_background,month_list);
 
 # ## MASK
@@ -149,7 +143,7 @@ sel_mask2 = (grid_by .>= 57.4) .& (grid_by .< 57.75) .& (grid_bx .<= 10.4);     
 sel_mask3 = (grid_by .>= 57.) .& (grid_by .< 57.4) .& (grid_bx .<= 10.);            #Skagerrak
 
 ## If basin is....exclude other basins.
-if basin == "Bothnian_Bay"
+if basin == "Gulf_of_Bothnia"
     sel_mask4 = (grid_by .<= 60.2) .& (grid_bx .>= 9.) .& (grid_bx .<= 31.);                                 #Eg. Östersjön & Kattegatt
 elseif basin == "Baltic_Proper"
     sel_mask4 = ((grid_by .>= 60.2) .& (grid_bx .>= 15.) .& (grid_bx .<= 25.)) .& (grid_bx .<= 9.);         #Bottniska viken & Kattegatt
@@ -352,7 +346,7 @@ for monthlist_index in 1:length(month_list)
               mask = new_mask,
               solver = :direct,
               niter_e = 1,
-              background = DIVAnd.backgroundfile(filenamebackground,varname,TSbackground),
+              background = DIVAnd.backgroundfile(bkg_filename,varname,TSbackground),
               error_thresholds = error_thresholds,
               surfextend = true,
               alphabc = 0,

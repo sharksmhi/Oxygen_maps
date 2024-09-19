@@ -2,6 +2,7 @@
 julia julia_code\oxygen_analysis.jl, år, säsong, DIVAsettings
 python python_code\calculata_areas.py, år, säsong, DIVASettings
 """
+import shutil
 import subprocess
 import json
 from python_code import calculate_areas as calculate_areas
@@ -24,27 +25,20 @@ def run_julia_function(args):
         
 if __name__ == "__main__":
 
-    # Specify function name and arguments
-    # function_name = "my_julia_function"
-    # argument1 = "value1"
-
     # Data input directory
     input_dir = "data"
-    # Result directory
-    #results_dir = "//winfs-proj/proj/havgem/DIVA/syrekartor/resultat/"
-    # results_dir = "C:/LenaV/code/DIVAND/resultat/"
-    #results_dir = "C:/Work/DIVAnd/Oxygen_maps/resultat/"
     # Input data filename
-    #data_fname = "EMODNET_SHARK_ICES_240620.txt"
     data_fname = "EMODNET_SHARK_ICES_SYKE_240913.txt"
 
-   #Definiera basins
+    # Definiera basins
+    # basin = "Kattegat"
+    # basin = "Baltic_Proper"
+    basin = "Baltic_Proper"
 
     # Läs in JSON-filen
     with open('settings.json', 'r') as file:
         settings = json.load(file)
-    basin = "Kattegat"
-    # basin = "Baltic_Proper"
+   
     lonr_range = settings[basin]["lonr"]
     latr_range = settings[basin]["latr"]
     dx = json.dumps(settings[basin]["dx"])
@@ -57,6 +51,10 @@ if __name__ == "__main__":
     lenz_ = json.dumps(settings[basin]["lenz_"])
     lenf = json.dumps(settings[basin]["lenf"])
     threshold_list = json.dumps(settings[basin]["threshold_list"])
+    years = settings[basin]["years"] # utan json.dumps så det passar i bkg_filename strängen.
+    yearlist_background = json.dumps(settings[basin]["yearlist_background"])
+
+    epsilon_background = json.dumps(settings["Global"]["epsilon_background"])
 
     # Visa extracted information
     print("Show the setup for the choosen basin: ", basin)
@@ -71,21 +69,21 @@ if __name__ == "__main__":
 
     #Samlar ihop resultaten:
     today = dt.datetime.now().strftime("%Y%m%d_%H%M") 
-
     results_dir = Path(f"resultat/{basin.replace(' ', '_')}/{today}/")
     results_dir.mkdir(parents=True, exist_ok=True)
     Path(results_dir, "figures/").mkdir(parents=True, exist_ok=True)
     Path(results_dir, "DIVArun/").mkdir(parents=True, exist_ok=True)
     Path(results_dir, "processed/").mkdir(parents=True, exist_ok=True)
-    #print(results_dir)
-    #results_dir = str(results_dir) + '\\'
-    #exit()
+    
+    with open(Path(results_dir, 'settings.json'), 'w') as file:
+        json.dump(obj=settings[basin],fp=file)
+ 
     # Years, month and seasons to be analysed
     #year_list = json.dumps([1960, 1961, 1962, 1963, 1964, 1965, 1966, 1967, 1968, 1969, 1970, 1971, 1972, 1973, 1974, 1975, 1976, 1977, 1978,
     #1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997,
     #1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016,
     #2017, 2018, 2019, 2020, 2021, 2022])
-    year_list = json.dumps([2000, 2001])
+    year_list = json.dumps([1961, 2018])
     #year_list = json.dumps([2000])
 
     seasons_dict = {
@@ -113,6 +111,9 @@ if __name__ == "__main__":
     #epsilon = json.dumps(0.2)
     #Bathymetry file
     bath_file_name = "bat_elevation_Baltic_Sea_masked"
+    # filenamebackground = joinpath(input_dir,"$(replace(varname,' '=>'_'))_$(basin)_$(lenf)_0.1_10_year_background_weighted_$(dx)_field_$(bath_file_name).nc")
+    bkg_filename = json.dumps(f"{input_dir}/Oxygen_{basin}_{lenf}_{epsilon_background}_{years}_background_weighted_{dx}_field_{bath_file_name}.nc")
+    print(bkg_filename)
 
     print("Bathymetry file: ", bath_file_name)
     #Thresholds to analyse in µmol/l oxygen (0, 2, 4 ml/l)
@@ -124,8 +125,25 @@ if __name__ == "__main__":
     save_area_data=True
 
     print("running DIVAnd in Julia...")
-    args = ['julia', 'julia_code/oxygen_analysis.jl', input_dir, results_dir, data_fname, year_list, month_list, seasons, lenf, epsilon, dx, bath_file_name, w_depth, w_days, depthr, lenz_, lonr, latr, basin, threshold_list]
-    # Call the function and save a json-file with a file_list containing the results. That we can send to the calculate_areas function.
+    try:
+        args = ['julia', 'julia_code/oxygen_analysis.jl', input_dir, results_dir, data_fname, year_list, month_list, seasons, lenf, epsilon, dx, bath_file_name, w_depth, w_days, depthr, lenz_, lonr, latr, basin, threshold_list, bkg_filename, yearlist_background]
+    except:
+        # If exception occurs, prompt user
+        user_input = input(f"An error occurred. Do you want to remove the path resultat/{basin.replace(' ', '_')}/{today}/? (y/n): ")
+        
+        if user_input.lower() == 'y':
+            path_to_remove = Path(f"resultat/{basin.replace(' ', '_')}/{today}/")
+            
+            # Check if the path exists before trying to remove it
+            if results_dir.exists() and results_dir.is_dir():
+                shutil.rmtree(results_dir)
+                print(f"Path {results_dir} has been removed.")
+            else:
+                print(f"Path {results_dir} does not exist.")
+        else:
+            print("No path was removed.")
+
+    # #Call the function and save a json-file with a file_list containing the results. That we can send to the calculate_areas function.
     run_julia_function(args)
 
     file_list = []
@@ -134,18 +152,12 @@ if __name__ == "__main__":
 
         file_list.append(f"Oxygen_{min(json.loads(year_list))}-{max(json.loads(year_list))}_{season}_{json.loads(epsilon)}_{lenf}_{json.loads(dx)}_{w_depth}_{w_days}_{bath_file_name}_varcorrlenz.nc")
     
-    # file_list = [
-    #     "Oxygen_background_weighted_0.03_field_gebco_30sec_4.nc",
-    #     "Oxygen_background_weighted_0.03_field_bat_elevation_Baltic_Sea_masked.nc",
-    #     "Oxygen_background_weighted_0.05_field_bat_elevation_Baltic_Sea_masked.nc",
-    #     "Oxygen_background_weighted_0.05_field.nc"
-    # ]
-    #Calculate areas from DIVA-results and save in a new nc-file. Results in file_list
+    # #Calculate areas from DIVA-results and save in a new nc-file. Results in file_list
     print("calculating areas...")
 
     calculate_areas.calculate_areas(results_dir, file_list, json.loads(threshold_list), save_area_data)
 
-    #Read and plot areas in file_list
+    # Read and plot areas in file_list
     print("plotting...")
     plot_result.read_processed_nc(results_dir,file_list,year_list)
 
