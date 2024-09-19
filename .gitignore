@@ -1,3 +1,6 @@
 bathymetry/**
 .idea/**
 data/**
+resultat/**
+python_code/test*
+python_code/_*
