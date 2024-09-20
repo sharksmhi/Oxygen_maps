@@ -43,6 +43,7 @@ def transform_syke_data(path):
     # Filtrera bort rader där PARAM inte är O2D eller O2S
     data = df.query(
         'parameter_code in ["O2D", "H2SS"]')
+    data.drop(data[data["value"] > 25].index, inplace=True)
     # Skapa en ny kolumn för att lagra OXYGEN-beräkningar
     # döp om lite granna
     rename_dict = {
@@ -58,7 +59,8 @@ def transform_syke_data(path):
     # Byt namn på de kolumner som finns i rename_dict
     data.rename(columns=rename_dict, inplace = True)
 
-    data['OXYGEN'] = None
+    data['OXYGEN'] = np.nan
+    data['value'] = data['value'].astype(float)
 
     # Filtrera för PARAM == "H2SS" och multiplicera VALUE med -0.44
     data.loc[data['parameter_code'] == 'H2SS', 'OXYGEN'] = data['value'] * -0.029342
@@ -66,19 +68,10 @@ def transform_syke_data(path):
     # Filtrera för PARAM == "O2D" och multiplicera VALUE med 0.700 * 44.661
     data.loc[data['parameter_code'] == 'O2D', 'OXYGEN'] = data['value'] * 0.700 * 44.661
 
-    # Steg 1: Skapa masker för varje villkor
-    mask_neg_oxygen = (data['OXYGEN'] < 0) & (data['Q_flag'] != "L")
-    mask_ti = (data['OXYGEN'] > 0)
+    data.drop(data[(data['Q_flag'] != "L")].index, inplace=True)
+    data.drop(data[(data['OXYGEN'] < -800)].index, inplace=True)
 
-    # Steg 2: Använd np.select för att skapa en prioriterad kolumn för 'selected_OXYGEN'
-    conditions = [mask_neg_oxygen, mask_ti]
-    choices = [data['OXYGEN'], data['OXYGEN']]
-
-    # np.select applicerar villkoren i den ordning de anges
-    data['selected_OXYGEN'] = np.select(conditions, choices, default=np.nan)
-
-    # Steg 3: Ta bort alla rader där 'selected_OXYGEN' är NaN
-    data = data.dropna(subset=['selected_OXYGEN'])
+    # data = data.dropna(subset=['OXYGEN'])
     headers = [
         "SDATE",
         "SERNO",
@@ -93,7 +86,7 @@ def transform_syke_data(path):
     column_order = [
         'LONGI',  # 0
         'LATIT',  # 1
-        'selected_OXYGEN',    # 2
+        'OXYGEN',    # 2
         'DEPH',   # 3
         'parameter_code', 'Q_flag', 'STATN',  'WADEP', 'random_8',  # 4 till 8
         'SDATE',  # 9
@@ -119,7 +112,7 @@ print(Path("//winfs-proj/data/proj/havgem/DIVA/syrekartor/data/", "Syke_oxygen_o
 open_sea = transform_syke_data(path=Path("//winfs-proj/data/proj/havgem/DIVA/syrekartor/data/", "Syke_oxygen_opensea.csv"))
 coastal = transform_syke_data(path=Path("//winfs-proj/data/proj/havgem/DIVA/syrekartor/data/", "Syke_oxygen_coastal.csv"))
 data = pd.concat([open_sea, coastal])
-data.to_csv(Path("//winfs-proj/data/proj/havgem/DIVA/syrekartor/data/", "syke_data_no_header.txt"), sep="\t", index = False, header = False)
+data.to_csv(Path("//winfs-proj/data/proj/havgem/DIVA/syrekartor/data/", "syke_data_coastal_formatted.txt"), sep="\t", index = False, header = True)
 # parameter_codes in data
 # ['TEMP' 'O2D' 'SAL' 'O2S' 'H2SS']
 # order of columns in the outputfile have to be:

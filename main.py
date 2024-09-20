@@ -31,9 +31,9 @@ if __name__ == "__main__":
     data_fname = "EMODNET_SHARK_ICES_SYKE_240913.txt"
 
     # Definiera basins
-    # basin = "Kattegat"
+    basin = "Kattegat"
     # basin = "Baltic_Proper"
-    basin = "Baltic_Proper"
+    # basin = "Gulf_of_Bothnia"
 
     # Läs in JSON-filen
     with open('settings.json', 'r') as file:
@@ -83,7 +83,10 @@ if __name__ == "__main__":
     #1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997,
     #1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016,
     #2017, 2018, 2019, 2020, 2021, 2022])
-    year_list = json.dumps([1961, 2018])
+    year_list = json.dumps([1960, 1961, 1962, 1963, 1964, 1965, 1966, 1967, 1968, 1969, 1970, 1971, 1972, 1973, 1974, 1975, 1976, 1977, 1978,
+    1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997,
+    1998, 1999])
+    print(f"calculating for years {year_list}")
     #year_list = json.dumps([2000])
 
     seasons_dict = {
@@ -125,10 +128,14 @@ if __name__ == "__main__":
     save_area_data=True
 
     print("running DIVAnd in Julia...")
+    args = ['julia', 'julia_code/oxygen_analysis.jl', input_dir, results_dir, data_fname, year_list, month_list, seasons, lenf, epsilon, dx, bath_file_name, w_depth, w_days, depthr, lenz_, lonr, latr, basin, threshold_list, bkg_filename, yearlist_background]
+
+    # #Call the function and save a json-file with a file_list containing the results. That we can send to the calculate_areas function.
     try:
-        args = ['julia', 'julia_code/oxygen_analysis.jl', input_dir, results_dir, data_fname, year_list, month_list, seasons, lenf, epsilon, dx, bath_file_name, w_depth, w_days, depthr, lenz_, lonr, latr, basin, threshold_list, bkg_filename, yearlist_background]
-    except:
+        run_julia_function(args)
+    except Exception as e:
         # If exception occurs, prompt user
+        print(e)
         user_input = input(f"An error occurred. Do you want to remove the path resultat/{basin.replace(' ', '_')}/{today}/? (y/n): ")
         
         if user_input.lower() == 'y':
@@ -138,13 +145,13 @@ if __name__ == "__main__":
             if results_dir.exists() and results_dir.is_dir():
                 shutil.rmtree(results_dir)
                 print(f"Path {results_dir} has been removed.")
+                exit()
             else:
                 print(f"Path {results_dir} does not exist.")
+                exit()
         else:
             print("No path was removed.")
-
-    # #Call the function and save a json-file with a file_list containing the results. That we can send to the calculate_areas function.
-    run_julia_function(args)
+            exit()
 
     file_list = []
 
