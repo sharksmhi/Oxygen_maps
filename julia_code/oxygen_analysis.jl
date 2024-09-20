@@ -47,6 +47,20 @@ bkg_filename = JSON.parse(args[19])
 year_list_background = JSON.parse(args[20])
 
 
+# Läs in settinsfilen som ligger två steg upp från results_dir 
+# dirname() ger mappen ett steg ovanför så vi kallar på den två ggr
+# @show dirname(dirname(results_dir))
+# @show joinpath("../..", "settings.json")
+# json_content = read(joinpath(dirname(dirname(results_dir)), "settings.json"), String)
+# # Parsar strängen som JSON
+# settings = JSON.parse(json_content)
+# lonr_range = settings[basin]["lonr"]
+# latr_range = settings[basin]["latr"]
+# # Skapa intervall (range) i Julia med angivet dx
+# lonr_min = lonr_range[1]
+# lonr_max = lonr_range[2]
+# latr_min = latr_range[1]
+# latr_max = latr_range[2]
 
 #Fix lonr/latr string
 #dx = 0.05
