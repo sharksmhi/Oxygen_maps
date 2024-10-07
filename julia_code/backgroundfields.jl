@@ -35,8 +35,9 @@ unit = "umol/l";
 # ## Where to save the result. Create path if not there.
 # File name based on the variable (but all spaces are replaced by _) _varlenz
 # NC-files
-location = "C:/Work/DIVAnd/Oxygen_maps/"
 location = "C:/LenaV/code/DIVAnd/Oxygen_maps/"
+location = "C:/Work/DIVAnd/Oxygen_maps/"
+
 outputdir = joinpath(location, "data/");
 if !isdir(outputdir)
     mkpath(outputdir)
@@ -55,13 +56,13 @@ data_fname = "EMODNET_SHARK_ICES_SYKE_240913"
 
 dx, dy = 0.05, 0.05         #~5km?
 #Bottniska viken
-basin = "Gulf_of_Bothnia"
+#basin = "Gulf_of_Bothnia"
 
 #Eg Östersjön o Kattegatt
-# basin ="Baltic_Proper"
+#basin ="Baltic_Proper"
 
 #Kattegatt
-#basin = "Kattegat"
+basin = "Kattegat"
 # Läs in filens innehåll som en sträng
 json_content = read(joinpath(location, "settings.json"), String)
 

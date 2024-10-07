@@ -32,8 +32,8 @@ if __name__ == "__main__":
 
     # Definiera basins
     basin = "Kattegat"
-    # basin = "Baltic_Proper"
-    # basin = "Gulf_of_Bothnia"
+    #basin = "Baltic_Proper"
+    #basin = "Gulf_of_Bothnia"
 
     # Läs in JSON-filen
     with open('settings.json', 'r') as file:
@@ -79,15 +79,15 @@ if __name__ == "__main__":
         json.dump(obj=settings[basin],fp=file)
  
     # Years, month and seasons to be analysed
-    #year_list = json.dumps([1960, 1961, 1962, 1963, 1964, 1965, 1966, 1967, 1968, 1969, 1970, 1971, 1972, 1973, 1974, 1975, 1976, 1977, 1978,
-    #1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997,
-    #1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016,
-    #2017, 2018, 2019, 2020, 2021, 2022])
     year_list = json.dumps([1960, 1961, 1962, 1963, 1964, 1965, 1966, 1967, 1968, 1969, 1970, 1971, 1972, 1973, 1974, 1975, 1976, 1977, 1978,
     1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997,
-    1998, 1999])
-    print(f"calculating for years {year_list}")
+    1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016,
+    2017, 2018, 2019, 2020, 2021, 2022])
+    #year_list = json.dumps([1960, 1961, 1962, 1963, 1964, 1965, 1966, 1967, 1968, 1969, 1970, 1971, 1972, 1973, 1974, 1975, 1976, 1977, 1978,
+    #1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997,
+    #1998, 1999])
     #year_list = json.dumps([2000])
+    print(f"calculating for years {year_list}")
 
     seasons_dict = {
                 "Winter": [11,12,1,2],
@@ -168,6 +168,7 @@ if __name__ == "__main__":
     print("plotting...")
     plot_result.read_processed_nc(results_dir,file_list,year_list)
 
+print("DIVAnd is done with its stuff...")
 ### extract values that are within our limits, save to a new variable and nc-file. ####
 # 1 ml/l of O2 is approximately 43.570 µmol/kg
 # (assumes a molar volume of O2 of 22.392 l/mole and

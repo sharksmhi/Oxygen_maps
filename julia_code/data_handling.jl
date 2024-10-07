@@ -221,6 +221,48 @@ obstime = [obstime_emodsharkices; obstime_syke_btlctd[newpoints_SYKE]];
 obsval = [obsval_emodsharkices; obsval_syke_btlctd[newpoints_SYKE]];
 obsid = [obsid_emodsharkices; obsid_syke_btlctd[newpoints_SYKE]];
 
+
+# ## Do a range check and remove outliers µomol/l
+min_value = -500.0
+max_value = 600.0
+
+# Perform the range check
+in_range = (obsval .>= min_value) .& (obsval .<= max_value)
+
+# Extract values within the range (valid data)
+valid_obsval = obsval[in_range]
+
+# Extract values outside the range (invalid data)
+out_of_range = .!in_range
+invalid_obsval = obsval[out_of_range]
+
+# Store the invalid values in a separate file
+invalid_values_file = joinpath(location, "data/all_baltic/invalid_obsval.txt")
+open(invalid_values_file, "w") do file
+    for value in invalid_obsval
+        write(file, "$value\n")
+    end
+end
+
+# Save the valid data back to obsval_shark
+obsval = valid_obsval
+obslon = obslon[in_range];
+obslat = obslat[in_range];
+obsdepth = obsdepth[in_range];
+obstime = obstime[in_range];
+obsid = obsid[in_range];
+
+# Output some statistics
+@show sum(in_range)
+@show sum(out_of_range)
+
+# Now obsval_shark contains only the valid values
+
+
+# ## Hantera negativa värden i obsdepth_shark och gör dem positiva
+obsdepth_shark = abs.(obsdepth_shark)
+
+
 # ## Create a plot showing the additional data points:
 figure("Additional-Data")
 aspectratio = 1/cos(mean(54:0.05:61) * pi/180)

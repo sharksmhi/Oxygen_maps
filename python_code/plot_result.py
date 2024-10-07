@@ -416,6 +416,7 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list):
     # 1111111 Plot the data on the 1st subplot
     # on the 1st and 2nd plot we show oxygen set min and max for colorscale
     subplot_no = 0
+    skipped_depth = []
     for show_depth in [100, 110, 125, 150]:
         try:
             sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, subplot_no], year=year, show_depth=show_depth, vmin=vmin_o2,
@@ -424,17 +425,20 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list):
             sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[1, subplot_no], year=year, show_depth=show_depth,
                                     vmin=0, vmax=0.5)
             subplot_no += 1
+
         except ValueError:
+            print("Its not deep enough skip this depth...")
+            skipped_depth.append(show_depth)
             continue
 
+    if skipped_depth != [100, 110, 125, 150]:
+        # Add title and labels
+        # Set the title for the whole figure
+        fig.suptitle(f'{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
 
-    # Add title and labels
-    # Set the title for the whole figure
-    fig.suptitle(f'{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
-
-    # Save the plot
-    plt.savefig(f'{results_dir}/figures/deep_{year}_{season}.png', dpi=300, transparent=False)
-    plt.close()
+        # Save the plot
+        plt.savefig(f'{results_dir}/figures/deep_{year}_{season}.png', dpi=300, transparent=False)
+        plt.close()
 
     # plots of results all observations and hypox area and with anox area overlayed
     fig, axs = plt.subplots(1, 1, figsize=(10, 4.5))

@@ -43,7 +43,7 @@ def transform_syke_data(path):
     # Filtrera bort rader där PARAM inte är O2D eller O2S
     data = df.query(
         'parameter_code in ["O2D", "H2SS"]')
-    data.drop(data[data["value"] > 25].index, inplace=True)
+
     # Skapa en ny kolumn för att lagra OXYGEN-beräkningar
     # döp om lite granna
     rename_dict = {
@@ -70,7 +70,7 @@ def transform_syke_data(path):
 
     data.drop(data[(data['Q_flag'] != "L")].index, inplace=True)
     data.drop(data[(data['OXYGEN'] < -800)].index, inplace=True)
-
+    data.drop(data[(data['OXYGEN'] > 600)].index, inplace=True)
     # data = data.dropna(subset=['OXYGEN'])
     headers = [
         "SDATE",
