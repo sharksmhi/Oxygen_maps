@@ -65,10 +65,10 @@ def area_at_threshold(threshold, ds, df):
     mask_below_threshold = ds['Oxygen'] <= threshold
 
     #Detta kör vi sen, när vi kollat lite mer.
-    #if threshold != 0:
-    #    mask_below_threshold = ds['Oxygen'] <= threshold
-    #else:
-    #    mask_below_threshold = ds['Oxygen'] <= threshold + 4.5
+    if threshold != 0:
+        mask_below_threshold = ds['Oxygen'] <= threshold
+    else:
+        mask_below_threshold = ds['Oxygen'] <= threshold + 4.5
 
     ds[f"{threshold}_mask"] = mask_below_threshold
     # Step 3: Get the first layer in the depth dimension where Oxygen is below the threshold
