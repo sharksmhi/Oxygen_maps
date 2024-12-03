@@ -49,12 +49,12 @@ if !isdir(figdir)
     mkpath(joinpath(figdir, "test"))
 end
 
-# ## Load data big files created by program "syrekartor_data_proc"
-#fname = "SHARK_EMODNET.txt"
-data_fname = "EMODNET_SHARK_ICES_SYKE_240913"
+# ## Load data big files created by program "data_handling"
+data_fname = "EMODNET_SHARK_ICES_SYKE_241129"
 @time obsval,obslon,obslat,obsdepth,obstime,obsid = loadbigfile(joinpath(location, "data/$data_fname.txt"));
 
 dx, dy = 0.05, 0.05         #~5km?
+
 #Bottniska viken
 #basin = "Gulf_of_Bothnia"
 
@@ -63,6 +63,7 @@ dx, dy = 0.05, 0.05         #~5km?
 
 #Kattegatt
 basin = "Kattegat"
+
 # Läs in filens innehåll som en sträng
 json_content = read(joinpath(location, "settings.json"), String)
 
@@ -162,9 +163,32 @@ end
 epsilon_weighted = epsilon * rdiag;
 
 
-# To include December & Nov from previous year in the analyse
+# To include December from previous year in the analyse
 obstime_shifted = copy(obstime)
-obstime_shifted[Dates.month.(obstime) .== 12 .& Dates.month.(obstime) .== 11] .+= Dates.Year(1)
+# Get all dates with dec and nov and add one year to these specific dates.
+# Winter period will be jan-feb + nov-dec from previous year.
+#obstime_shifted[Dates.month.(obstime) .== 12 .| Dates.month.(obstime) .== 11] .+= Dates.Year(1)
+# Iterera över elementen och justera datum om månaden är 11 eller 12
+for i in eachindex(obstime)
+    month = Dates.month(obstime[i])  # Hämta månaden
+    if month == 11 || month == 12
+        obstime_shifted[i] += Year(1)  # Lägg till ett år
+    end
+end
+
+# Filnamn för utmatning
+output_file = "obstime_output.txt"
+
+# Skriv till fil
+open(output_file, "w") do io
+    write(io, "Original obstime and shifted obstime:\n")
+    for (orig, shifted) in zip(obstime, obstime_shifted)
+        write(io, "Original: $orig, Shifted: $shifted\n")
+    end
+end
+
+println("Data written to $output_file")
+
 
 filenamebackground = joinpath(outputdir, "$(replace(varname,' '=>'_'))_$(basin)_$(lenf)_$(epsilon)_$(years)_background_weighted_0.05_field_$(bath_file_name)")
 
