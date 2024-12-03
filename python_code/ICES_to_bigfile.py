@@ -60,6 +60,7 @@ df['date_time'] = df["Year"] + "-" + df["Month"].str.zfill(2) + "-" + df["Day"].
 def get_doxy(row):
     if row["Hydrogen Sulphide (H2SXZZXX_UPOX) [umol/l]"] and not np.isnan(row["Hydrogen Sulphide (H2SXZZXX_UPOX) [umol/l]"]):
         return row["Hydrogen Sulphide (H2SXZZXX_UPOX) [umol/l]"] * -0.04488
+        #return row["Hydrogen Sulphide (H2SXZZXX_UPOX) [umol/l]"] * 0 + 0.01
     if row['Oxygen (DOXYZZXX_UMLL) [ml/l]'] and not np.isnan(row['Oxygen (DOXYZZXX_UMLL) [ml/l]']):
         return row['Oxygen (DOXYZZXX_UMLL) [ml/l]']
     return np.nan
@@ -74,14 +75,27 @@ print(df.dtypes)
 #df_filtered = df.loc[df["DOXY_umol"] != np.nan]
 df_filtered = df.dropna(subset=["DOXY_umol"])
 
+
+#Ta bort alla data som är ryska(90))
+# Lista med mönster att ta bort
+remove = ['90']
+
+# Filtrera ut rader som matchar något av mönstren
+removed_ICES_data = df[df["Cruise"].str.startswith(tuple(remove))]
+# Behåll endast rader som inte matchar mönstren
+df = df[~df["Cruise"].str.startswith(tuple(remove))]
+
+# Spara de borttagna raderna till en ny CSV-fil (valfritt)
+removed_ICES_data.to_csv("removed_data.csv", index=False)
+
 # Define the order of columns for the output files
 #column_list = ["Longdeg", "Latdeg", "DOXY(umol/l)", "Pressure(Dbars)", "TEMP", "PSAL", "H2SX(umol/l)", "St_No", "Year", "date_time", "ID", "Mnth", "Dy", "Hr"]
 #column_list = ["Sample longitude (DD)", "Sample latitude (DD)", "DOXY_umol", "Sampling depth (m)", "Temperature bottle (C)", "Salinity bottle (o/oo psu)", "Hydrogen sulphide H2S (umol/l)", "Visit event identifier", "Year", "date_time", "Sampling platform (code)", "Month", "Day", "Sampling time (start)"]
-column_list = ["Longitude [degrees_east]", "Latitude [degrees_north]", "DOXY_umol", "Depth (ADEPZZ01_ULAA) [m]", "Temperature (TEMPPR01_UPAA) [degC]", "Salinity (PSALPR01_UUUU) [dmnless]", "Hydrogen Sulphide (H2SXZZXX_UPOX) [umol/l]", "Visit event identifier", "Year", "date_time", "Cruise", "Month", "Day", "hh:mm"]
+column_list = ["Longitude [degrees_east]", "Latitude [degrees_north]", "DOXY_umol", "Depth (ADEPZZ01_ULAA) [m]", "Temperature (TEMPPR01_UPAA) [degC]", "Salinity (PSALPR01_UUUU) [dmnless]", "Hydrogen Sulphide (H2SXZZXX_UPOX) [umol/l]", "Cruise", "Year", "date_time", "Visit event identifier", "Month", "Day", "hh:mm"]
 
 # Write the filtered data to two output files, one with headers and one without
 # df_filtered[column_list].to_csv(file_path+"bot.txt", index=False, sep='\t')
-df_filtered[column_list].to_csv(file_path+"ICES_btl_lowres_ctd_02_NEW.txt", index=False, header=False, sep='\t')
+df_filtered[column_list].to_csv(file_path+"ICES_btl_lowres_ctd_02_241107.txt", index=False, header=False, sep='\t')
 
 
 

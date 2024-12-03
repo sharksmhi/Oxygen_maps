@@ -58,26 +58,34 @@ end
 
 # ## Load data big files
 # emodnet BTL + CTD
-@show("Loading SHARKWEB...")
-fname_shark = joinpath(location, "data/all_baltic/sharkweb_btlctd_02_240603.txt")
+@show("Loading SHARK BTL/CTD...")
+fname_shark = joinpath(location, "data/all_baltic/sharkweb_btlctd_02_241107.txt")
 @time obsval_shark,obslon_shark,obslat_shark,obsdepth_shark,obstime_shark,obsid_shark = loadbigfile(fname_shark);
 
 @show("Loading EMODNET BTL...")
-datafile_emod_btl = joinpath(location, "data/all_baltic/BTLdata_from_ALL_emodnet-chem_v2023_2022.txt")
+datafile_emod_btl = joinpath(location, "data/EMODNET_2024/BTL_data_from_EMODnet_Eutrophication_European_2024_unrestricted.txt")
 @time obsval_emod_btl,obslon_emod_btl,obslat_emod_btl,obsdepth_emod_btl,obstime_emod_btl,obsid_emod_btl = ODVspreadsheet.load(Float64,[datafile_emod_btl],
                            ["Water body dissolved oxygen concentration"]; nametype = :localname );
+# obsid_emod_btl = LOCAL_CDI_ID + EDMO_CODEz
+obsid_emod_btl = string.("emod_btl-",obsid_emod_btl)
 
 @show("Loading EMODNET CTD...")
-datafile_emod_ctd = joinpath(location, "data/all_baltic/CTDdata_from_ALL_emodnet-chem_v2023_2022.txt")
+datafile_emod_ctd = joinpath(location, "data/EMODNET_2024/CTD_data_from_EMODnet_Eutrophication_European_2024_unrestricted.txt")
 @time obsval_emod_ctd,obslon_emod_ctd,obslat_emod_ctd,obsdepth_emod_ctd,obstime_emod_ctd,obsid_emod_ctd = ODVspreadsheet.load(Float64,[datafile_emod_ctd],
                            ["Water body dissolved oxygen concentration"]; nametype = :localname );
+obsid_emod_ctd = string.("emod_ctd-",obsid_emod_ctd)
+@show(obsid_emod_ctd[1])
+
 @show("Loading ICES...")
-datafile_ices_btlctd = joinpath(location, "data/all_baltic/ICES_btl_lowres_ctd_02_NEW.txt")
+datafile_ices_btlctd = joinpath(location, "data/all_baltic/ICES_btl_lowres_ctd_02_241107.txt")
 @time obsval_ices_btlctd,obslon_ices_btlctd,obslat_ices_btlctd,obsdepth_ices_btlctd,obstime_ices_btlctd,obsid_ices_btlctd = loadbigfile(datafile_ices_btlctd);
+obsid_ices_btlctd = string.("ICES-", obsid_ices_btlctd)
+@show(obsid_ices_btlctd[1])
 
 @show("Loading SYKE data...")
-datafile_syke_btlctd = joinpath(location, "data/all_baltic/syke_data_no_header.txt")
+datafile_syke_btlctd = joinpath(location, "data/all_baltic/syke_data_no_header_241107.txt")
 @time obsval_syke_btlctd,obslon_syke_btlctd,obslat_syke_btlctd,obsdepth_syke_btlctd,obstime_syke_btlctd,obsid_syke_btlctd = loadbigfile(datafile_syke_btlctd);
+@show(obsid_syke_btlctd[1])
 
 @show(length(obsval_emod_btl));
 @show(length(obsval_emod_ctd));
@@ -186,7 +194,6 @@ obstime_emodsharkices = [obstime_emodshark; obstime_ices_btlctd[newpoints_ICES]]
 obsval_emodsharkices = [obsval_emodshark; obsval_ices_btlctd[newpoints_ICES]];
 obsid_emodsharkices = [obsid_emodshark; obsid_ices_btlctd[newpoints_ICES]];
 
-
 # ## Remove SYKE data when EMODnet_SHARK_ICES data is available.
 # Remove true duplicates, hence when exactly the same data is found in both datasets.
 # ## Criteria (can be adapted according to the application):
@@ -252,6 +259,9 @@ obsdepth = obsdepth[in_range];
 obstime = obstime[in_range];
 obsid = obsid[in_range];
 
+@show("sets all neg o2 to 0.44661 µmol/l")
+obsval[obsval .<= 0] .= 0.44661
+
 # Output some statistics
 @show sum(in_range)
 @show sum(out_of_range)
@@ -289,8 +299,17 @@ PyPlot.savefig(joinpath(figdir,"$(figname)"), dpi=300);
 PyPlot.close_figs()
 
 df  = DataFrame(obslon=obslon,obslat=obslat,obsval=obsval,obsdepth=obsdepth,obsdepth1=obsdepth,obsdepth2=obsdepth,obsdepth3=obsdepth,obsdepth4=obsdepth,obsdepth5=obsdepth,obstime=obstime,obsid=obsid)
-filename = "EMODNET_SHARK_ICES_SYKE_240913"
+filename = "EMODNET_SHARK_ICES_SYKE_241129"
 CSV.write(joinpath(outputdir, "$(filename).txt"), df, delim="\t", writeheader=false)
 #DIVAnd.saveobs(joinpath(outputdir, "$(filename).nc"),varname, obsval, (obslon,obslat,obsdepth,obstime),obsid)
 
-
+# Formaterar det till önskat format för Johannas/fredriks QC....
+#formatted_times = [Dates.format(time, "yyyymmddHHMM") for time in obstime]
+#obsval = obsval.* (22.414./1000) #Tillbaka till ml/l för QC?
+#QC = ones(Int, length(formatted_times))
+#NN = fill(NaN, length(formatted_times))
+##                   tid,                lat,    lat_qc, lon,          lon_qc,    djup,       djup_qc,      tryck,     tryck_qc, temp, temp_qc, salt, salt_qc,chl,  chl_qc, turb, turb_qc, syre,       syre_qc, PAr, PAR_qc, ljudhast, ljudhast_qc, ID (Skall eg inte va med)
+#               40014	8002	88002	8003	88003	8178	88178	8168	88168	8179	88179	8181	88181	8063	88063	8174	88174	8191	88191	8175	88175	8187	88187
+#df_QC  = DataFrame(formatted_times=formatted_times, obslat=obslat, QC1=QC, obslon=obslon, QC2=QC, obsdepth=obsdepth, QC3=QC, obsdepth_tryck=obsdepth, QC4=QC, NN5=NN, QC5=QC, NN6=NN, QC6=QC, NN7=NN, QC7=QC, NN8=NN, QC8=QC, obsval=obsval, QC9=QC, NN10=NN, QC10=QC, NN11=NN, QC11=QC, obsid=obsid)
+#filename = "EMODNET_SHARK_ICES_SYKE_241107_QC"
+#CSV.write(joinpath(outputdir, "$(filename).txt"), df_QC, delim="\t", writeheader=false)

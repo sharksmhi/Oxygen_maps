@@ -58,14 +58,16 @@ def transform_syke_data(path):
         }
     # Byt namn på de kolumner som finns i rename_dict
     data.rename(columns=rename_dict, inplace = True)
+    data["ID"] = 'SYKE-' + data['SERNO'].astype(str) + '-' + data['SDATE'].astype(str)
 
     data['OXYGEN'] = np.nan
     data['value'] = data['value'].astype(float)
 
     # Filtrera för PARAM == "H2SS" och multiplicera VALUE med -0.44
     data.loc[data['parameter_code'] == 'H2SS', 'OXYGEN'] = data['value'] * -0.029342
+    #data.loc[data['parameter_code'] == 'H2SS', 'OXYGEN'] = data['value'] * 0 +0.01
 
-    # Filtrera för PARAM == "O2D" och multiplicera VALUE med 0.700 * 44.661
+    # Filtrera för PARAM == "O2D" och multiplicera VALUE med 0.700 * 44.661 för att få µmol/l från mg/l
     data.loc[data['parameter_code'] == 'O2D', 'OXYGEN'] = data['value'] * 0.700 * 44.661
 
     data.drop(data[(data['Q_flag'] != "L")].index, inplace=True)
@@ -74,7 +76,7 @@ def transform_syke_data(path):
     # data = data.dropna(subset=['OXYGEN'])
     headers = [
         "SDATE",
-        "SERNO",
+        "ID",
         "STATN",
         "LATIT",
         "LONGI",
@@ -90,7 +92,7 @@ def transform_syke_data(path):
         'DEPH',   # 3
         'parameter_code', 'Q_flag', 'STATN',  'WADEP', 'random_8',  # 4 till 8
         'SDATE',  # 9
-        'SERNO'   # 10
+        'ID'   # 10
     ]
 
     # Om kolumner 4-8 är tomma, fyll dem med dummyvärden (här är alla fyllda)
@@ -112,7 +114,7 @@ print(Path("//winfs-proj/data/proj/havgem/DIVA/syrekartor/data/", "Syke_oxygen_o
 open_sea = transform_syke_data(path=Path("//winfs-proj/data/proj/havgem/DIVA/syrekartor/data/", "Syke_oxygen_opensea.csv"))
 coastal = transform_syke_data(path=Path("//winfs-proj/data/proj/havgem/DIVA/syrekartor/data/", "Syke_oxygen_coastal.csv"))
 data = pd.concat([open_sea, coastal])
-data.to_csv(Path("//winfs-proj/data/proj/havgem/DIVA/syrekartor/data/", "syke_data_coastal_formatted.txt"), sep="\t", index = False, header = True)
+data.to_csv(Path("//winfs-proj/data/proj/havgem/DIVA/syrekartor/data/", "syke_data_no_header_241107.txt"), sep="\t", index = False, header = False)
 # parameter_codes in data
 # ['TEMP' 'O2D' 'SAL' 'O2S' 'H2SS']
 # order of columns in the outputfile have to be:

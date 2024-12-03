@@ -326,9 +326,17 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list):
     # Add title and labels
     # Set the title for the whole figure
     if 0 in threshold_list:
-        fig.suptitle(f'Hypoxia and anoxia:  {year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='bottom')
+        if season == "Winter":
+            fig.suptitle(f'Hypoxia and anoxia:  {year - 1}-{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
+                         verticalalignment='bottom')
+        else:
+            fig.suptitle(f'Hypoxia and anoxia:  {year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='bottom')
     else:
-        fig.suptitle(f'{year} {season}', fontsize=8, x=0.5, y=0.53, horizontalalignment='center',
+        if season == "Winter":
+            fig.suptitle(f'{year-1}-{year} {season}', fontsize=8, x=0.5, y=0.53, horizontalalignment='center',
+                         verticalalignment='center')
+        else:
+            fig.suptitle(f'{year} {season}', fontsize=8, x=0.5, y=0.53, horizontalalignment='center',
                      verticalalignment='center')
     # Save the plot
     plt.savefig(f'{results_dir}/figures/threshold_result{year}_{season}.png', dpi=300,
@@ -362,7 +370,11 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list):
 
     # Add title and labels
     # Set the title for the whole figure
-    fig.suptitle(f'{year}_{season} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
+    if season == "Winter":
+        fig.suptitle(f'{year-1}-{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
+                     verticalalignment='top')
+    else:
+        fig.suptitle(f'{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
 
     # Save the plot
     plt.savefig(f'{results_dir}/figures/surf_{year}_{season}.png', dpi=300, transparent=False)
@@ -396,7 +408,11 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list):
 
     # Add title and labels
     # Set the title for the whole figure
-    fig.suptitle(f'{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
+    if season == "Winter":
+        fig.suptitle(f'{year-1}-{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
+                     verticalalignment='top')
+    else:
+        fig.suptitle(f'{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
 
     # Save the plot
     plt.savefig(f'{results_dir}/figures/halo_{year}_{season}.png', dpi = 300, transparent=False)
@@ -434,7 +450,11 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list):
     if skipped_depth != [100, 110, 125, 150]:
         # Add title and labels
         # Set the title for the whole figure
-        fig.suptitle(f'{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
+        if season == "Winter":
+            fig.suptitle(f'{year - 1}-{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
+                         verticalalignment='top')
+        else:
+            fig.suptitle(f'{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
 
         # Save the plot
         plt.savefig(f'{results_dir}/figures/deep_{year}_{season}.png', dpi=300, transparent=False)
@@ -477,8 +497,13 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list):
         axs.legend(handles=patches + [fake_marker], loc='lower right', fontsize=7)
         # Add title and labels
         # Set the title for the whole figure
-        fig.suptitle(f'Hypoxia and anoxia:  {year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
+        if season == "Winter":
+            fig.suptitle(f'{year - 1}-{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
+                         verticalalignment='top')
+        else:
+            fig.suptitle(f'Hypoxia and anoxia:  {year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
                      verticalalignment='top')
+
     else: #om bottniska viken.
         fake_labels = [f'<{threshold_list[0]} µmol/l', f'<{threshold_list[1]} µmol/l', f'<{threshold_list[2]} µmol/l',
                        f'Error field <{threshold_list[0]} µmol/l', f'Error field <{threshold_list[1]} µmol/l', f'Error field <{threshold_list[2]} µmol/l']
@@ -495,7 +520,11 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list):
         axs.legend(handles=patches + [fake_marker], loc='lower right', fontsize=6)
         # Add title and labels
         # Set the title for the whole figure
-        fig.suptitle(f'{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
+        if season == "Winter":
+            fig.suptitle(f'{year - 1}-{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
+                         verticalalignment='top')
+        else:
+            fig.suptitle(f'{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
                      verticalalignment='top')
         if len(threshold_list) < 3:
             print("Bara två thresholds, ändra legenden!")

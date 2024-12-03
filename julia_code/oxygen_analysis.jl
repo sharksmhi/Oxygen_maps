@@ -182,7 +182,15 @@ ly = lenf
 obstime_shifted = copy(obstime)
 # Get all dates with dec and nov and add one year to these specific dates.
 # Winter period will be jan-feb + nov-dec from previous year.
-obstime_shifted[Dates.month.(obstime) .== 12 .| Dates.month.(obstime) .== 11] .+= Dates.Year(1)
+#obstime_shifted[Dates.month.(obstime) .== 12 .| Dates.month.(obstime) .== 11] .+= Dates.Year(1)
+# Iterera över elementen och justera datum om månaden är 11 eller 12
+for i in eachindex(obstime)
+    month = Dates.month(obstime[i])  # Hämta månaden
+    if month == 11 || month == 12
+        obstime_shifted[i] += Year(1)  # Lägg till ett år
+    end
+end
+
 
 # Settings for DIVAnd-------------------------------------------------------------------------------
 error_thresholds = [("L1", 0.3), ("L2", 0.5)];
@@ -215,7 +223,7 @@ if isfile(rdiag_jldfile)
     @info "Loading saved rdiag file with w_depth = $(w_depth) and w_days = $(w_days)"
 else
     @info "Calculating rdiag with w_depth = $(w_depth) and w_days = $(w_days)!"
-    @time rdiag = 1 ./ DIVAnd.weight_RtimesOne((obslon,obslat,obsdepth,float.(Dates.dayofyear.(obstime))),(0.10,0.10,w_depth,w_days));
+    @time rdiag = 1 ./ DIVAnd.weight_RtimesOne((obslon,obslat,obsdepth,float.(Dates.dayofyear.(obstime_shifted))),(0.10,0.10,w_depth,w_days));
     @save rdiag_jldfile rdiag
 end
 
@@ -368,7 +376,7 @@ for monthlist_index in 1:length(month_list)
        );
 
     # Save the observation metadata in the NetCDF file
-    DIVAnd.saveobs(nc_filepath,"Oxygen_data", obsval, (obslon,obslat,obsdepth,obstime),obsid, used = dbinfo[:used])
+    DIVAnd.saveobs(nc_filepath,"Oxygen_data", obsval, (obslon,obslat,obsdepth,obstime_shifted),obsid, used = dbinfo[:used])
 end
 
 # Serialize the list of filenames to JSON and print it
