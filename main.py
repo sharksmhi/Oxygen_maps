@@ -30,6 +30,9 @@ if __name__ == "__main__":
     # Input data filename
     data_fname = "EMODNET_SHARK_ICES_SYKE_241129.txt"
 
+
+
+
     # Definiera basins
     #basin = "Kattegat"
     basin = "Baltic_Proper"
