@@ -29,6 +29,30 @@ using DataFrames
 using CSV
 using PyCall
 
+function remove_matching_rows(data::DataFrame, bad_data::DataFrame, columns::Vector{Symbol})
+    """
+    Removes rows from `data` DataFrame where the specified `columns` match in the `to_remove` DataFrame.
+
+    Args:
+        data (DataFrame): Original dataset
+        to_remove (DataFrame): Dataset describing rows to be removed
+        columns (Vector{Symbol}): List of column names to use for comparison
+
+    Returns:
+        DataFrame: Filtered DataFrame with rows removed
+    """
+    # Perform a left join with indicator column
+    merged = leftjoin(data, bad_data, on=columns, makeunique=true, indicator=:merge_status)
+
+    # Filter out rows where `merge_status` indicates a match
+    filtered_data = merged[ismissing.(merged.merge_status), :]
+
+    # Drop the indicator column
+    select!(filtered_data, Not(:merge_status))
+    return filtered_data
+end
+
+
 # ## Configuration
 # * Define variabel and set horizontal, vertical and temporal resolutions.
 ### Oxygen ###
@@ -86,6 +110,10 @@ obsid_ices_btlctd = string.("ICES-", obsid_ices_btlctd)
 datafile_syke_btlctd = joinpath(location, "data/all_baltic/syke_data_no_header_241107.txt")
 @time obsval_syke_btlctd,obslon_syke_btlctd,obslat_syke_btlctd,obsdepth_syke_btlctd,obstime_syke_btlctd,obsid_syke_btlctd = loadbigfile(datafile_syke_btlctd);
 @show(obsid_syke_btlctd[1])
+
+@show("Loading BAD-data file...data to be removed")
+datafile_bad_data = joinpath(location, "data/EMODNET_2024/bad_data.txt")
+df_bad_data = CSV.read(datafile_bad_data, DataFrame)
 
 @show(length(obsval_emod_btl));
 @show(length(obsval_emod_ctd));
@@ -299,7 +327,12 @@ PyPlot.savefig(joinpath(figdir,"$(figname)"), dpi=300);
 PyPlot.close_figs()
 
 df  = DataFrame(obslon=obslon,obslat=obslat,obsval=obsval,obsdepth=obsdepth,obsdepth1=obsdepth,obsdepth2=obsdepth,obsdepth3=obsdepth,obsdepth4=obsdepth,obsdepth5=obsdepth,obstime=obstime,obsid=obsid)
-filename = "EMODNET_SHARK_ICES_SYKE_241129"
+
+@show("Removing bad data...from det bad-data file..")
+columns_to_match = [:obslon, :obslat, :obsdepth, :obsval, :obstime, :obsid]
+df = remove_matching_rows(df,df_bad_data,columns_to_match)
+
+filename = "EMODNET_SHARK_ICES_SYKE_241204"
 CSV.write(joinpath(outputdir, "$(filename).txt"), df, delim="\t", writeheader=false)
 #DIVAnd.saveobs(joinpath(outputdir, "$(filename).nc"),varname, obsval, (obslon,obslat,obsdepth,obstime),obsid)
 
