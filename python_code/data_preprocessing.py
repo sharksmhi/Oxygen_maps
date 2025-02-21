@@ -277,10 +277,9 @@ def load_shark_data(file_path):
 def load_data(file_path):
     """Loads generic tab-delimited dataset."""
     cols = ['lon', 'lat', 'value', 'depth', 'drop1', 'drop2', 'drop3', 'drop4', 'drop5', 'date', 'id']
-    df = pd.read_csv(file_path, sep="\t")#, header=None)
+    df = pd.read_csv(file_path, sep="\t", header=None)
     df.columns = cols + df.columns[len(cols):].tolist()
     df = df[['lon', 'lat', 'value', 'depth', 'date', 'id']]
-    df['date'] = pd.to_datetime(df['date'], format="mixed")
     
     return df
 
@@ -348,13 +347,15 @@ def main():
     emodnet_ices_syke_shark_duplicates.drop_duplicates(subset=['lon', 'lat', 'date', 'source']).to_csv(os.path.join(output_dir, "emodnet_ices_syke_shark_duplicatecheck_emodneticessyke_removed.txt"), sep="\t", index=False)
     
     formatted_df = format_output(merged_emodnet_ices_syke_shark)
-    formatted_df.to_csv(os.path.join(output_dir, "merged_cleaned.txt"), sep="\t", index=False)
+    formatted_df.to_csv(os.path.join(output_dir, "duplicate_checked.txt"), sep="\t", index=False)
     
-    formatted_df = load_data(os.path.join(output_dir, "merged_cleaned.txt"))
+    # formatted_df = load_data(os.path.join(output_dir, "merged_cleaned.txt"))
     # Load bad data
-    bad_data_df = load_data(os.path.join(data_dir, "bad_data.txt"))
+    bad_data_df = pd.read_csv(os.path.join(data_dir, "bad_data.txt"), sep = '\t')
+    bad_data_df['date'] = pd.to_datetime(bad_data_df['date'], format="mixed")
     
     # Remove bad data after merging and log removed rows
+    
     cleaned_df = remove_matching_rows(formatted_df, bad_data_df, ['lon', 'lat', 'depth', 'date', 'value', 'id'], log_file)
     # Format output
     df = format_output(cleaned_df)
