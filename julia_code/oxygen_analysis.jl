@@ -338,7 +338,9 @@ for monthlist_index in 1:length(month_list)
 
     # File name based on the variable (but all spaces are replaced by _)
     nc_filename = "$(replace(varname,' '=>'_'))_$(minimum(year_list))-$(maximum(year_list))_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(bath_file_name)_varcorrlenz.nc"
+    nc_filename_res = "$(replace(varname,' '=>'_'))_$(minimum(year_list))-$(maximum(year_list))_$(season)_residuals.nc"
     nc_filepath = joinpath("$(results_dir)/DIVArun", nc_filename)
+    nc_filepath_res = joinpath("$(results_dir)/DIVArun", nc_filename_res)
 
     #Append the created files to file_list
     push!(file_list, nc_filename)
@@ -372,11 +374,44 @@ for monthlist_index in 1:length(month_list)
               error_thresholds = error_thresholds,
               surfextend = true,
               alphabc = 0,
+              #stat_per_timeslice = true,
               MEMTOFIT = 250
        );
 
+
+    #residuals = dbinfo[:residuals]
+    res = get(dbinfo, :residuals, 0)
+    #Residuals with NaNs removed
+
+    sel = .!isnan.(res)
+    res2 = res[sel]
+    obsid2=obsid[sel]
+
+    @show extrema(res2);
+    @show quantile(res2, [0.01, 0.99]);
+    @info("Lowest and highest redisuals might be a error sample...>250 and <-250")
+    indices = findall(x -> x > 250 || x < -250, res)
+    println("Number of possible data errors: $length(indices)")
+    # Visa både index och värde
+    for i in indices
+        println("Residual: $(res[i]), obsid: $(obsid[i])")
+    end
+
+#     @info("Get the residuals...")
+#     selection_per_timeslice = dbinfo[:selection_per_timeslice]
+#     residuals_per_timeslice = dbinfo[:residuals_per_timeslice]
+#     selection_per_timeslice = dbinfo[:selection_per_timeslice]
+#
+#     max_residuals = fill(-Inf,length(residuals_per_timeslice))
+#     for n = 1:length(selection_per_timeslice)
+#         sel = selection_per_timeslice[n]
+#         max_residuals[sel] = max.(max_residuals[sel],residuals_per_timeslice[n])
+#     end
+#     @show(max_residuals)
+
     # Save the observation metadata in the NetCDF file
     DIVAnd.saveobs(nc_filepath,"Oxygen_data", obsval, (obslon,obslat,obsdepth,obstime_shifted),obsid, used = dbinfo[:used])
+    DIVAnd.saveobs(nc_filepath_res,"$(varname)_residual",res[sel], (obslon[sel], obslat[sel], obsdepth[sel], obstime_shifted[sel]),obsid[sel],)
 end
 
 # Serialize the list of filenames to JSON and print it

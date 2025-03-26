@@ -68,7 +68,7 @@ def area_at_threshold(threshold, ds, df):
     if threshold != 0:
         mask_below_threshold = ds['Oxygen'] <= threshold
     else:
-        mask_below_threshold = ds['Oxygen'] <= threshold + 4.5
+        mask_below_threshold = ds['Oxygen'] <= threshold + 9 #4.5
 
     ds[f"{threshold}_mask"] = mask_below_threshold
     # Step 3: Get the first layer in the depth dimension where Oxygen is below the threshold
@@ -107,6 +107,7 @@ def calculate_areas(results_dir, file_list, threshold_list, save_area_data=False
     fig2, axs2 = plt.subplots(1, 1, figsize=(10, 8))
     for netcdf_filename in file_list:
         ds = xr.open_dataset(f"{results_dir}/DIVArun/{netcdf_filename}")
+        print(ds.attrs)
         season = ds.attrs['season']
         start_year = ds.attrs['start year']
         end_year = ds.attrs['end year']

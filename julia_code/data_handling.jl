@@ -31,30 +31,25 @@ using PyCall
 
 function remove_matching_rows(data::DataFrame, bad_data::DataFrame, columns::Vector{Symbol})
     """
-    Removes rows from `data` DataFrame where the specified `columns` match in the `to_remove` DataFrame.
-
+    Removes rows from `data` DataFrame where the specified `columns` match in the `bad_data` DataFrame.
     Args:
         data (DataFrame): Original dataset
-        to_remove (DataFrame): Dataset describing rows to be removed
+        bad_data (DataFrame): Dataset describing rows to be removed
         columns (Vector{Symbol}): List of column names to use for comparison
-
     Returns:
         DataFrame: Filtered DataFrame with rows removed
     """
-    # Perform a left join with indicator column
-    merged = leftjoin(data, bad_data, on=columns, makeunique=true, indicator=:merge_status)
+    # Skapa en Set av rader från `bad_data` för de angivna kolumnerna
+    rows_to_remove = Set([NamedTuple(bad_data[i, columns]) for i in 1:nrow(bad_data)])
 
-    # Filter out rows where `merge_status` indicates a match
-    filtered_data = merged[ismissing.(merged.merge_status), :]
+    # Filtrera bort rader i `data` som matchar `rows_to_remove`
+    filtered_rows = [!(NamedTuple(data[i, columns]) in rows_to_remove) for i in 1:nrow(data)]
+    filtered_data = data[filtered_rows, :]
 
-    # Drop the indicator column
-    select!(filtered_data, Not(:merge_status))
     return filtered_data
 end
 
-
 # ## Configuration
-# * Define variabel and set horizontal, vertical and temporal resolutions.
 ### Oxygen ###
 varname = "Oxygen"
 savevar = "O2"
@@ -86,11 +81,16 @@ end
 fname_shark = joinpath(location, "data/all_baltic/sharkweb_btlctd_02_241107.txt")
 @time obsval_shark,obslon_shark,obslat_shark,obsdepth_shark,obstime_shark,obsid_shark = loadbigfile(fname_shark);
 
+@show("Loading IOW BTL/CTD...")
+fname_iow = joinpath(location, "data/all_baltic/IOW_1959_2024.txt")
+@time obsval_iow,obslon_iow,obslat_iow,obsdepth_iow,obstime_iow,obsid_iow = loadbigfile(fname_iow);
+obsid_iow = string.("IOW-",obsid_iow)
+
 @show("Loading EMODNET BTL...")
 datafile_emod_btl = joinpath(location, "data/EMODNET_2024/BTL_data_from_EMODnet_Eutrophication_European_2024_unrestricted.txt")
 @time obsval_emod_btl,obslon_emod_btl,obslat_emod_btl,obsdepth_emod_btl,obstime_emod_btl,obsid_emod_btl = ODVspreadsheet.load(Float64,[datafile_emod_btl],
                            ["Water body dissolved oxygen concentration"]; nametype = :localname );
-# obsid_emod_btl = LOCAL_CDI_ID + EDMO_CODEz
+# obsid_emod_btl = LOCAL_CDI_ID + EMOD_CODE
 obsid_emod_btl = string.("emod_btl-",obsid_emod_btl)
 
 @show("Loading EMODNET CTD...")
@@ -102,24 +102,25 @@ obsid_emod_ctd = string.("emod_ctd-",obsid_emod_ctd)
 
 @show("Loading ICES...")
 datafile_ices_btlctd = joinpath(location, "data/all_baltic/ICES_btl_lowres_ctd_02_241107.txt")
-@time obsval_ices_btlctd,obslon_ices_btlctd,obslat_ices_btlctd,obsdepth_ices_btlctd,obstime_ices_btlctd,obsid_ices_btlctd = loadbigfile(datafile_ices_btlctd);
-obsid_ices_btlctd = string.("ICES-", obsid_ices_btlctd)
-@show(obsid_ices_btlctd[1])
+@time obsval_ices,obslon_ices,obslat_ices,obsdepth_ices,obstime_ices,obsid_ices = loadbigfile(datafile_ices_btlctd);
+obsid_ices = string.("ICES-", obsid_ices)
+@show(obsid_ices[1])
 
 @show("Loading SYKE data...")
 datafile_syke_btlctd = joinpath(location, "data/all_baltic/syke_data_no_header_241107.txt")
-@time obsval_syke_btlctd,obslon_syke_btlctd,obslat_syke_btlctd,obsdepth_syke_btlctd,obstime_syke_btlctd,obsid_syke_btlctd = loadbigfile(datafile_syke_btlctd);
-@show(obsid_syke_btlctd[1])
+@time obsval_syke,obslon_syke,obslat_syke,obsdepth_syke,obstime_syke,obsid_syke = loadbigfile(datafile_syke_btlctd);
+@show(obsid_syke[1])
 
 @show("Loading BAD-data file...data to be removed")
-datafile_bad_data = joinpath(location, "data/EMODNET_2024/bad_data.txt")
-df_bad_data = CSV.read(datafile_bad_data, DataFrame)
+datafile_bad_data = joinpath(location, "data/all_baltic/bad_data.txt")
+bad_data = CSV.read(datafile_bad_data, DataFrame)
 
+@show(length(obsval_shark));
+@show(length(obsval_iow));
 @show(length(obsval_emod_btl));
 @show(length(obsval_emod_ctd));
-@show(length(obsval_shark));
-@show(length(obsval_ices_btlctd));
-@show(length(obsval_syke_btlctd));
+@show(length(obsval_ices));
+@show(length(obsval_syke));
 
 # ## EMODNET: Remove low res CTD when BTL is available.
 # ## Criteria (can be adapted according to the application):
@@ -154,41 +155,112 @@ obstime_emod = [obstime_emod_btl; obstime_emod_ctd[newpoints]];
 obsval_emod = [obsval_emod_btl; obsval_emod_ctd[newpoints]];
 obsid_emod = [obsid_emod_btl; obsid_emod_ctd[newpoints]];
 
-# ## Remove SHARK_data when EMODnet_data is available.
+# ## Remove SYKE_data when SHARK_data is available.
 # Remove true duplicates, hence when exactly the same data is found in both datasets.
 # ## Criteria (can be adapted according to the application):
 # Horizontal distance: 0.01 degree (about 1km)
 xy_dist = 0.01
 # Vertical separation: 0.01 m depth
-depth_dist= 0.01
+depth_dist= 0.1
 #Time separation: 10 minute.
 time_sep = 10
 #obsval difference: 1 µmol/l correspond to ~pyttelite ml/l
-obsval_diff = 1
+obsval_diff = 100
 
 @time dupl = DIVAnd.Quadtrees.checkduplicates(
-    (obslon_emod,obslat_emod,obsdepth_emod,obstime_emod), obsval_emod,
-    (obslon_shark,obslat_shark,obsdepth_shark,obstime_shark),obsval_shark,
+    (obslon_shark,obslat_shark,obsdepth_shark,obstime_shark), obsval_shark,
+    (obslon_syke,obslat_syke,obsdepth_syke,obstime_syke),obsval_syke,
     (xy_dist,xy_dist,depth_dist,time_sep/(24*60)),obsval_diff);
 
 # ## Find the indices of the possible duplicates:
 index = findall(.!isempty.(dupl));
 ndupl = length(index);
-pcdupl = round(ndupl / length(obslon_shark) * 100; digits=2);
-@info("Number of possible duplicates in emodnet/SHARKweb: $ndupl")
+pcdupl = round(ndupl / length(obslon_syke) * 100; digits=2);
+@info("Number of possible duplicates in SHARKweb/SYKE: $ndupl")
 @info("Percentage of duplicates: $pcdupl%")
 # ## If you decide to combine the 2 (or more) datasets:
-newpoints_shark = isempty.(dupl);
-@info("Number of new points: $(sum(newpoints)))")
+newpoints_syke = isempty.(dupl);
+@info("Number of new points: $(sum(newpoints_syke)))")
 
-obslon_emodshark = [obslon_emod; obslon_shark[newpoints_shark]];
-obslat_emodshark = [obslat_emod; obslat_shark[newpoints_shark]];
-obsdepth_emodshark = [obsdepth_emod; obsdepth_shark[newpoints_shark]];
-obstime_emodshark = [obstime_emod; obstime_shark[newpoints_shark]];
-obsval_emodshark = [obsval_emod; obsval_shark[newpoints_shark]];
-obsid_emodshark = [obsid_emod; obsid_shark[newpoints_shark]];
+obslon_shark_syke = [obslon_shark; obslon_syke[newpoints_syke]];
+obslat_shark_syke = [obslat_shark; obslat_syke[newpoints_syke]];
+obsdepth_shark_syke = [obsdepth_shark; obsdepth_syke[newpoints_syke]];
+obstime_shark_syke = [obstime_shark; obstime_syke[newpoints_syke]];
+obsval_shark_syke = [obsval_shark; obsval_syke[newpoints_syke]];
+obsid_shark_syke = [obsid_shark; obsid_syke[newpoints_syke]];
 
-# ## Remove ICES data when EMODnet_SHARK is available.
+
+
+
+# ## Remove IOW_data when SHARK_SYKE_data is available.
+# Remove true duplicates, hence when exactly the same data is found in both datasets.
+# ## Criteria (can be adapted according to the application):
+# Horizontal distance: 0.01 degree (about 1km)
+xy_dist = 0.01
+# Vertical separation: 0.01 m depth
+depth_dist= 0.1
+#Time separation: 10 minute.
+time_sep = 10
+#obsval difference: 1 µmol/l correspond to ~pyttelite ml/l
+obsval_diff = 100
+
+@time dupl = DIVAnd.Quadtrees.checkduplicates(
+    (obslon_shark_syke,obslat_shark_syke,obsdepth_shark_syke,obstime_shark_syke), obsval_shark_syke,
+    (obslon_iow,obslat_iow,obsdepth_iow,obstime_iow),obsval_iow,
+    (xy_dist,xy_dist,depth_dist,time_sep/(24*60)),obsval_diff);
+
+# ## Find the indices of the possible duplicates:
+index = findall(.!isempty.(dupl));
+ndupl = length(index);
+pcdupl = round(ndupl / length(obslon_iow) * 100; digits=2);
+@info("Number of possible duplicates in SHARKweb_SYKE/IOW: $ndupl")
+@info("Percentage of duplicates: $pcdupl%")
+# ## If you decide to combine the 2 (or more) datasets:
+newpoints_iow = isempty.(dupl);
+@info("Number of new points: $(sum(newpoints_iow)))")
+
+obslon_shark_syke_iow = [obslon_shark_syke; obslon_iow[newpoints_iow]];
+obslat_shark_syke_iow = [obslat_shark_syke; obslat_iow[newpoints_iow]];
+obsdepth_shark_syke_iow = [obsdepth_shark_syke; obsdepth_iow[newpoints_iow]];
+obstime_shark_syke_iow = [obstime_shark_syke; obstime_iow[newpoints_iow]];
+obsval_shark_syke_iow = [obsval_shark_syke; obsval_iow[newpoints_iow]];
+obsid_shark_syke_iow = [obsid_shark_syke; obsid_iow[newpoints_iow]];
+
+# ## Remove EMOD_data when SHARK_SYKE_IOW data is available.
+# Remove true duplicates, hence when exactly the same data is found in both datasets.
+# ## Criteria (can be adapted according to the application):
+# Horizontal distance: 0.01 degree (about 1km)
+xy_dist = 0.01
+# Vertical separation: 0.01 m depth
+depth_dist= 0.1
+#Time separation: 10 minute.
+time_sep = 10
+#obsval difference: 1 µmol/l correspond to ~pyttelite ml/l
+obsval_diff = 100
+
+@time dupl = DIVAnd.Quadtrees.checkduplicates(
+    (obslon_shark_syke_iow,obslat_shark_syke_iow,obsdepth_shark_syke_iow,obstime_shark_syke_iow), obsval_shark_syke_iow,
+    (obslon_emod,obslat_emod,obsdepth_emod,obstime_emod),obsval_emod,
+    (xy_dist,xy_dist,depth_dist,time_sep/(24*60)),obsval_diff);
+
+# ## Find the indices of the possible duplicates:
+index = findall(.!isempty.(dupl));
+ndupl = length(index);
+pcdupl = round(ndupl / length(obslon_emod) * 100; digits=2);
+@info("Number of possible duplicates in SHARK_SYKE_IOW/EMOD: $ndupl")
+@info("Percentage of duplicates: $pcdupl%")
+# ## If you decide to combine the 2 (or more) datasets:
+newpoints_emod = isempty.(dupl);
+@info("Number of new points: $(sum(newpoints_emod)))")
+
+obslon_shark_syke_iow_emod = [obslon_shark_syke_iow; obslon_emod[newpoints_emod]];
+obslat_shark_syke_iow_emod = [obslat_shark_syke_iow; obslat_emod[newpoints_emod]];
+obsdepth_shark_syke_iow_emod = [obsdepth_shark_syke_iow; obsdepth_emod[newpoints_emod]];
+obstime_shark_syke_iow_emod = [obstime_shark_syke_iow; obstime_emod[newpoints_emod]];
+obsval_shark_syke_iow_emod = [obsval_shark_syke_iow; obsval_emod[newpoints_emod]];
+obsid_shark_syke_iow_emod = [obsid_shark_syke_iow; obsid_emod[newpoints_emod]];
+
+# ## Remove ICES data when SHARK_SYKE_IOW_EMOD is available.
 # Remove true duplicates, hence when exactly the same data is found in both datasets.
 # ## Criteria (can be adapted according to the application):
 # Horizontal distance: 0.01 degree (about 1km)
@@ -198,63 +270,63 @@ depth_dist= 1
 #Time separation: 10 minute.
 time_sep = 60
 #obsval difference: 1 µmol/l correspond to ~pyttelite ml/l
-obsval_diff = 1
+obsval_diff = 100
 
 @time dupl = DIVAnd.Quadtrees.checkduplicates(
-    (obslon_emodshark,obslat_emodshark,obsdepth_emodshark,obstime_emodshark), obsval_emodshark,
-    (obslon_ices_btlctd,obslat_ices_btlctd,obsdepth_ices_btlctd,obstime_ices_btlctd),obsval_ices_btlctd,
+    (obslon_shark_syke_iow_emod,obslat_shark_syke_iow_emod,obsdepth_shark_syke_iow_emod,obstime_shark_syke_iow_emod), obsval_shark_syke_iow_emod,
+    (obslon_ices,obslat_ices,obsdepth_ices,obstime_ices),obsval_ices,
     (xy_dist,xy_dist,depth_dist,time_sep/(24*60)),obsval_diff);
 
 # ## Find the indices of the possible duplicates:
 index = findall(.!isempty.(dupl));
 ndupl = length(index);
-pcdupl = round(ndupl / length(obslon_ices_btlctd) * 100; digits=2);
-@info("Number of possible duplicates in emodnetSHARKweb/ICES: $ndupl")
+pcdupl = round(ndupl / length(obslon_ices) * 100; digits=2);
+@info("Number of possible duplicates in SHARKweb_SYKE_IOW_EMOD/ICES: $ndupl")
 @info("Percentage of duplicates: $pcdupl%")
 # ## If you decide to combine the 2 (or more) datasets:
 newpoints_ICES = isempty.(dupl);
-@info("Number of new points: $(sum(newpoints)))")
+@info("Number of new points: $(sum(newpoints_ICES)))")
 
-obslon_emodsharkices = [obslon_emodshark; obslon_ices_btlctd[newpoints_ICES]];
-obslat_emodsharkices = [obslat_emodshark; obslat_ices_btlctd[newpoints_ICES]];
-obsdepth_emodsharkices = [obsdepth_emodshark; obsdepth_ices_btlctd[newpoints_ICES]];
-obstime_emodsharkices = [obstime_emodshark; obstime_ices_btlctd[newpoints_ICES]];
-obsval_emodsharkices = [obsval_emodshark; obsval_ices_btlctd[newpoints_ICES]];
-obsid_emodsharkices = [obsid_emodshark; obsid_ices_btlctd[newpoints_ICES]];
+obslon = [obslon_shark_syke_iow_emod; obslon_ices[newpoints_ICES]];
+obslat = [obslat_shark_syke_iow_emod; obslat_ices[newpoints_ICES]];
+obsdepth = [obsdepth_shark_syke_iow_emod; obsdepth_ices[newpoints_ICES]];
+obstime = [obstime_shark_syke_iow_emod; obstime_ices[newpoints_ICES]];
+obsval = [obsval_shark_syke_iow_emod; obsval_ices[newpoints_ICES]];
+obsid = [obsid_shark_syke_iow_emod; obsid_ices[newpoints_ICES]];
 
-# ## Remove SYKE data when EMODnet_SHARK_ICES data is available.
-# Remove true duplicates, hence when exactly the same data is found in both datasets.
-# ## Criteria (can be adapted according to the application):
-# Horizontal distance: 0.01 degree (about 1km)
-xy_dist = 0.05
-# Vertical separation: 0.01 m depth
-depth_dist= 1
-#Time separation: 10 minute.
-time_sep = 60
-#obsval difference: 1 µmol/l correspond to ~pyttelite ml/l
-obsval_diff = 1
-
-@time dupl = DIVAnd.Quadtrees.checkduplicates(
-    (obslon_emodsharkices,obslat_emodsharkices,obsdepth_emodsharkices,obstime_emodsharkices), obsval_emodsharkices,
-    (obslon_syke_btlctd,obslat_syke_btlctd,obsdepth_syke_btlctd,obstime_syke_btlctd),obsval_syke_btlctd,
-    (xy_dist,xy_dist,depth_dist,time_sep/(24*60)),obsval_diff);
-
-# ## Find the indices of the possible duplicates:
-index = findall(.!isempty.(dupl));
-ndupl = length(index);
-pcdupl = round(ndupl / length(obslon_ices_btlctd) * 100; digits=2);
-@info("Number of possible duplicates in emodnetSHARKwebICES/SYKE: $ndupl")
-@info("Percentage of duplicates: $pcdupl%")
-# ## If you decide to combine the 2 (or more) datasets:
-newpoints_SYKE = isempty.(dupl);
-@info("Number of new points: $(sum(newpoints)))")
-
-obslon = [obslon_emodsharkices; obslon_syke_btlctd[newpoints_SYKE]];
-obslat = [obslat_emodsharkices; obslat_syke_btlctd[newpoints_SYKE]];
-obsdepth = [obsdepth_emodsharkices; obsdepth_syke_btlctd[newpoints_SYKE]];
-obstime = [obstime_emodsharkices; obstime_syke_btlctd[newpoints_SYKE]];
-obsval = [obsval_emodsharkices; obsval_syke_btlctd[newpoints_SYKE]];
-obsid = [obsid_emodsharkices; obsid_syke_btlctd[newpoints_SYKE]];
+# # ## Remove SYKE data when EMODnet_SHARK_ICES data is available.
+# # Remove true duplicates, hence when exactly the same data is found in both datasets.
+# # ## Criteria (can be adapted according to the application):
+# # Horizontal distance: 0.01 degree (about 1km)
+# xy_dist = 0.05
+# # Vertical separation: 0.01 m depth
+# depth_dist= 1
+# #Time separation: 10 minute.
+# time_sep = 60
+# #obsval difference: 1 µmol/l correspond to ~pyttelite ml/l
+# obsval_diff = 100
+#
+# @time dupl = DIVAnd.Quadtrees.checkduplicates(
+#     (obslon_emodsharkices,obslat_emodsharkices,obsdepth_emodsharkices,obstime_emodsharkices), obsval_emodsharkices,
+#     (obslon_syke_btlctd,obslat_syke_btlctd,obsdepth_syke_btlctd,obstime_syke_btlctd),obsval_syke_btlctd,
+#     (xy_dist,xy_dist,depth_dist,time_sep/(24*60)),obsval_diff);
+#
+# # ## Find the indices of the possible duplicates:
+# index = findall(.!isempty.(dupl));
+# ndupl = length(index);
+# pcdupl = round(ndupl / length(obslon_ices_btlctd) * 100; digits=2);
+# @info("Number of possible duplicates in emodnetSHARKwebICES/SYKE: $ndupl")
+# @info("Percentage of duplicates: $pcdupl%")
+# # ## If you decide to combine the 2 (or more) datasets:
+# newpoints_SYKE = isempty.(dupl);
+# @info("Number of new points: $(sum(newpoints)))")
+#
+# obslon = [obslon_emodsharkices; obslon_syke_btlctd[newpoints_SYKE]];
+# obslat = [obslat_emodsharkices; obslat_syke_btlctd[newpoints_SYKE]];
+# obsdepth = [obsdepth_emodsharkices; obsdepth_syke_btlctd[newpoints_SYKE]];
+# obstime = [obstime_emodsharkices; obstime_syke_btlctd[newpoints_SYKE]];
+# obsval = [obsval_emodsharkices; obsval_syke_btlctd[newpoints_SYKE]];
+# obsid = [obsid_emodsharkices; obsid_syke_btlctd[newpoints_SYKE]];
 
 
 # ## Do a range check and remove outliers µomol/l
@@ -288,18 +360,15 @@ obstime = obstime[in_range];
 obsid = obsid[in_range];
 
 @show("sets all neg o2 to 0.44661 µmol/l")
+obsval[obsval .<= 0] .= -1
 obsval[obsval .<= 0] .= 0.44661
 
 # Output some statistics
 @show sum(in_range)
 @show sum(out_of_range)
 
-# Now obsval_shark contains only the valid values
-
-
-# ## Hantera negativa värden i obsdepth_shark och gör dem positiva
+# ## Hantera negativa värden i obsdepth_shark och gör dem positiva???
 obsdepth_shark = abs.(obsdepth_shark)
-
 
 # ## Create a plot showing the additional data points:
 figure("Additional-Data")
@@ -310,32 +379,48 @@ ylim(53, 66);
 xlim(8, 31);
 #contourf(bx, by, permutedims(Float64.(mask_edit[:,:,1]),[2,1]),
 #    levels=[-1e5,0],cmap="binary");
-plot(obslon_emod, obslat_emod, "bo", markersize=.2, label="Emodnet")
-plot(obslon_shark[newpoints_shark], obslat_shark[newpoints_shark], "go",
-   markersize=.2, label="Additional data\nfrom SHARKweb")
-plot(obslon_ices_btlctd[newpoints_ICES], obslat_ices_btlctd[newpoints_ICES], "ro", mfc="none",
+plot(obslon_ices[newpoints_ICES], obslat_ices[newpoints_ICES], "ro", mfc="none",
    markersize=.2, label="Additional data\nfrom ICES BTL lowres CTD")
-plot(obslon_syke_btlctd[newpoints_SYKE], obslat_syke_btlctd[newpoints_SYKE], "yo", mfc="none",
+plot(obslon_emod[newpoints_emod], obslat_emod[newpoints_emod], "go",
+   markersize=.2, label="Additional data\nfrom EMODnet")
+plot(obslon_iow[newpoints_iow], obslat_iow[newpoints_iow], "co", mfc="none",
+   markersize=.2, label="Additional data\nfrom IOW")
+plot(obslon_syke[newpoints_syke], obslat_syke[newpoints_syke], "yo", mfc="none",
    markersize=.2, label="Additional data\nfrom SYKE")
-
+plot(obslon_shark, obslat_shark, "bo", markersize=.2, label="SHARK")
 
 legend(loc=4, fontsize=4)
 gca().set_aspect(aspectratio)
-figname = "additional_data.png"
-@show joinpath(figdir,"$(figname)")
+figname = "additional_data_SHARK_SYKE_IOW_EMOD_ICES.png"
 PyPlot.savefig(joinpath(figdir,"$(figname)"), dpi=300);
 PyPlot.close_figs()
 
-df  = DataFrame(obslon=obslon,obslat=obslat,obsval=obsval,obsdepth=obsdepth,obsdepth1=obsdepth,obsdepth2=obsdepth,obsdepth3=obsdepth,obsdepth4=obsdepth,obsdepth5=obsdepth,obstime=obstime,obsid=obsid)
+# Skapar en dataframe för alla data
+data  = DataFrame(obslon=obslon,obslat=obslat,obsval=obsval,obsdepth=obsdepth,obsdepth1=obsdepth,obsdepth2=obsdepth,obsdepth3=obsdepth,obsdepth4=obsdepth,obsdepth5=obsdepth,obstime=obstime,obsid=obsid)
 
+@show describe(data)
+@show describe(bad_data)
 @show("Removing bad data...from det bad-data file..")
-columns_to_match = [:obslon, :obslat, :obsdepth, :obsval, :obstime, :obsid]
-df = remove_matching_rows(df,df_bad_data,columns_to_match)
 
-filename = "EMODNET_SHARK_ICES_SYKE_241204"
-CSV.write(joinpath(outputdir, "$(filename).txt"), df, delim="\t", writeheader=false)
+columns = [:obslon, :obslat, :obsdepth, :obstime]
+
+# Anropa funktionen för att ta bort bad data
+filtered_data = remove_matching_rows(data, bad_data, columns)
+
+# Visa resultatet
+println("Originaldata, antal rader:")
+println(nrow(data))
+println("\nData att ta bort, antal rader:")
+println(nrow(bad_data))
+println("\nFiltrerat data, antal rader:")
+println(nrow(filtered_data))
+
+# Skriver data till fil
+filename = "SHARK_SYKE_IOW_EMODNET_ICES_250325"
+CSV.write(joinpath(outputdir, "$(filename).txt"), filtered_data, delim="\t", writeheader=false)
+CSV.write(joinpath(outputdir, "$(filename)_with_header.txt"), filtered_data, delim="\t", writeheader=true)
 #DIVAnd.saveobs(joinpath(outputdir, "$(filename).nc"),varname, obsval, (obslon,obslat,obsdepth,obstime),obsid)
-
+@show "Important: Make new background files and remove your weighting file before you do a new DIVAnd analysis!"
 # Formaterar det till önskat format för Johannas/fredriks QC....
 #formatted_times = [Dates.format(time, "yyyymmddHHMM") for time in obstime]
 #obsval = obsval.* (22.414./1000) #Tillbaka till ml/l för QC?
