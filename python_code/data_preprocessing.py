@@ -5,7 +5,6 @@ import os
 from sklearn.neighbors import BallTree
 from datetime import datetime, timedelta
 
-
 # order of columns in the outputfile have to be:
 # ['lon', 'lat', 'value', 'depth', 'date', 'id']
 # 0 lom
@@ -266,6 +265,39 @@ def load_odv_data(file_path):
 
     return df
 
+def load_iow_data(file_path):
+    """Loads IOW CTD/BTL dataset with specific format.
+        DOXY6TID [ml/l] = BTL (inkl neg o2)
+        DOXY4IDD [ml/l] = CTD
+    """
+    df = pd.read_csv(file_path, sep="\t", skiprows=20)
+    df = df[['Longitude [degrees_east]', 'Latitude [degrees_north]', 'DOXY4IDD [ml/l]', 'DOXY6TID [ml/l]', 'depth [m]', 'yyyy-mm-ddThh:mm:ss.sss', 'Cruise', 'Station','Type']]
+
+    df['id'] = "iow-" + df['yyyy-mm-ddThh:mm:ss.sss'].astype(str) + "-" + df['Station'].astype(str)
+
+    def get_doxy(row):
+        if row['DOXY6TID [ml/l]'] and not np.isnan(row['DOXY6TID [ml/l]']):
+            return row['DOXY6TID [ml/l]']
+        if row['DOXY4IDD [ml/l]'] and not np.isnan(row['DOXY4IDD [ml/l]']):
+            return row['DOXY4IDD [ml/l]']
+        return np.nan
+
+    df['Water body dissolved oxygen concentration [ml/l]'] = df.apply(get_doxy, axis=1)
+    df['Water body dissolved oxygen concentration [µmol/l]'] = df['Water body dissolved oxygen concentration [ml/l]'].apply(lambda x: x * 44.661)
+
+    df.rename(columns=
+        {
+            "Longitude [degrees_east]": "lon",
+            "Latitude [degrees_north]": "lat",
+            "Water body dissolved oxygen concentration [µmol/l]": "value",
+            "depth [m]": "depth",
+            "yyyy-mm-ddThh:mm:ss.sss": "date",
+        }, inplace=True
+    )
+    df['date'] = df['date'].str[:16]  # Trim milliseconds
+
+    return df
+
 def load_shark_data(file_path):
     """Loads shark tab-delimited dataset."""
     cols = ['depth', 'Dissolved oxygen O2 bottle (ml/l)', 'Q-flag Dissolved oxygen O2 bottle',	'Dissolved oxygen O2 CTD (ml/l)', 'Q-flag Dissolved oxygen O2 CTD',	'Hydrogen sulphide H2S (umol/l)', 'Q-flag Hydrogen sulphide H2S', 'DOXY_ml', 'value', 'NEG_DOXY_umol']
@@ -283,11 +315,13 @@ def load_data(file_path):
     
     return df
 
-def process_dataset(file_name, is_emodnet_btl=False, is_odv=False):
+def process_dataset(file_name, is_emodnet_btl=False, is_odv=False, is_iow=False):
     if is_emodnet_btl:
         df = load_emodnet_btl_data(file_name)
     elif is_odv:
         df = load_odv_data(file_name)
+    elif is_iow:
+        df = load_iow_data(file_name)
     else: 
         df = load_data(file_name)
     
@@ -317,9 +351,11 @@ def main():
     # emodnet_df, emod_net_duplicates = check_duplicates(emodnet_btl_df, emodnet_ctd_df, time_threshold=4, distance_threshold=1000)
     # emodnet_df.to_csv(os.path.join(output_dir, "emodnet.txt"), sep="\t", index=False)
     # emod_net_duplicates.to_csv(os.path.join(output_dir, "emodnet_duplicates.txt"), sep="\t", index=False)
-
+    print("Load IOW....")
+    iow_df = process_dataset(os.path.join(data_dir, "IOW_data_from_Spreadsheet_Collection_2025-03-25T12-45-01.txt"), is_iow=True)
     print("Load ICES....")
     ices_df = process_dataset(os.path.join(data_dir, "ICES_btl_lowres_ctd_02_241107.txt"))
+
     print("\nCheck_duplicates for emodnet btl and ices low res")
     merged_emodnet_ices, emodnet_ices_duplicates = check_duplicates(emodnet_btl_df, ices_df,
                                                                     time_threshold=4, vertical_threshold=2, oxygen_value_threshold=50,
@@ -345,8 +381,19 @@ def main():
                                                                                           name1='shark', name2='emodnet_ices_syke')
     merged_emodnet_ices_syke_shark.to_csv(os.path.join(output_dir, "merged_emodnet_ices_syke_shark.txt"), sep="\t", index=False)
     emodnet_ices_syke_shark_duplicates.drop_duplicates(subset=['lon', 'lat', 'date', 'source']).to_csv(os.path.join(output_dir, "emodnet_ices_syke_shark_duplicatecheck_emodneticessyke_removed.txt"), sep="\t", index=False)
-    
-    formatted_df = format_output(merged_emodnet_ices_syke_shark)
+
+    merged_emodnet_ices_syke_shark_iow, emodnet_ices_syke_shark_iow_duplicates = check_duplicates(iow_df, merged_emodnet_ices_syke_shark,
+                                                                                          time_threshold=4, vertical_threshold=2,
+                                                                                          oxygen_value_threshold=50,
+                                                                                          name1='iow',
+                                                                                          name2='emodnet_ices_syke_shark')
+    merged_emodnet_ices_syke_shark_iow.to_csv(os.path.join(output_dir, "merged_emodnet_ices_syke_shark_iow.txt"), sep="\t", index=False)
+    emodnet_ices_syke_shark_iow_duplicates.drop_duplicates(subset=['lon', 'lat', 'date', 'source']).to_csv(
+        os.path.join(output_dir, "emodnet_ices_syke_shark_iow_duplicatecheck_emodneticessykeshark_removed.txt"), sep="\t",
+        index=False)
+
+
+    formatted_df = format_output(merged_emodnet_ices_syke_shark_iow)
     formatted_df.to_csv(os.path.join(output_dir, "duplicate_checked.txt"), sep="\t", index=False)
     
     # formatted_df = load_data(os.path.join(output_dir, "merged_cleaned.txt"))
