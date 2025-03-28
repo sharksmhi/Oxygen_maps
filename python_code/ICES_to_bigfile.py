@@ -76,17 +76,17 @@ print(df.dtypes)
 df_filtered = df.dropna(subset=["DOXY_umol"])
 
 
-#Ta bort alla data som är ryska(90))
-# Lista med mönster att ta bort
-remove = ['90']
+# Ta bort alla data som är ryska (90) och svenska data 77
+remove = ['90', '77']
 
 # Filtrera ut rader som matchar något av mönstren
-removed_ICES_data = df[df["Cruise"].str.startswith(tuple(remove))]
+removed_ICES_data = df_filtered[df_filtered["Cruise"].str.startswith(tuple(remove))]
+
 # Behåll endast rader som inte matchar mönstren
-df = df[~df["Cruise"].str.startswith(tuple(remove))]
+df_filtered = df_filtered[~df_filtered["Cruise"].str.startswith(tuple(remove))]
 
 # Spara de borttagna raderna till en ny CSV-fil (valfritt)
-removed_ICES_data.to_csv("removed_data.csv", index=False)
+removed_ICES_data.to_csv(file_path+"removed_data.csv", index=False)
 
 # Define the order of columns for the output files
 #column_list = ["Longdeg", "Latdeg", "DOXY(umol/l)", "Pressure(Dbars)", "TEMP", "PSAL", "H2SX(umol/l)", "St_No", "Year", "date_time", "ID", "Mnth", "Dy", "Hr"]
@@ -94,8 +94,7 @@ removed_ICES_data.to_csv("removed_data.csv", index=False)
 column_list = ["Longitude [degrees_east]", "Latitude [degrees_north]", "DOXY_umol", "Depth (ADEPZZ01_ULAA) [m]", "Temperature (TEMPPR01_UPAA) [degC]", "Salinity (PSALPR01_UUUU) [dmnless]", "Hydrogen Sulphide (H2SXZZXX_UPOX) [umol/l]", "Cruise", "Year", "date_time", "Visit event identifier", "Month", "Day", "hh:mm"]
 
 # Write the filtered data to two output files, one with headers and one without
-# df_filtered[column_list].to_csv(file_path+"bot.txt", index=False, sep='\t')
-df_filtered[column_list].to_csv(file_path+"ICES_btl_lowres_ctd_02_241107.txt", index=False, header=False, sep='\t')
+df_filtered[column_list].to_csv(file_path+"ICES_btl_lowres_ctd_02_250328.txt", index=False, header=False, sep='\t')
 
 
 

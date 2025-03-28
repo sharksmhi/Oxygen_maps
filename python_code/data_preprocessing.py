@@ -265,6 +265,49 @@ def load_odv_data(file_path):
 
     return df
 
+def load_ices_data(file_path):
+    """Loads ICES BTL dataset with specific format."""
+    df = pd.read_csv(file_path, sep=",", skiprows=21)
+    df = df[['Longitude [degrees_east]', 'Latitude [degrees_north]', 'Oxygen (DOXYZZXX_UMLL) [ml/l]', 'QV:ODV:Oxygen (DOXYZZXX_UMLL)', 'Depth (ADEPZZ01_ULAA) [m]', 'yyyy-mm-ddThh:mm:ss.sss', 'Cruise', 'Station']]
+
+    df['id'] = "ices_btl-" + df['Cruise'].astype(str) + "-" + df['Station'].astype(str) + '-' + df['yyyy-mm-ddThh:mm:ss.sss'].astype(str)
+
+    #Remove any rows with NaN Oxygen
+    df = df.dropna(subset=["Oxygen (DOXYZZXX_UMLL) [ml/l]"])
+
+    """Remove bad or questionable data; QV= 4 or 8 in ICES-data. 
+    Remove any data from russia (90), which is considered always bad and Sweden (77) which at ICES contain bad and unflagged data
+    Instead we add our own Sweden data from SHARK, much better and accurate"""
+    remove = ['90', '77']
+
+    # Filter our row that should be removed
+    df["QV:ODV:Oxygen (DOXYZZXX_UMLL)"] = df["QV:ODV:Oxygen (DOXYZZXX_UMLL)"].astype(str).str.strip()
+    removed_ICES_data = df[df["Cruise"].str.startswith(tuple(remove)) | df["QV:ODV:Oxygen (DOXYZZXX_UMLL)"].isin(['4', '8'])]
+
+    # Only keep rows that should not be removed
+    df = df[~df.index.isin(removed_ICES_data.index)]
+
+    # Save the removed rows to a new CSV-fil
+    removed_ICES_data.to_csv("removed_ICES_data.txt", sep="\t", index=False)
+
+    # Change unit from ml/l to µmol/l
+    df['Oxygen(DOXYZZXX_UMLL)[µmol/l]'] = df['Oxygen (DOXYZZXX_UMLL) [ml/l]'].apply(lambda x: x * 44.661)
+
+    df.rename(columns=
+        {
+            "Longitude [degrees_east]": "lon",
+            "Latitude [degrees_north]": "lat",
+            "Oxygen(DOXYZZXX_UMLL)[µmol/l]": "value",
+            "Depth (ADEPZZ01_ULAA) [m]": "depth",
+            "yyyy-mm-ddThh:mm:ss.sss": "date",
+        }, inplace=True
+    )
+    df['date'] = df['date'].str[:16]  # Trim milliseconds
+    df['date'] = pd.to_datetime(df['date'], format="mixed")
+
+    return df
+
+
 def load_iow_data(file_path):
     """Loads IOW CTD/BTL dataset with specific format.
         DOXY6TID [ml/l] = BTL (inkl neg o2)
@@ -283,6 +326,7 @@ def load_iow_data(file_path):
         return np.nan
 
     df['Water body dissolved oxygen concentration [ml/l]'] = df.apply(get_doxy, axis=1)
+    # Change unit from ml/l to µmol/l
     df['Water body dissolved oxygen concentration [µmol/l]'] = df['Water body dissolved oxygen concentration [ml/l]'].apply(lambda x: x * 44.661)
 
     df.rename(columns=
@@ -315,13 +359,15 @@ def load_data(file_path):
     
     return df
 
-def process_dataset(file_name, is_emodnet_btl=False, is_odv=False, is_iow=False):
+def process_dataset(file_name, is_emodnet_btl=False, is_odv=False, is_iow=False, is_ices=False):
     if is_emodnet_btl:
         df = load_emodnet_btl_data(file_name)
     elif is_odv:
         df = load_odv_data(file_name)
     elif is_iow:
         df = load_iow_data(file_name)
+    elif is_ices:
+        df = load_ices_data(file_name)
     else: 
         df = load_data(file_name)
     
@@ -338,7 +384,8 @@ def process_dataset(file_name, is_emodnet_btl=False, is_odv=False, is_iow=False)
     return df
 
 def main():
-    data_dir = "Oxygen_maps/data/all_baltic/"
+    work_dir = "C:/Work/DIVAnd/"
+    data_dir = os.path.join(work_dir, "Oxygen_maps/data/all_baltic/")
     output_dir = os.path.join(data_dir, "processed/")
     os.makedirs(output_dir, exist_ok=True)
     log_file = os.path.join(output_dir, "removed_rows_log.txt")
@@ -351,10 +398,15 @@ def main():
     # emodnet_df, emod_net_duplicates = check_duplicates(emodnet_btl_df, emodnet_ctd_df, time_threshold=4, distance_threshold=1000)
     # emodnet_df.to_csv(os.path.join(output_dir, "emodnet.txt"), sep="\t", index=False)
     # emod_net_duplicates.to_csv(os.path.join(output_dir, "emodnet_duplicates.txt"), sep="\t", index=False)
-    print("Load IOW....")
+    print("Load IOW data....")
     iow_df = process_dataset(os.path.join(data_dir, "IOW_data_from_Spreadsheet_Collection_2025-03-25T12-45-01.txt"), is_iow=True)
-    print("Load ICES....")
-    ices_df = process_dataset(os.path.join(data_dir, "ICES_btl_lowres_ctd_02_241107.txt"))
+    print("Load ICES data....")
+    ices_df = process_dataset(os.path.join(data_dir, "ce850252-8a93-49c9-a24a-61d67bef48fe.csv"), is_ices=True)
+    print("Load SYKE data...")
+    syke_df = process_dataset(os.path.join(data_dir, "syke_data_no_header_241107.txt"))
+    ## SHARK problem, data has no lat, lom, move shark preprocessing from excel_to_tact_sharkweb to this code
+    print("Load SHARK data...")
+    shark_df = process_dataset(os.path.join(data_dir, "sharkweb_btlctd_02_241107.txt"))
 
     print("\nCheck_duplicates for emodnet btl and ices low res")
     merged_emodnet_ices, emodnet_ices_duplicates = check_duplicates(emodnet_btl_df, ices_df,
@@ -365,7 +417,7 @@ def main():
     print("merge emdodnet and ices")
     # merged_emodnet_ices = pd.concat([emodnet_df, ices_df], ignore_index=True)
     
-    syke_df = process_dataset(os.path.join(data_dir, "syke_data_no_header_241107.txt"))
+
     merged_emodnet_ices_syke, emodnet_ices_syke_duplicates = check_duplicates(syke_df, merged_emodnet_ices,
                                                                               time_threshold=4, vertical_threshold=2, oxygen_value_threshold=50,
                                                                               name1='syke', name2='emodnet_ices')
@@ -374,8 +426,8 @@ def main():
     print("merge emdodnet and ices")
     # merged_emodnet_ices_syke = pd.concat([merged_emodnet_ices, syke_df], ignore_index=True)
     
-    ## SHARK problem, data has no lat, lom, move shark preprocessing from excel_to_tact_sharkweb to this code
-    shark_df = process_dataset(os.path.join(data_dir, "sharkweb_btlctd_02_241107.txt"))
+
+
     merged_emodnet_ices_syke_shark, emodnet_ices_syke_shark_duplicates = check_duplicates(shark_df, merged_emodnet_ices_syke,
                                                                                           time_threshold=4, vertical_threshold=2, oxygen_value_threshold=50,
                                                                                           name1='shark', name2='emodnet_ices_syke')
