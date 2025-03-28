@@ -302,11 +302,14 @@ def load_ices_data(file_path):
             "yyyy-mm-ddThh:mm:ss.sss": "date",
         }, inplace=True
     )
-    df['date'] = df['date'].str[:16]  # Trim milliseconds
+
     df['date'] = pd.to_datetime(df['date'], format="mixed")
+    df['date'] = df['date'].astype(str).str.strip()
+    df['date'] = df['date'].str[:16]  # Trim milliseconds
 
     return df
 
+"""TODO: ADD ICES-CTD data also........as above---------"""
 
 def load_iow_data(file_path):
     """Loads IOW CTD/BTL dataset with specific format.
