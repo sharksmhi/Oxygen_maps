@@ -37,13 +37,22 @@ unit = "umol/l";
 # NC-files
 location = "C:/LenaV/code/DIVAnd/Oxygen_maps/"
 location = "C:/Work/DIVAnd/Oxygen_maps/"
+freja_location = "path/on/freja"
+on_freja = false
+if isdir(freja_location)
+    location = freja_location
+    on_freja = true
+end
 
 outputdir = joinpath(location, "data/");
 if !isdir(outputdir)
-    mkpath(outputdir)
+    @info("directory path for data does not exist $(outputdir)")
 end
 # Figures
 figdir = "./resultat/figures/$(savevar)/";
+if on_freja
+    figdir = joinpath(outputdir, "resultat/figures")
+end
 if !isdir(figdir)
     mkpath(figdir)
     mkpath(joinpath(figdir, "test"))
@@ -67,7 +76,7 @@ basin ="Baltic_Proper"
 #basin = "Kattegat"
 
 # Läs in filens innehåll som en sträng
-json_content = read(joinpath(location, "settings.json"), String)
+json_content = read("./settings.json", String)
 
 # Parsar strängen som JSON
 settings = JSON.parse(json_content)

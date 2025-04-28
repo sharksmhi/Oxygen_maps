@@ -25,8 +25,17 @@ def run_julia_function(args):
         
 if __name__ == "__main__":
 
-    # Data input directory
+    # Data input directory should contain files with :
+    # - raw data (text file, of the format bigfile that DIVAnd reads)
+    # - bathymetry (netcdf file)
+    # - backgroundfields (netcdf file either from DIVAnd or modeldata)
     input_dir = "data"
+    freja_input_dir = "/path/on/freja/input_data"
+    on_freja = False
+    if Path(freja_input_dir).is_dir():
+        input_dir = freja_input_dir
+        on_freja = True
+
     # Input data filename
     data_fname = "EMODNET_SHARK_ICES_SYKE_241216.txt"
     #data_fname = "mat_file_1960_2023_reordered.txt"
@@ -69,8 +78,10 @@ if __name__ == "__main__":
     print("lenz_ list:", lenz_)
 
     #Samlar ihop resultaten:
-    today = dt.datetime.now().strftime("%Y%m%d_%H%M") 
+    today = dt.datetime.now().strftime("%Y%m%d_%H%M")
     results_dir = Path(f"resultat/{basin.replace(' ', '_')}/{today}/")
+    if on_freja:
+        results_dir = Path(f"path/on/freja/resultat/{basin.replace(' ', '_')}/{today}/")
     results_dir.mkdir(parents=True, exist_ok=True)
     Path(results_dir, "figures/").mkdir(parents=True, exist_ok=True)
     Path(results_dir, "DIVArun/").mkdir(parents=True, exist_ok=True)
@@ -104,20 +115,20 @@ if __name__ == "__main__":
 
     # Correlation length
     # Vi bör köra med lite längre lenf troligen 80_000km då vi har ca 40nm mellan våra station i eg.Östersjön
-    #lenf = json.dumps(80000)    #Km
+    # lenf = json.dumps(80000)    #Km
     # Resolution
-    #dx = json.dumps(0.05)       #deg
+    # dx = json.dumps(0.05)       #deg
     # Signal to noise ratio
     # low epsilon means higher noise in data and result is more smoothed
     # high epsilon means lower noise in data and result is less smoothed and each observation is seen more
-    #epsilon = json.dumps(0.2)
-    #Bathymetry file
+    # epsilon = json.dumps(0.2)
+    # Bathymetry file
     bath_file_name = "bat_elevation_Baltic_Sea_masked"
     # filenamebackground = joinpath(input_dir,"$(replace(varname,' '=>'_'))_$(basin)_$(lenf)_0.1_10_year_background_weighted_$(dx)_field_$(bath_file_name).nc")
     #bkg_filename = json.dumps(f"{input_dir}/Oxygen_{basin}_{lenf}_{epsilon_background}_{years}_background_weighted_{dx}_field_{bath_file_name}.nc")
     background_filename = "Background_$(replace(varname,' '=>'_'))_$(minimum(year_list))-$(maximum(year_list))_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(bath_file_name)_varcorrlenz.nc"
     bkg_filename = json.dumps(f"{input_dir}/{background_filename}")
-    #Save background file to workplace
+    # Save background file used for the analysis together with the results
     shutil.copy(f"{input_dir}/{background_filename}", f"{results_dir}/{background_filename}")
 
     #bkg_filename = json.dumps(f"{input_dir}/Baltic_Proper_80000_1975-2017_compressed.nc")
