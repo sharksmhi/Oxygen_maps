@@ -43,8 +43,10 @@ lonr = args[15]
 latr = args[16]
 basin = args[17]
 threshold_list = JSON.parse(args[18])
-bkg_filename = JSON.parse(args[19])
+# bkg_filename = JSON.parse(args[19])
 year_list_background = JSON.parse(args[20])
+years = args[21]
+epsilon_background = JSON.parse(args[22])
 
 
 # Läs in settinsfilen som ligger två steg upp från results_dir 
@@ -120,8 +122,6 @@ bx,by,b = DIVAnd.extract_bath(bathname,bathisglobal,lonr,latr);
 
 basin = replace(basin,' '=>'_')
 # Load background field
-@show(input_dir)
-@show(bkg_filename)
 
 TSbackground = DIVAnd.TimeSelectorYearListMonthList(year_list_background,month_list);
 
@@ -239,6 +239,11 @@ file_list = []
 for monthlist_index in 1:length(month_list)
     season = seasons[monthlist_index]
 
+    #Background file for choosen season
+    bkg_filename = "Background_$(varname)_$(years)_$(season)_$(epsilon_background)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(bath_file_name).nc"
+    bkg_filepath = "$(input_dir)\\$(bkg_filename)"
+    cp(bkg_filepath, "$(results_dir)\\DIVArun\\$(bkg_filename)"; force=true)
+
     @info("Creating metadata dicitonary for the season $(season)")
     metadata_season = OrderedDict(
         # set attributes for DVIA run from our settings
@@ -335,7 +340,9 @@ for monthlist_index in 1:length(month_list)
 
     # Time selection for the analyse. This was already defined together with yearlist, month_list, seasons
     TS = DIVAnd.TimeSelectorYearListMonthList(year_list,month_list[monthlist_index:monthlist_index])
+    TSbackground = DIVAnd.TimeSelectorYearListMonthList(year_list_background,month_list[monthlist_index:monthlist_index]);
 
+    @show(TS)
     # File name based on the variable (but all spaces are replaced by _)
     nc_filename = "$(replace(varname,' '=>'_'))_$(minimum(year_list))-$(maximum(year_list))_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(bath_file_name)_varcorrlenz.nc"
     nc_filename_res = "$(replace(varname,' '=>'_'))_$(minimum(year_list))-$(maximum(year_list))_$(season)_residuals.nc"
@@ -352,7 +359,7 @@ for monthlist_index in 1:length(month_list)
     @info("Will write results in $nc_filepath")
     # create attributes for the netcdf file (need an internet connexion) and does sometimes not work. We fixed this by doing our own attributes.
     #ncglobalattrib,ncvarattrib = SDNMetadata(metadata_season,nc_filepath,varname,lonr,latr)
-
+    @show(bkg_filename)
     @time dbinfo = diva3d((lonr,latr,depthr,TS),
               (obslon,obslat,obsdepth,obstime_shifted),
               obsval,
@@ -370,7 +377,8 @@ for monthlist_index in 1:length(month_list)
               mask = new_mask,
               solver = :direct,
               niter_e = 1,
-              background = DIVAnd.backgroundfile(bkg_filename,varname,TSbackground),
+              #background = DIVAnd.backgroundfile(bkg_filepath,varname,TSbackground),
+              background = DIVAnd.backgroundfile(bkg_filepath,varname,TSbackground),
               error_thresholds = error_thresholds,
               surfextend = true,
               alphabc = 0,

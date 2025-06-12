@@ -37,8 +37,9 @@ if __name__ == "__main__":
         on_freja = True
 
     # Input data filename
-    data_fname = "EMODNET_SHARK_ICES_SYKE_241216.txt"
-    #data_fname = "mat_file_1960_2023_reordered.txt"
+    #data_fname = "EMODNET_SHARK_ICES_SYKE_241216.txt"
+    #data_fname = "mat_file_1960_2024_reordered.txt"
+    data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_250325.txt"
 
     # Definiera basins
     #basin = "Kattegat"
@@ -101,8 +102,8 @@ if __name__ == "__main__":
 
     seasons_dict = {
                 "Winter": [11,12,1,2],
-                #"Spring": [3,4,5],
-                #"Summer": [6,7,8],
+                "Spring": [3,4,5],
+                "Summer": [6,7,8],
                 "Autumn": [8,9,10]
                }
     seasons = []
@@ -115,16 +116,18 @@ if __name__ == "__main__":
 
     # Correlation length
     # Vi bör köra med lite längre lenf troligen 80_000km då vi har ca 40nm mellan våra station i eg.Östersjön
-    # lenf = json.dumps(80000)    #Km
+    #lenf = json.dumps(80000)    #Km
     # Resolution
-    # dx = json.dumps(0.05)       #deg
+    #dx = json.dumps(0.05)       #deg
     # Signal to noise ratio
     # low epsilon means higher noise in data and result is more smoothed
     # high epsilon means lower noise in data and result is less smoothed and each observation is seen more
-    # epsilon = json.dumps(0.2)
-    # Bathymetry file
+    #epsilon = json.dumps(0.2)
+    #Bathymetry file
     bath_file_name = "bat_elevation_Baltic_Sea_masked"
-    # filenamebackground = joinpath(input_dir,"$(replace(varname,' '=>'_'))_$(basin)_$(lenf)_0.1_10_year_background_weighted_$(dx)_field_$(bath_file_name).nc")
+    #"Background_Oxygen_10_year_Summer_0.1_80000.0_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked.nc"
+    varname = "Oxygen"
+    #filenamebackground = joinpath(input_dir,"$(replace(varname,' '=>'_'))_$(basin)_$(lenf)_0.1_10_year_background_weighted_$(dx)_field_$(bath_file_name).nc")
     #bkg_filename = json.dumps(f"{input_dir}/Oxygen_{basin}_{lenf}_{epsilon_background}_{years}_background_weighted_{dx}_field_{bath_file_name}.nc")
     background_filename = "Background_$(replace(varname,' '=>'_'))_$(minimum(year_list))-$(maximum(year_list))_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(bath_file_name)_varcorrlenz.nc"
     bkg_filename = json.dumps(f"{input_dir}/{background_filename}")

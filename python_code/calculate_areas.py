@@ -107,6 +107,7 @@ def calculate_areas(results_dir, file_list, threshold_list, save_area_data=False
     fig2, axs2 = plt.subplots(1, 1, figsize=(10, 8))
     for netcdf_filename in file_list:
         ds = xr.open_dataset(f"{results_dir}/DIVArun/{netcdf_filename}")
+        print(f"{results_dir}/DIVArun/{netcdf_filename}")
         print(ds.attrs)
         season = ds.attrs['season']
         start_year = ds.attrs['start year']

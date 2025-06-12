@@ -61,7 +61,7 @@ end
 # ## Load data big files created by program "data_handling"
 data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_250325"
 #data_fname = "EMODNET_SHARK_ICES_SYKE_241216"
-#data_fname = "mat_file_1960_2023_reordered"
+#data_fname = "mat_file_1960_2024_reordered"
 @time obsval,obslon,obslat,obsdepth,obstime,obsid = loadbigfile(joinpath(location, "data/$data_fname.txt"));
 
 dx, dy = 0.05, 0.05         #~5km?
@@ -100,6 +100,7 @@ yearlist_json = settings[basin]["yearlist_background"]
 # Konvertera varje par i yearlist till ett intervall (range) i Julia
 year_list = [year[1]:year[2] for year in yearlist_json]
 years = settings[basin]["years"]
+threshold_list = settings[basin]["threshold_list"]
 
 #BACKGROUND
 
@@ -206,21 +207,21 @@ open(output_file, "w") do io
     end
 end
 
-println("Data written to $output_file")
+#println("Data written to $output_file")
 
-filenamebackground = joinpath(outputdir, "$(replace(varname,' '=>'_'))_$(basin)_$(lenf)_$(epsilon)_$(years)_background_weighted_0.05_field_$(bath_file_name)")
+#filenamebackground = joinpath(outputdir, "$(replace(varname,' '=>'_'))_$(basin)_$(lenf)_$(epsilon)_$(years)_background_weighted_0.05_field_$(bath_file_name)")
 
- dbinfo = @time diva3d((lonr,latr,depthr,TSbackground),
-            (obslon,obslat,obsdepth,obstime_shifted), obsval,
-            len, epsilon_weighted,
-            filenamebackground,varname,
-            bathname=bathname,
-            mask = new_mask,
-            fitcorrlen = false,
-            niter_e = 1,
-            solver = :direct,
-            MEMTOFIT = 120,
-        );
+#  dbinfo = @time diva3d((lonr,latr,depthr,TSbackground),
+#             (obslon,obslat,obsdepth,obstime_shifted), obsval,
+#             len, epsilon_weighted,
+#             filenamebackground,varname,
+#             bathname=bathname,
+#             mask = new_mask,
+#             fitcorrlen = false,
+#             niter_e = 1,
+#             solver = :direct,
+#             MEMTOFIT = 120,
+#         );
 
 #A test to make separate files for each season in the background field to be able to calculate the
 #A list of created files
@@ -235,7 +236,7 @@ for monthlist_index in 1:length(month_list)
     @info("Creating metadata dicitonary for the season $(season)")
     metadata_season = OrderedDict(
         # set attributes for DVIA run from our settings
-        #"threshold_list" => "$threshold_list",
+        "threshold_list" => "$threshold_list",
         "season" => season,
         "epsilon" => "$epsilon",
         "horizontal correlation length m" => "$lx",
@@ -328,9 +329,12 @@ for monthlist_index in 1:length(month_list)
 
     # Time selection for the analyse. This was already defined together with yearlist, month_list, seasons
     TS = DIVAnd.TimeSelectorYearListMonthList(year_list,month_list[monthlist_index:monthlist_index])
+    @show(TS)
+    @info("$(month_list[monthlist_index:monthlist_index])")
 
     # File name based on the variable (but all spaces are replaced by _)
-    nc_filename = "Background_$(replace(varname,' '=>'_'))_$(years)_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(bath_file_name)_varcorrlenz.nc"
+    #nc_filename = "Background_$(replace(varname,' '=>'_'))_$(years)_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(bath_file_name)_varcorrlenz.nc"
+    nc_filename = "Background_$(replace(varname,' '=>'_'))_$(years)_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(bath_file_name)"
     #nc_filename_res = "$(replace(varname,' '=>'_'))_$(minimum(year_list))-$(maximum(year_list))_$(season)_residuals.nc"
     nc_filepath = joinpath(outputdir, nc_filename)
     #nc_filepath_res = joinpath("$(results_dir)/DIVArun", nc_filename_res)
@@ -346,7 +350,7 @@ for monthlist_index in 1:length(month_list)
     # create attributes for the netcdf file (need an internet connexion) and does sometimes not work. We fixed this by doing our own attributes.
     #ncglobalattrib,ncvarattrib = SDNMetadata(metadata_season,nc_filepath,varname,lonr,latr)
 
-    dbinfo = @time diva3d((lonr,latr,depthr,TSbackground),
+    dbinfo = @time diva3d((lonr,latr,depthr,TS),
            (obslon,obslat,obsdepth,obstime_shifted),
            obsval,
            len,
@@ -355,6 +359,7 @@ for monthlist_index in 1:length(month_list)
            bathname=bathname,
            bathisglobal = bathisglobal,
            ncvarattrib = ncvarattrib,
+           ncglobalattrib = ncglobalattrib,
            timeorigin = timeorigin,
            mask = new_mask,
            solver = :direct,

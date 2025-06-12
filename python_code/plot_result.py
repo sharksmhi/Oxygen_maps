@@ -222,6 +222,8 @@ def sub_plot_area_at_threshold_basemap(ds, parameter, axis, year, threshold, vmi
 
 def sub_plot_error_area_at_threshold_basemap(ds, parameter, axis, year, vmin, vmax, threshold, unit='umol/l', bath_file=None):
     year_list = [datetime.strftime(timestr.astype('datetime64[M]').item(), '%Y') for timestr in ds["time"][:].values]
+    print(str(year))
+    print(year_list)
     time_index = year_list.index(str(year))
 
     # Create a Basemap instance with Mercator projection
@@ -299,7 +301,7 @@ def sub_plot_errorfields_basemap(ds, parameter, axis, year, show_depth, vmin, vm
     cbar.set_ticks(levels)
     axis.set_title(f'Errorfield at {show_depth} m', fontsize=6)
 
-def plot(results_dir, netcdf_filename, year, season, ds, threshold_list):
+def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interval):
     # 1 ml/l of O2 is approximately 43.570 µmol/kg
     # (assumes a molar volume of O2 of 22.392 l/mole and
     # a constant seawater potential density of 1025 kg/m3).
@@ -325,23 +327,31 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list):
 
     # Add title and labels
     # Set the title for the whole figure
+
     if 0 in threshold_list:
         if season == "Winter":
-            fig.suptitle(f'Hypoxia and anoxia:  {year - 1}-{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
+            fig.suptitle(f"Hypoxia and anoxia: {'BG' if np.isnan(year) else f'{int(year-1)}-{int(year)}'} {season}", fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
                          verticalalignment='bottom')
         else:
-            fig.suptitle(f'Hypoxia and anoxia:  {year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='bottom')
+            fig.suptitle(f"Hypoxia and anoxia: {'BG' if np.isnan(year) else f'{int(year)}'} {season}", fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='bottom')
     else:
         if season == "Winter":
-            fig.suptitle(f'{year-1}-{year} {season}', fontsize=8, x=0.5, y=0.53, horizontalalignment='center',
+            fig.suptitle(f"{'BG' if np.isnan(year) else f'{int(year-1)}-{int(year)}'} {season}", fontsize=8, x=0.5, y=0.53, horizontalalignment='center',
                          verticalalignment='center')
         else:
-            fig.suptitle(f'{year} {season}', fontsize=8, x=0.5, y=0.53, horizontalalignment='center',
+            fig.suptitle(f"{'BG' if np.isnan(year) else f'{int(year)}'} {season}", fontsize=8, x=0.5, y=0.53, horizontalalignment='center',
                      verticalalignment='center')
-    # Save the plot
-    plt.savefig(f'{results_dir}/figures/threshold_result{year}_{season}.png', dpi=300,
-                transparent=False)
-    plt.close()
+
+    if "Background" in netcdf_filename:
+        # Save the plot
+        plt.savefig(f'{results_dir}/figures/BG_threshold_result{str(interval).replace(", ", "_")}_{season}.png', dpi=300,
+                    transparent=False)
+        plt.close()
+    else:
+        # Save the plot
+        plt.savefig(f'{results_dir}/figures/threshold_result{year}_{season}.png', dpi=300,
+                    transparent=False)
+        plt.close()
 
     # plots of results at 4 different depths 10, 40, 50, 60
     fig, axs = plt.subplots(2, 4, figsize=(10, 4.5))
@@ -536,25 +546,45 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list):
 
 ## extract values that are within our limits, save to a new variable and nc-file. ####
 
-def read_processed_nc(results_dir,file_list,year_list: json):
+def read_processed_nc(results_dir,file_list,year_list: json, yearlist_background: json):
     year_list = json.loads(year_list)
+    yearlist_background = json.loads(yearlist_background)
 
     for netcdf_filename in file_list:
-        print(f'plto from {netcdf_filename}')
+        print(f'plot from {netcdf_filename}')
         ds = xr.open_dataset(f"{results_dir}/processed/{netcdf_filename}", engine='h5netcdf')
         season = ds.attrs['season']
         epsilon = ds.attrs['epsilon']
         threshold_list = ds.attrs['threshold_list']
         corrlen = ds.attrs['horizontal correlation length m']
-        start_year = ds.attrs['start year']
-        end_year = ds.attrs['end year']
+        #start_year = ds.attrs['start year']
+        #end_year = ds.attrs['end year']
 
-        for year in year_list:
-            # str(year) testa om det inte funkar.
-            if year not in range(int(start_year), int(end_year)+1):
-                    pass
-            print(f'plotting {year}')
-            plot(results_dir, netcdf_filename, year, season, ds, threshold_list)
+        if "Background" in netcdf_filename:
+            print(f'Plot background...')
+            #Calculate mid - years based on yearlist_background
+            mid_years = [(start + end) // 2 for start, end in yearlist_background]
+
+            interval_to_mid = {tuple(interval): mid for interval, mid in zip(yearlist_background, mid_years)}
+            used_intervals = set()
+
+            for year in year_list:
+                for interval_list in yearlist_background:
+                    interval = tuple(interval_list)
+                    start, end = interval
+                    if start <= year <= end:
+                        if interval not in used_intervals:
+                            mid = interval_to_mid[interval]
+                            used_intervals.add(interval)
+
+                            # Call your function here
+                            print(f"Year {year} hits interval {interval}, using mid-year {mid}")
+                            plot(results_dir, netcdf_filename, np.nan, season, ds, threshold_list, interval)
+        else:
+            for year in year_list:
+                print(f'plotting {year}')
+                interval=[]
+                plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interval)
 
 if __name__ == "__main__":
     print("running")
