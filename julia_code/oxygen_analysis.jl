@@ -123,7 +123,7 @@ bx,by,b = DIVAnd.extract_bath(bathname,bathisglobal,lonr,latr);
 basin = replace(basin,' '=>'_')
 # Load background field
 
-TSbackground = DIVAnd.TimeSelectorYearListMonthList(year_list_background,month_list);
+#TSbackground = DIVAnd.TimeSelectorYearListMonthList(year_list_background,month_list);
 
 # ## MASK
 # #### 1) Create a mask from bathymetry and your selected depth vector

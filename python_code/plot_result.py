@@ -579,7 +579,8 @@ def read_processed_nc(results_dir,file_list,year_list: json, yearlist_background
 
                             # Call your function here
                             print(f"Year {year} hits interval {interval}, using mid-year {mid}")
-                            plot(results_dir, netcdf_filename, np.nan, season, ds, threshold_list, interval)
+                            #plot(results_dir, netcdf_filename, np.nan, season, ds, threshold_list, interval)
+                            plot(results_dir, netcdf_filename, mid, season, ds, threshold_list, interval)
         else:
             for year in year_list:
                 print(f'plotting {year}')

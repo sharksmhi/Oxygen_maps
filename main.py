@@ -129,13 +129,11 @@ if __name__ == "__main__":
     varname = "Oxygen"
     #filenamebackground = joinpath(input_dir,"$(replace(varname,' '=>'_'))_$(basin)_$(lenf)_0.1_10_year_background_weighted_$(dx)_field_$(bath_file_name).nc")
     #bkg_filename = json.dumps(f"{input_dir}/Oxygen_{basin}_{lenf}_{epsilon_background}_{years}_background_weighted_{dx}_field_{bath_file_name}.nc")
-    background_filename = "Background_$(replace(varname,' '=>'_'))_$(minimum(year_list))-$(maximum(year_list))_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(bath_file_name)_varcorrlenz.nc"
-    bkg_filename = json.dumps(f"{input_dir}/{background_filename}")
-    # Save background file used for the analysis together with the results
-    shutil.copy(f"{input_dir}/{background_filename}", f"{results_dir}/{background_filename}")
+    #background_filename = "Background_$(replace(varname,' '=>'_'))_$(minimum(year_list))-$(maximum(year_list))_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(bath_file_name)_varcorrlenz.nc"
+    #Background_Oxygen_10_year_Winter_0.1_80000.0_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked.nc
 
     #bkg_filename = json.dumps(f"{input_dir}/Baltic_Proper_80000_1975-2017_compressed.nc")
-    print(bkg_filename)
+    #print(bkg_filename)
 
     print("Bathymetry file: ", bath_file_name)
     #Thresholds to analyse in µmol/l oxygen (0, 2, 4 ml/l)
@@ -143,11 +141,18 @@ if __name__ == "__main__":
     # Modify data weight
     w_depth = json.dumps(5.)
     w_days = json.dumps(2.)
+
+    background_filename = f"Background_Oxygen_{years}_{season}_{epsilon_background}_{lenf}_{dx}_{w_depth}_{w_days}_{bath_file_name}.nc"
+
+    bkg_filename = json.dumps(f"{input_dir}/{background_filename}")
+    # Save background file used for the analysis together with the results
+    shutil.copy(f"{input_dir}/{background_filename}", f"{results_dir}/{background_filename}")
+
     #Set True if you want to save area_data to file (for time-series bar plots)
     save_area_data=True
 
     print("running DIVAnd in Julia...")
-    args = ['julia', 'julia_code/oxygen_analysis.jl', input_dir, results_dir, data_fname, year_list, month_list, seasons, lenf, epsilon, dx, bath_file_name, w_depth, w_days, depthr, lenz_, lonr, latr, basin, threshold_list, bkg_filename, yearlist_background]
+    args = ['julia', 'julia_code/oxygen_analysis.jl', input_dir, results_dir, data_fname, year_list, month_list, seasons, lenf, epsilon, dx, bath_file_name, w_depth, w_days, depthr, lenz_, lonr, latr, basin, threshold_list, bkg_filename, yearlist_background, years, epsilon_background]
 
     # #Call the function and save a json-file with a file_list containing the results. That we can send to the calculate_areas function.
     try:
@@ -175,8 +180,7 @@ if __name__ == "__main__":
     file_list = []
 
     # Add backgroundfield to file_list to cal areas and plot
-    file_list.append(
-        f"Oxygen_{basin}_{lenf}_{epsilon_background}_{years}_background_weighted_{dx}_field_{bath_file_name}.nc")
+    file_list.append(background_filename)
 
     for season in json.loads(seasons):
 
@@ -189,7 +193,7 @@ if __name__ == "__main__":
 
     # Read and plot areas in file_list
     print("plotting...")
-    plot_result.read_processed_nc(results_dir,file_list,year_list)
+    plot_result.read_processed_nc(results_dir,file_list,year_list,yearlist_background)
 
 
 print("DIVAnd is done with its stuff...")
