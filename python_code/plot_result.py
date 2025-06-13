@@ -225,6 +225,8 @@ def sub_plot_error_area_at_threshold_basemap(ds, parameter, axis, year, vmin, vm
     print(str(year))
     print(year_list)
     time_index = year_list.index(str(year))
+    print(time_index)
+    print(interval)
 
     # Create a Basemap instance with Mercator projection
     m = Basemap(projection='merc', llcrnrlat=ds['lat'].min(), urcrnrlat=ds['lat'].max(),
@@ -342,13 +344,12 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
             fig.suptitle(f"{'BG' if np.isnan(year) else f'{int(year)}'} {season}", fontsize=8, x=0.5, y=0.53, horizontalalignment='center',
                      verticalalignment='center')
 
+    # Save the plot
     if "Background" in netcdf_filename:
-        # Save the plot
         plt.savefig(f'{results_dir}/figures/BG_threshold_result{str(interval).replace(", ", "_")}_{season}.png', dpi=300,
                     transparent=False)
         plt.close()
     else:
-        # Save the plot
         plt.savefig(f'{results_dir}/figures/threshold_result{year}_{season}.png', dpi=300,
                     transparent=False)
         plt.close()
@@ -387,8 +388,12 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
         fig.suptitle(f'{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
 
     # Save the plot
-    plt.savefig(f'{results_dir}/figures/surf_{year}_{season}.png', dpi=300, transparent=False)
-    plt.close()
+    if "Background" in netcdf_filename:
+        plt.savefig(f'{results_dir}/figures/BG_surf_{str(interval).replace(", ", "_")}_{season}.png', dpi=300, transparent=False)
+        plt.close()
+    else:
+        plt.savefig(f'{results_dir}/figures/surf_{year}_{season}.png', dpi=300, transparent=False)
+        plt.close()
 
     # plots of results at 4 different depths 60, 70, 80, 90
     fig, axs = plt.subplots(2, 4, figsize=(10, 4.5))
@@ -425,8 +430,12 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
         fig.suptitle(f'{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
 
     # Save the plot
-    plt.savefig(f'{results_dir}/figures/halo_{year}_{season}.png', dpi = 300, transparent=False)
-    plt.close()
+    if "Background" in netcdf_filename:
+        plt.savefig(f'{results_dir}/figures/BG_halo_{str(interval).replace(", ", "_")}_{season}.png', dpi=300, transparent=False)
+        plt.close()
+    else:
+        plt.savefig(f'{results_dir}/figures/halo_{year}_{season}.png', dpi = 300, transparent=False)
+        plt.close()
 
     # plots of results at 4 different depths 100, 110, 125, 150
     fig, axs = plt.subplots(2, 4, figsize=(10, 4.5)) #4
@@ -467,8 +476,12 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
             fig.suptitle(f'{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
 
         # Save the plot
-        plt.savefig(f'{results_dir}/figures/deep_{year}_{season}.png', dpi=300, transparent=False)
-        plt.close()
+        if "Background" in netcdf_filename:
+            plt.savefig(f'{results_dir}/figures/BG_deep_{str(interval).replace(", ", "_")}_{season}.png', dpi=300, transparent=False)
+            plt.close()
+        else:
+            plt.savefig(f'{results_dir}/figures/deep_{year}_{season}.png', dpi=300, transparent=False)
+            plt.close()
 
     # plots of results all observations and hypox area and with anox area overlayed
     fig, axs = plt.subplots(1, 1, figsize=(10, 4.5))
@@ -541,8 +554,12 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
     #fake_marker =['none','none','none','none','o',]
 
     # Save the plot
-    plt.savefig(f'{results_dir}/figures/final_result_{year}_{season}.png', dpi=300, transparent=False)
-    plt.close()
+    if "Background" in netcdf_filename:
+        plt.savefig(f'{results_dir}/figures/BGM_result_{str(interval).replace(", ", "_")}_{season}.png', dpi=300, transparent=False)
+        plt.close()
+    else:
+        plt.savefig(f'{results_dir}/figures/final_result_{year}_{season}.png', dpi=300, transparent=False)
+        plt.close()
 
 ## extract values that are within our limits, save to a new variable and nc-file. ####
 
@@ -590,14 +607,22 @@ def read_processed_nc(results_dir,file_list,year_list: json, yearlist_background
 if __name__ == "__main__":
     print("running")
     # Result directory
-    results_dir = "//winfs-proj/proj/havgem/DIVA/syrekartor/resultat/"
     results_dir = "C:/LenaV/code/DIVAnd/resultat/"
-    results_dir = "C:/Work/DIVAnd/Oxygen_maps/resultat/Bothnian_Bay/"
+    results_dir = "C:/Work/DIVAnd/Oxygen_maps/resultat/Baltic_Proper/20250613_0959/"
 
-    file_list = ["Oxygen_2000-2022_Summer_0.2_80000_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked_varcorrlenz_NBK.nc"]
-    year_list = json.dumps([2001])
+    file_list = ["Oxygen_2015-2015_Autumn_0.2_80000.0_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked_varcorrlenz.nc",
+                 "Oxygen_2015-2015_Spring_0.2_80000.0_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked_varcorrlenz.nc",
+                 "Oxygen_2015-2015_Summer_0.2_80000.0_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked_varcorrlenz.nc",
+                 "Oxygen_2015-2015_Winter_0.2_80000.0_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked_varcorrlenz.nc",
+                 "Background_Oxygen_10_year_Autumn_0.1_80000.0_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked.nc",
+                 "Background_Oxygen_10_year_Spring_0.1_80000.0_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked.nc",
+                 "Background_Oxygen_10_year_Summer_0.1_80000.0_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked.nc",
+                 "Background_Oxygen_10_year_Winter_0.1_80000.0_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked.nc"]
+
+    year_list = json.dumps([2015])
+    yearlist_background = json.dumps([[1960, 1969], [1970, 1979], [1980, 1989], [1990, 1999], [2000, 2009], [2010, 2019], [2020, 2024]])
     ##ear_list = json.dumps([1960, 1961, 1962, 1963, 1964, 1965, 1966, 1967, 1968, 1969, 1970, 1971, 1972, 1973, 1974, 1975, 1976, 1977, 1978,
     # 1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997,
     # 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016,
     # 2017, 2018, 2019, 2020, 2021]);
-    read_processed_nc(results_dir, file_list, year_list)
+    read_processed_nc(results_dir, file_list, year_list, yearlist_background)

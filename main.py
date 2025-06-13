@@ -37,7 +37,6 @@ if __name__ == "__main__":
         on_freja = True
 
     # Input data filename
-    #data_fname = "EMODNET_SHARK_ICES_SYKE_241216.txt"
     #data_fname = "mat_file_1960_2024_reordered.txt"
     data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_250325.txt"
 
@@ -138,6 +137,7 @@ if __name__ == "__main__":
     print("Bathymetry file: ", bath_file_name)
     #Thresholds to analyse in µmol/l oxygen (0, 2, 4 ml/l)
     #threshold_list = [0, 90, 180]   #µmol/l
+
     # Modify data weight
     w_depth = json.dumps(5.)
     w_days = json.dumps(2.)
@@ -145,8 +145,6 @@ if __name__ == "__main__":
     background_filename = f"Background_Oxygen_{years}_{season}_{epsilon_background}_{lenf}_{dx}_{w_depth}_{w_days}_{bath_file_name}.nc"
 
     bkg_filename = json.dumps(f"{input_dir}/{background_filename}")
-    # Save background file used for the analysis together with the results
-    shutil.copy(f"{input_dir}/{background_filename}", f"{results_dir}/{background_filename}")
 
     #Set True if you want to save area_data to file (for time-series bar plots)
     save_area_data=True
@@ -179,11 +177,9 @@ if __name__ == "__main__":
 
     file_list = []
 
-    # Add backgroundfield to file_list to cal areas and plot
-    file_list.append(background_filename)
-
+    # Add backgroundfield and analysis to file_list to cal areas and plot
     for season in json.loads(seasons):
-
+        file_list.append(f"Background_Oxygen_{years}_{season}_{epsilon_background}_{lenf}_{dx}_{w_depth}_{w_days}_{bath_file_name}.nc")
         file_list.append(f"Oxygen_{min(json.loads(year_list))}-{max(json.loads(year_list))}_{season}_{json.loads(epsilon)}_{lenf}_{json.loads(dx)}_{w_depth}_{w_days}_{bath_file_name}_varcorrlenz.nc")
     
     # #Calculate areas from DIVA-results and save in a new nc-file. Results in file_list
@@ -194,7 +190,6 @@ if __name__ == "__main__":
     # Read and plot areas in file_list
     print("plotting...")
     plot_result.read_processed_nc(results_dir,file_list,year_list,yearlist_background)
-
 
 print("DIVAnd is done with its stuff...")
 ### extract values that are within our limits, save to a new variable and nc-file. ####
