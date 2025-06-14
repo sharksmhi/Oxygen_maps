@@ -226,7 +226,6 @@ def sub_plot_error_area_at_threshold_basemap(ds, parameter, axis, year, vmin, vm
     print(year_list)
     time_index = year_list.index(str(year))
     print(time_index)
-    print(interval)
 
     # Create a Basemap instance with Mercator projection
     m = Basemap(projection='merc', llcrnrlat=ds['lat'].min(), urcrnrlat=ds['lat'].max(),

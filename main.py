@@ -96,7 +96,7 @@ if __name__ == "__main__":
     1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016,
     2017, 2018, 2019, 2020, 2021, 2022])
     year_list = json.dumps([1960, 1965, 1970, 1975, 1980, 1985, 1990, 1995, 2000, 2005, 2010, 2015, 2020])
-    year_list = json.dumps([2015])
+    #year_list = json.dumps([2015])
     print(f"calculating for years {year_list}")
 
     seasons_dict = {
@@ -110,6 +110,7 @@ if __name__ == "__main__":
     for season, months in seasons_dict.items():
         seasons.append(season)
         month_list.append(months)
+
     seasons = json.dumps(seasons)
     month_list = json.dumps(month_list)
 
@@ -124,19 +125,9 @@ if __name__ == "__main__":
     #epsilon = json.dumps(0.2)
     #Bathymetry file
     bath_file_name = "bat_elevation_Baltic_Sea_masked"
-    #"Background_Oxygen_10_year_Summer_0.1_80000.0_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked.nc"
     varname = "Oxygen"
-    #filenamebackground = joinpath(input_dir,"$(replace(varname,' '=>'_'))_$(basin)_$(lenf)_0.1_10_year_background_weighted_$(dx)_field_$(bath_file_name).nc")
-    #bkg_filename = json.dumps(f"{input_dir}/Oxygen_{basin}_{lenf}_{epsilon_background}_{years}_background_weighted_{dx}_field_{bath_file_name}.nc")
-    #background_filename = "Background_$(replace(varname,' '=>'_'))_$(minimum(year_list))-$(maximum(year_list))_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(bath_file_name)_varcorrlenz.nc"
-    #Background_Oxygen_10_year_Winter_0.1_80000.0_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked.nc
-
-    #bkg_filename = json.dumps(f"{input_dir}/Baltic_Proper_80000_1975-2017_compressed.nc")
-    #print(bkg_filename)
 
     print("Bathymetry file: ", bath_file_name)
-    #Thresholds to analyse in µmol/l oxygen (0, 2, 4 ml/l)
-    #threshold_list = [0, 90, 180]   #µmol/l
 
     # Modify data weight
     w_depth = json.dumps(5.)
