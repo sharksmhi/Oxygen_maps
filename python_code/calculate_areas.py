@@ -100,7 +100,7 @@ def area_at_threshold(threshold, ds, df):
     df[f"Relerr_area_{threshold}_km2"] = ds[f"Relerr_area_{threshold}"].round(3)
 
 
-def calculate_areas(results_dir, file_list, threshold_list, save_area_data=False, yearlist_background=False):
+def calculate_areas(results_dir, file_list, threshold_list, save_area_data=False):
     #List for results to txt
     area_results_BG = []
     area_results = []
@@ -110,7 +110,7 @@ def calculate_areas(results_dir, file_list, threshold_list, save_area_data=False
     for netcdf_filename in file_list:
 
         if "Background" in netcdf_filename:
-            print(yearlist_background)
+
             ds = xr.open_dataset(f"{results_dir}/DIVArun/{netcdf_filename}")
             print(f"{results_dir}/DIVArun/{netcdf_filename}")
             print(ds.attrs)
@@ -198,10 +198,17 @@ def area_data(results_dir,file_list):
 
 if __name__ == "__main__":
     # Result directory
-    results_dir = "//winfs-proj/proj/havgem/DIVA/syrekartor/resultat/"
-    # Open the JSON file
-    file_list = ["Oxygen_1960-2021_Autumn_0.2_80000_0.05_5.0_2.0_gebco_30sec_4_varcorrlenz.nc","Oxygen_1960-2021_Winter_0.2_80000_0.05_5.0_2.0_gebco_30sec_4_varcorrlenz.nc",
-                 "Oxygen_1960-2021_Summer_0.2_80000_0.05_5.0_2.0_gebco_30sec_4_varcorrlenz.nc", "Oxygen_1960-2021_Spring_0.2_80000_0.05_5.0_2.0_gebco_30sec_4_varcorrlenz.nc"]
+    results_dir = "C:/LenaV/code/DIVAnd/resultat/"
+    results_dir = "C:/Work/DIVAnd/Oxygen_maps/resultat/Baltic_Proper/20250613_0959/"
+
+    file_list = ["Oxygen_2015-2015_Autumn_0.2_80000.0_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked_varcorrlenz.nc",
+                 "Oxygen_2015-2015_Spring_0.2_80000.0_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked_varcorrlenz.nc",
+                 "Oxygen_2015-2015_Summer_0.2_80000.0_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked_varcorrlenz.nc",
+                 "Oxygen_2015-2015_Winter_0.2_80000.0_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked_varcorrlenz.nc",
+                 "Background_Oxygen_10_year_Autumn_0.1_80000.0_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked.nc",
+                 "Background_Oxygen_10_year_Spring_0.1_80000.0_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked.nc",
+                 "Background_Oxygen_10_year_Summer_0.1_80000.0_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked.nc",
+                 "Background_Oxygen_10_year_Winter_0.1_80000.0_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked.nc"]
     # Thresholds to analyse in µmol/l oxygen (0, 2, 4 ml/l)
     threshold_list = [0, 90, 180]
     calculate_areas(results_dir, file_list, threshold_list)

@@ -7,6 +7,7 @@ import subprocess
 import json
 from python_code import calculate_areas as calculate_areas
 from python_code import plot_result
+from python_code import plot_area
 from pathlib import Path
 import numpy as np
 from sys import stdout
@@ -176,11 +177,14 @@ if __name__ == "__main__":
     # #Calculate areas from DIVA-results and save in a new nc-file. Results in file_list
     print("calculating areas...")
     print(file_list)
-    calculate_areas.calculate_areas(results_dir, file_list, json.loads(threshold_list), save_area_data, yearlist_background)
+    calculate_areas.calculate_areas(results_dir, file_list, json.loads(threshold_list), save_area_data)
 
     # Read and plot areas in file_list
     print("plotting...")
     plot_result.read_processed_nc(results_dir,file_list,year_list,yearlist_background)
+
+    print("plotting area...")
+    plot_area.area_bar_plot(results_dir,year_list)
 
 print("DIVAnd is done with its stuff...")
 ### extract values that are within our limits, save to a new variable and nc-file. ####

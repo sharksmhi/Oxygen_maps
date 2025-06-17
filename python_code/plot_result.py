@@ -554,7 +554,8 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
 
     # Save the plot
     if "Background" in netcdf_filename:
-        plt.savefig(f'{results_dir}/figures/BGM_result_{str(interval).replace(", ", "_")}_{season}.png', dpi=300, transparent=False)
+        plt.savefig(f'{results_dir}/figures/BG'
+                    f'_result_{str(interval).replace(", ", "_")}_{season}.png', dpi=300, transparent=False)
         plt.close()
     else:
         plt.savefig(f'{results_dir}/figures/final_result_{year}_{season}.png', dpi=300, transparent=False)
