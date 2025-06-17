@@ -30,9 +30,6 @@ def set_up_basemap(ds, axis):
     # Rita kustlinjer
     m.drawcoastlines(linewidth=0.5, color='gray')
 
-    # Rita kontinenter, men undvik att fylla sjöar
-    #m.fillcontinents(color='white', lake_color=None, zorder=1)
-
     # Rita meridian- och parallelgränser med anpassade intervall
     m.drawmeridians(np.arange(9, 31, 4), labels=[True, False, False, True], linewidth=0.1, fontsize=3)
     m.drawparallels(np.arange(54, 67, 1), labels=[True, False, False, True], linewidth=0.1, fontsize=3)
@@ -46,7 +43,6 @@ def sub_plot_parameter_basemap(ds, parameter, axis, year, show_depth, vmin, vmax
 
     # Create a Basemap instance
     m = set_up_basemap(ds, axis)
-    # Plot land borders from the bathymetry file
 
     # Plot data
     data = ds[parameter].sel(time=ds['time'][time_index], depth = ds['depth'][depth_index]).squeeze()
@@ -114,9 +110,7 @@ def sub_plot_only_observations(ds, axis, year,
         # Set the colorbar levels explicitly
         cbar.set_ticks(levels)
         axis.set_title(f'Oxygen at {show_depth} m\nobservation at +/- {observation_span} m', fontsize=8)
-        # Add labels to the subplot
-        #axis.set_xlabel('Longitude', fontsize=8)
-        #axis.set_ylabel('Latitude', fontsize=8)
+
     else:
         m.scatter(lon, lat, s=5, edgecolors='k', linewidth=0.2, facecolor=color)
 
@@ -164,7 +158,6 @@ def sub_plot_observations_basemap(ds, parameter, axis, year,
                                     bbox_transform=axis.transAxes)
         cbar = plt.colorbar(pcm, cax = cbax,  orientation = 'horizontal')
         cbar.ax.tick_params(labelsize = 3)
-        # cbar.set_label(label='µmol/l', fontsize = 10,  y=1.05)
 
         # Modify the colormap levels to control the step length
         levels = np.arange(vmin, vmax+1, 45)
@@ -217,7 +210,6 @@ def sub_plot_area_at_threshold_basemap(ds, parameter, axis, year, threshold, vmi
         #cbar.ax.patch.set_facecolor('white')
         axis.set_title(f'Area <= {threshold} {unit}', fontsize=6)
     else:
-        # pcm = m.pcolormesh(lon, lat, data, color=color)
         pcm = m.contourf(lon, lat, data,  levels=levels, colors=[color], hatches = hatches)
 
 def sub_plot_error_area_at_threshold_basemap(ds, parameter, axis, year, vmin, vmax, threshold, unit='umol/l', bath_file=None):
@@ -251,8 +243,7 @@ def sub_plot_error_area_at_threshold_basemap(ds, parameter, axis, year, vmin, vm
     # Plot data using pcolormesh
     pcm = m.pcolormesh(lon, lat, data, cmap='jet', vmin=vmin, vmax=vmax)
 
-    # Add a colorbar
-    # Create an inset_axes for the colorbar
+    # Add a colorbar, Create an inset_axes for the colorbar
     cbax = inset_locator.inset_axes(axis, width="40%", height="3%", loc="lower right", bbox_to_anchor=(0, 0.15, 1, 1),
                                     bbox_transform=axis.transAxes)
     cbar = plt.colorbar(pcm, cax=cbax, orientation='horizontal')

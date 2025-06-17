@@ -48,24 +48,6 @@ year_list_background = JSON.parse(args[20])
 years = args[21]
 epsilon_background = JSON.parse(args[22])
 
-
-# Läs in settinsfilen som ligger två steg upp från results_dir 
-# dirname() ger mappen ett steg ovanför så vi kallar på den två ggr
-# @show dirname(dirname(results_dir))
-# @show joinpath("../..", "settings.json")
-# json_content = read(joinpath(dirname(dirname(results_dir)), "settings.json"), String)
-# # Parsar strängen som JSON
-# settings = JSON.parse(json_content)
-# lonr_range = settings[basin]["lonr"]
-# latr_range = settings[basin]["latr"]
-# # Skapa intervall (range) i Julia med angivet dx
-# lonr_min = lonr_range[1]
-# lonr_max = lonr_range[2]
-# latr_min = latr_range[1]
-# latr_max = latr_range[2]
-
-#Fix lonr/latr string
-#dx = 0.05
 dy = dx
 lonr = replace(lonr, "dx" => string(dx))
 latr = replace(latr, "dy" => string(dy))
@@ -99,11 +81,6 @@ end
 
 # Sätt horisontell uppplösning i grader
 # 0.05 motsvarra ca 5km
-#dx, dy = 0.125, 0.125  #Karin dx, dy = 0.1, 0.1
-#dy = dx #0.05, 0.05  #Karin dx, dy = 0.1, 0.1
-#Dic-havsområden, ytsnitt, depthr, lenz_
-#lonr = 16.5:dx:25.5
-#latr = 59.5:dy:66.
 
 # Time origin for the NetCDF file
 timeorigin = DateTime(1900,1,1,0,0,0);
@@ -121,9 +98,6 @@ bathisglobal = true;
 bx,by,b = DIVAnd.extract_bath(bathname,bathisglobal,lonr,latr);
 
 basin = replace(basin,' '=>'_')
-# Load background field
-
-#TSbackground = DIVAnd.TimeSelectorYearListMonthList(year_list_background,month_list);
 
 # ## MASK
 # #### 1) Create a mask from bathymetry and your selected depth vector
@@ -190,7 +164,6 @@ for i in eachindex(obstime)
         obstime_shifted[i] += Year(1)  # Lägg till ett år
     end
 end
-
 
 # Settings for DIVAnd-------------------------------------------------------------------------------
 error_thresholds = [("L1", 0.3), ("L2", 0.5)];
@@ -377,7 +350,6 @@ for monthlist_index in 1:length(month_list)
               mask = new_mask,
               solver = :direct,
               niter_e = 1,
-              #background = DIVAnd.backgroundfile(bkg_filepath,varname,TSbackground),
               background = DIVAnd.backgroundfile(bkg_filepath,varname,TSbackground),
               error_thresholds = error_thresholds,
               surfextend = true,
@@ -385,7 +357,6 @@ for monthlist_index in 1:length(month_list)
               #stat_per_timeslice = true,
               MEMTOFIT = 250
        );
-
 
     #residuals = dbinfo[:residuals]
     res = get(dbinfo, :residuals, 0)
