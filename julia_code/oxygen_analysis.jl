@@ -214,9 +214,10 @@ for monthlist_index in 1:length(month_list)
 
     #Background file for choosen season
     bkg_filename = "Background_$(varname)_$(years)_$(season)_$(epsilon_background)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(bath_file_name).nc"
-    bkg_filepath = "$(input_dir)\\$(bkg_filename)"
-    cp(bkg_filepath, "$(results_dir)\\DIVArun\\$(bkg_filename)"; force=true)
-
+    #bkg_filepath = "$(input_dir)\\$(bkg_filename)"
+    bkg_filepath = joinpath(input_dir, bkg_filename)
+    cp(bkg_filepath, joinpath(results_dir, joinpath("DIVArun",bkg_filename)); force=true)
+    
     @info("Creating metadata dicitonary for the season $(season)")
     metadata_season = OrderedDict(
         # set attributes for DVIA run from our settings

@@ -12,6 +12,7 @@ from pathlib import Path
 import numpy as np
 from sys import stdout
 import datetime as dt
+import time
 
 def run_julia_function(args):
     try:
@@ -26,12 +27,17 @@ def run_julia_function(args):
         
 if __name__ == "__main__":
 
+    t0 = time.perf_counter()
+
     # Data input directory should contain files with :
     # - raw data (text file, of the format bigfile that DIVAnd reads)
     # - bathymetry (netcdf file)
     # - backgroundfields (netcdf file either from DIVAnd or modeldata)
     input_dir = "data"
-    freja_input_dir = "/path/on/freja/input_data"
+    
+    freja_input_dir = "/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/data/"
+    freja_input_dir = "freja/inprut_dur"
+
     on_freja = False
     if Path(freja_input_dir).is_dir():
         input_dir = freja_input_dir
@@ -80,9 +86,9 @@ if __name__ == "__main__":
 
     #Samlar ihop resultaten:
     today = dt.datetime.now().strftime("%Y%m%d_%H%M")
-    results_dir = Path(f"resultat/{basin.replace(' ', '_')}/{today}/")
+    results_dir = Path(f"results/{basin.replace(' ', '_')}/{today}/")
     if on_freja:
-        results_dir = Path(f"path/on/freja/resultat/{basin.replace(' ', '_')}/{today}/")
+        results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/results//{basin.replace(' ', '_')}/{today}/")
     results_dir.mkdir(parents=True, exist_ok=True)
     Path(results_dir, "figures/").mkdir(parents=True, exist_ok=True)
     Path(results_dir, "DIVArun/").mkdir(parents=True, exist_ok=True)
@@ -153,7 +159,7 @@ if __name__ == "__main__":
         user_input = input(f"An error occurred. Do you want to remove the path resultat/{basin.replace(' ', '_')}/{today}/? (y/n): ")
         
         if user_input.lower() == 'y':
-            path_to_remove = Path(f"resultat/{basin.replace(' ', '_')}/{today}/")
+            path_to_remove = Path(f"results/{basin.replace(' ', '_')}/{today}/")
             
             # Check if the path exists before trying to remove it
             if results_dir.exists() and results_dir.is_dir():
@@ -187,6 +193,9 @@ if __name__ == "__main__":
     plot_area.area_bar_plot(results_dir,year_list)
 
 print("DIVAnd is done with its stuff...")
+t1 = time.perf_counter()
+print(f"finished in ({t1/60 - t0/60:.0f} min)")
+
 ### extract values that are within our limits, save to a new variable and nc-file. ####
 # 1 ml/l of O2 is approximately 43.570 µmol/kg
 # (assumes a molar volume of O2 of 22.392 l/mole and

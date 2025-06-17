@@ -1,0 +1,30 @@
+xarray
+pandas
+netcdf4
+numpy
+matplotlib
+h5netcdf
+proj
+geos
+shapely
+cartopy
+#julia
+# =====
+# mamba create --name oxymaps python=3.12
+# mamba activate oxymaps 
+# Then install the environment described above:
+# mamba install --file requirements_freja.txt
+
+# Then you need to make a change in load_obs.jl 
+# rec = split(data[i]) 
+#TO: 
+# rec = split(data[i], '\t')
+#
+# If not installed, you need mini forge:
+# install Miniforge, https://github.com/conda-forge/miniforge
+# mamba install -c conda-forge cartopy
+# Do NOT install condaforge or miniconda, otherwise the IT won't be happy
+# do not use conda, use mamba instead!
+
+# if comand above does not work, do it one by one: e.g.
+# mamba install -c conda-forge cartopy
