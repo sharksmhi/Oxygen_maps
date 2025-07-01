@@ -523,8 +523,13 @@ def main():
     # formatted_df = load_data(os.path.join(output_dir, "merged_cleaned.txt"))
     # Load bad data
     bad_data_df = pd.read_csv(os.path.join(data_dir, "bad_data.txt"), sep = '\t')
-    bad_data_df['date'] = pd.to_datetime(bad_data_df['date'], format="mixed")
-    
+    bad_data_df['date'] = pd.to_datetime(bad_data_df['obstime'], format="mixed")
+    bad_data_df['id'] = bad_data_df['obsid']
+    bad_data_df['lon'] = bad_data_df['obslon']
+    bad_data_df['lat'] = bad_data_df['obslat']
+    bad_data_df['value'] = bad_data_df['obsvalue']
+    bad_data_df['depth'] = bad_data_df['obsdepth']
+
     # Remove bad data after merging and log removed rows
     
     cleaned_df = remove_matching_rows(formatted_df, bad_data_df, ['lon', 'lat', 'depth', 'date', 'value', 'id'], log_file)
@@ -542,7 +547,7 @@ def main():
     formatted_df = format_output(cleaned_df_by_dupl_check)
 
     # Save cleaned dataset
-    formatted_df.to_csv(os.path.join(output_dir, "cleaned_df_using_dupl.txt"), sep="\t", index=False)
+    formatted_df.to_csv(os.path.join(output_dir, "cleaned_df_using_dupl_250619.txt"), sep="\t", index=False)
     bad_data_removed.to_csv(os.path.join(output_dir, "bad_data_removed_using_dupl.txt"), sep="\t", index=False)
     
 if __name__ == "__main__":

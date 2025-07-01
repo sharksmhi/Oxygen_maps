@@ -396,7 +396,7 @@ for monthlist_index in 1:length(month_list)
     DIVAnd.saveobs(nc_filepath_res,"$(varname)_residual",res[sel], (obslon[sel], obslat[sel], obsdepth[sel], obstime_shifted[sel]),obsid[sel])
 
     # Sparar undan alla indata, Divananlays och residualer i varje indata punkt.
-    res_filepath = joinpath("$(results_dir)/DIVArun", "$(varname)_residual.txt")
+    res_filepath = joinpath("$(results_dir)/DIVArun", "$(varname)_$(season)_residual.txt")
     diva_res = obsval[sel] .- res[sel]
     res_data = [obsval[sel] diva_res res[sel] obslon[sel]  obslat[sel]  obsdepth[sel]  obstime_shifted[sel]  obsid[sel]]
     # Spara till fil
