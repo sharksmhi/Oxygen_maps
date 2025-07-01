@@ -37,7 +37,11 @@ unit = "umol/l";
 # NC-files
 location = "C:/LenaV/code/DIVAnd/Oxygen_maps/"
 location = "C:/Work/DIVAnd/Oxygen_maps/"
-freja_location = "path/on/freja"
+location = ""
+
+freja_location = "/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/"
+freja_location = "freja/inprut_dur"
+
 on_freja = false
 if isdir(freja_location)
     location = freja_location
@@ -59,7 +63,7 @@ if !isdir(figdir)
 end
 
 # ## Load data big files created by program "data_handling"
-data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_250325"
+data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_250619"
 #data_fname = "EMODNET_SHARK_ICES_SYKE_241216"
 #data_fname = "mat_file_1960_2024_reordered"
 @time obsval,obslon,obslat,obsdepth,obstime,obsid = loadbigfile(joinpath(location, "data/$data_fname.txt"));
@@ -116,7 +120,7 @@ aspect_ratio = 1/cos(mean(latr) * pi/180);
 
 "BATHYMETRY"
 #bathname = joinpath(location, "bathymetry/gebco_30sec_4.nc")
-bathname = joinpath(location, "bathymetry/bat_elevation_Baltic_Sea_masked.nc")
+bathname = joinpath(location, "data/bat_elevation_Baltic_Sea_masked.nc")
 bath_file_name = split(bathname,"/")[end]
 bathisglobal = true;
 bx,by,b = DIVAnd.extract_bath(bathname,bathisglobal,lonr,latr);
