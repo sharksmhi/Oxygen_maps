@@ -361,20 +361,22 @@ for monthlist_index in 1:length(month_list)
 
     #residuals = dbinfo[:residuals]
     res = get(dbinfo, :residuals, 0)
+    @show(keys(dbinfo))
     #Residuals with NaNs removed
-
     sel = .!isnan.(res)
-    res2 = res[sel]
-    obsid2=obsid[sel]
+    #res2 = res[sel]
+    #obsid2=obsid[sel]
+    @show(length(res))
+    @show(length(obsval))
 
-    @show extrema(res2);
-    @show quantile(res2, [0.01, 0.99]);
+    #@show extrema(res2);
+    #@show quantile(res2, [0.01, 0.99]);
     @info("Lowest and highest redisuals might be a error sample...>250 and <-250")
     indices = findall(x -> x > 250 || x < -250, res)
     println("Number of possible data errors: $length(indices)")
     # Visa både index och värde
     for i in indices
-        println("Residual: $(res[i]), obsid: $(obsid[i])")
+        println("Residual: $(res[i]), obsval: $(obsval[i]), DIVAnd: $(obsval[i]-res[i]), obsdepth:$(obsdepth[i]), obsid: $(obsid[i])")
     end
 
 #     @info("Get the residuals...")
@@ -391,7 +393,15 @@ for monthlist_index in 1:length(month_list)
 
     # Save the observation metadata in the NetCDF file
     DIVAnd.saveobs(nc_filepath,"Oxygen_data", obsval, (obslon,obslat,obsdepth,obstime_shifted),obsid, used = dbinfo[:used])
-    DIVAnd.saveobs(nc_filepath_res,"$(varname)_residual",res[sel], (obslon[sel], obslat[sel], obsdepth[sel], obstime_shifted[sel]),obsid[sel],)
+    DIVAnd.saveobs(nc_filepath_res,"$(varname)_residual",res[sel], (obslon[sel], obslat[sel], obsdepth[sel], obstime_shifted[sel]),obsid[sel])
+
+    # Sparar undan alla indata, Divananlays och residualer i varje indata punkt.
+    res_filepath = joinpath("$(results_dir)/DIVArun", "$(varname)_residual.txt")
+    diva_res = obsval[sel] .- res[sel]
+    res_data = [obsval[sel] diva_res res[sel] obslon[sel]  obslat[sel]  obsdepth[sel]  obstime_shifted[sel]  obsid[sel]]
+    # Spara till fil
+    writedlm(res_filepath, res_data, '\t')
+
 end
 
 # Serialize the list of filenames to JSON and print it
