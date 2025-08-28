@@ -79,4 +79,6 @@ def remove_duplicates(best_data, not_so_good_data, dt = 90, dz = 1, do2 = 0.446,
     print(f"remove {duplicate_ids.height} rows of {pl.from_pandas(not_so_good_data).height} rows in original")
     print(not_so_good_data.columns)
 
-    return pl.from_pandas(not_so_good_data).join(duplicate_ids, on=["id", "depth"], how="anti")
+    df = pl.from_pandas(not_so_good_data).join(duplicate_ids, on=["id", "depth"], how="anti")
+
+    return df.to_pandas()

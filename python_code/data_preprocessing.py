@@ -2,6 +2,7 @@ import pandas as pd
 import polars as pl
 import numpy as np
 from duplicate_check import find_duplicate_candidates, remove_duplicates
+from data_reader import load_ices_btl_data, load_ices_ctd_data, load_emodnet_btl_data, load_emodnet_ctd_data
 import os
 from pathlib import Path
 
@@ -64,138 +65,7 @@ def format_output(df):
     df['date'] = pd.to_datetime(df['date']).dt.strftime('%Y-%m-%dT%H:%M')
     filler_cols = pd.DataFrame(np.nan, index=df.index, columns=['dummy_4', 'dummy_5', 'dummy_6', 'dummy_7', 'dummy_8'])
     df = pd.concat([df[['lon', 'lat', 'value', 'depth']], filler_cols, df[['date', 'id']]], axis=1)
-    return df
-
-def load_emodnet_btl_data(file_path):
-    """Loads EMODNET dataset with specific format."""
-    df = pd.read_csv(file_path, sep="\t", skiprows=26)
-    df = df[['Longitude [degrees_east]', 'Latitude [degrees_north]', 'Water body dissolved oxygen concentration [umol/l]', 'Depth [m]', 'yyyy-mm-ddThh:mm:ss.sss', 'LOCAL_CDI_ID', 'EDMO_code']]
-    df['id'] = "emod_btl-" + df['EDMO_code'].astype(str) + "-" + df['LOCAL_CDI_ID'].astype(str)
-    df.rename(columns=
-        {
-            "Longitude [degrees_east]": "lon",
-            "Latitude [degrees_north]": "lat",
-            "Water body dissolved oxygen concentration [umol/l]": "value",
-            "Depth [m]": "depth",
-            "yyyy-mm-ddThh:mm:ss.sss": "date",
-        }, inplace=True
-    )
-    df['date'] = df['date'].str[:16]  # Trim milliseconds
-    # Convert the 'date' column to datetime using the specified format
-    df['date'] = pd.to_datetime(df['date'], format="mixed")
-
-    return df
-
-def load_emodnet_ctd_data(file_path):
-    """Loads EMODNET CTD dataset with specific format."""
-    df = pd.read_csv(file_path, sep="\t", skiprows=26)
-    df = df[['Longitude [degrees_east]', 'Latitude [degrees_north]', 'Water body dissolved oxygen concentration [umol/l]', 'Depth [m]', 'yyyy-mm-ddThh:mm:ss.sss', 'LOCAL_CDI_ID', 'EDMO_code']]
-
-    # Fyll på metadata (alla kolumner utom de som varierar per rad) för varje batch
-    metadata_columns = ['Longitude [degrees_east]', 'Latitude [degrees_north]', 'yyyy-mm-ddThh:mm:ss.sss', 'LOCAL_CDI_ID', 'EDMO_code']
-    df[metadata_columns] = df[metadata_columns].ffill()
-    df['id'] = "emod_ctd-" + df['EDMO_code'].astype(str) + "-" + df['LOCAL_CDI_ID'].astype(str)
-
-    df.rename(columns=
-        {
-            "Longitude [degrees_east]": "lon",
-            "Latitude [degrees_north]": "lat",
-            "Water body dissolved oxygen concentration [umol/l]": "value",
-            "Depth [m]": "depth",
-            "yyyy-mm-ddThh:mm:ss.sss": "date",
-        }, inplace=True
-    )
-    df['date'] = df['date'].str[:16]  # Trim milliseconds
-
-    return df
-
-def load_ices_btl_data(file_path):
-    """Loads ICES BTL dataset with specific format."""
-    df = pd.read_csv(file_path, sep=",", skiprows=21)
-    df = df[['Longitude [degrees_east]', 'Latitude [degrees_north]', 'Oxygen (DOXYZZXX_UMLL) [ml/l]', 'QV:ODV:Oxygen (DOXYZZXX_UMLL)', 'Depth (ADEPZZ01_ULAA) [m]', 'yyyy-mm-ddThh:mm:ss.sss', 'Cruise', 'Station']]
-
-    df['id'] = "ices_btl-" + df['Cruise'].astype(str) + "-" + df['Station'].astype(str) + '-' + df['yyyy-mm-ddThh:mm:ss.sss'].astype(str)
-
-    #Remove any rows with NaN Oxygen
-    df = df.dropna(subset=["Oxygen (DOXYZZXX_UMLL) [ml/l]"])
-
-    """Remove bad or questionable data; QV= 4 or 8 in ICES-data. 
-    Remove any data from russia (90), which is considered always bad and Sweden (77) which at ICES contain bad and unflagged data
-    Instead we add our own Sweden data from SHARK, much better and accurate"""
-    remove = ['90', '77']
-
-    # Filter our row that should be removed
-    df["QV:ODV:Oxygen (DOXYZZXX_UMLL)"] = df["QV:ODV:Oxygen (DOXYZZXX_UMLL)"].astype(str).str.strip()
-    removed_ICES_data = df[df["Cruise"].str.startswith(tuple(remove)) | df["QV:ODV:Oxygen (DOXYZZXX_UMLL)"].isin(['4', '8'])]
-
-    # Only keep rows that should not be removed
-    df = df[~df.index.isin(removed_ICES_data.index)]
-
-    # Save the removed rows to a new CSV-fil
-    removed_ICES_data.to_csv("removed_ices_btl_data.txt", sep="\t", index=False)
-
-    # Change unit from ml/l to µmol/l
-    df['Oxygen(DOXYZZXX_UMLL)[µmol/l]'] = df['Oxygen (DOXYZZXX_UMLL) [ml/l]'].apply(lambda x: x * 44.661)
-
-    df.rename(columns=
-        {
-            "Longitude [degrees_east]": "lon",
-            "Latitude [degrees_north]": "lat",
-            "Oxygen(DOXYZZXX_UMLL)[µmol/l]": "value",
-            "Depth (ADEPZZ01_ULAA) [m]": "depth",
-            "yyyy-mm-ddThh:mm:ss.sss": "date",
-        }, inplace=True
-    )
-
-    df['date'] = pd.to_datetime(df['date'], format="mixed")
-    df['date'] = df['date'].astype(str).str.strip()
-    df['date'] = df['date'].str[:16]  # Trim milliseconds
-
-    return df
-
-def load_ices_ctd_data(file_path):
-    """Loads ICES CTD dataset with specific format."""
-    df = pd.read_csv(file_path, sep=",", skiprows=9)
-    df = df[['Longitude [degrees_east]', 'Latitude [degrees_north]', 'Oxygen (DOXYZZXX_UMLL) [ml/l]', 'QV:ODV:Oxygen (DOXYZZXX_UMLL)', 'Depth (ADEPZZ01_ULAA) [m]', 'yyyy-mm-ddThh:mm:ss.sss', 'Cruise', 'Station']]
-
-    df['id'] = "ices_ctd-" + df['Cruise'].astype(str) + "-" + df['Station'].astype(str) + '-' + df['yyyy-mm-ddThh:mm:ss.sss'].astype(str)
-
-    #Remove any rows with NaN Oxygen
-    df = df.dropna(subset=["Oxygen (DOXYZZXX_UMLL) [ml/l]"])
-
-    """Remove bad or questionable data; QV= 4 or 8 in ICES-data. 
-    Remove any data from russia (90), which is considered always bad and Sweden (77) which at ICES contain bad and unflagged data
-    Instead we add our own Sweden data from SHARK, much better and accurate"""
-    remove = ['90', '77']
-
-    # Filter our row that should be removed
-    df["QV:ODV:Oxygen (DOXYZZXX_UMLL)"] = df["QV:ODV:Oxygen (DOXYZZXX_UMLL)"].astype(str).str.strip()
-    removed_ICES_data = df[df["Cruise"].str.startswith(tuple(remove)) | df["QV:ODV:Oxygen (DOXYZZXX_UMLL)"].isin(['4', '8'])]
-
-    # Only keep rows that should not be removed
-    df = df[~df.index.isin(removed_ICES_data.index)]
-
-    # Save the removed rows to a new CSV-fil
-    removed_ICES_data.to_csv("removed_ices_ctd_data.txt", sep="\t", index=False)
-
-    # Change unit from ml/l to µmol/l
-    df['Oxygen(DOXYZZXX_UMLL)[µmol/l]'] = df['Oxygen (DOXYZZXX_UMLL) [ml/l]'].apply(lambda x: x * 44.661)
-
-    df.rename(columns=
-        {
-            "Longitude [degrees_east]": "lon",
-            "Latitude [degrees_north]": "lat",
-            "Oxygen(DOXYZZXX_UMLL)[µmol/l]": "value",
-            "Depth (ADEPZZ01_ULAA) [m]": "depth",
-            "yyyy-mm-ddThh:mm:ss.sss": "date",
-        }, inplace=True
-    )
-
-    df['date'] = pd.to_datetime(df['date'], format="mixed")
-    df['date'] = df['date'].astype(str).str.strip()
-    df['date'] = df['date'].str[:16]  # Trim milliseconds
-
-    return df
+ 
 
 def load_iow_data(file_path):
     """Loads IOW CTD/BTL dataset with specific format.
@@ -239,7 +109,7 @@ def load_shark_data(file_path):
     df = df[['lon', 'lat', 'value', 'depth', 'date', 'id']]
     return df
 
-def load_data(file_path):
+def load_big_file_format(file_path):
     """Loads generic tab-delimited dataset."""
     cols = ['lon', 'lat', 'value', 'depth', 'drop1', 'drop2', 'drop3', 'drop4', 'drop5', 'date', 'id']
     df = pd.read_csv(file_path, sep="\t", header=None)
@@ -260,7 +130,7 @@ def process_dataset(file_name, is_emodnet_btl=False, is_emodnet_ctd=False, is_io
     elif is_ices_ctd:
         df = load_ices_ctd_data(file_name)
     else: 
-        df = load_data(file_name)
+        df = load_big_file_format(file_name)
     
     df['date'] = pd.to_datetime(df['date'], format="mixed")
     df = range_check(df, 'value', -500, 600)
@@ -284,70 +154,66 @@ def process_dataset(file_name, is_emodnet_btl=False, is_emodnet_ctd=False, is_io
     return df
 
 def main():
-    work_dir = "./data"
-    data_dir = Path("data/all_baltic")
-    output_dir = os.path.join(data_dir, "processed/")
-    os.makedirs(output_dir, exist_ok=True)
-    log_file = os.path.join(output_dir, "removed_rows_log.txt")
+    data_dir = Path("data")
+        
+    freja_data_dir = "/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/data/all_baltic"
     
+    print(freja_data_dir)
+    on_freja = False
+    if Path(freja_data_dir).is_dir():
+        data_dir = freja_data_dir
+        on_freja = True
+    print(f"load data from {data_dir}")
+    # output_dir = os.path.join(data_dir, "processed/")
+    # os.makedirs(output_dir, exist_ok=True)
+    # log_file = os.path.join(output_dir, "removed_rows_log.txt")
+        
     # Load and process EMODNET and ICES BTL & CTD datasets
-    # print("Load EMODnet btl & ctd....")
-    # emodnet_btl_df = process_dataset(os.path.join(data_dir, "BTL_data_from_EMODnet_Eutrophication_European_2024_unrestricted.txt"), is_emodnet_btl=True)
-    # emodnet_ctd_df = process_dataset(os.path.join(data_dir, "CTD_data_from_EMODnet_Eutrophication_European_2024_unrestricted.txt"), is_emodnet_ctd=True)
+    print("Load EMODnet btl & ctd....")
+    emodnet_btl_df = process_dataset(os.path.join(data_dir, "BTL_data_from_EMODnet_Eutrophication_European_2024_unrestricted.txt"), is_emodnet_btl=True)
+    emodnet_ctd_df = process_dataset(os.path.join(data_dir, "CTD_data_from_EMODnet_Eutrophication_European_2024_unrestricted.txt"), is_emodnet_ctd=True)
 
     # print("Load IOW data....")
     # iow_df = process_dataset(os.path.join(data_dir, "IOW_data_from_Spreadsheet_Collection_2025-03-25T12-45-01.txt"), is_iow=True)
     print("Load ICES BTL data....")
-    data_file = data_dir / "all_ices_data_utf-8.txt"
-    print(data_file.resolve())  # shows the absolute path
-    # ices_btl_df = process_dataset(data_file, is_ices_btl=True)
-    ices_df = process_dataset(os.path.join(data_dir, "ICES_btl_lowres_ctd_02_241107.txt"))
+    ices_btl_df = process_dataset(os.path.join(data_dir, "ce850252-8a93-49c9-a24a-61d67bef48fe.csv"), is_ices_btl=True)
     # print("Load ICES CTD data....")
-    # ices_ctd_df = process_dataset(os.path.join(data_dir, "1c9c37d5-2236-42a8-8755-f553c1f4fa0f.csv"), is_ices_ctd=True)
+    ices_ctd_df = process_dataset(os.path.join(data_dir, "1c9c37d5-2236-42a8-8755-f553c1f4fa0f.csv"), is_ices_ctd=True)
     # print("Load SYKE data...")
     # syke_df = process_dataset(os.path.join(data_dir, "syke_data_no_header_241107.txt"))
     ## SHARK problem, data has no lat, lom, move shark preprocessing from excel_to_tact_sharkweb to this code
     print("Load SHARK data...")
     shark_df = process_dataset(os.path.join(data_dir, "sharkweb_btlctd_02_241107.txt"))
 
-    _, ices_duplicates = find_duplicate_candidates(shark_df, ices_df, suffix="ices")
+    _, ices_btl_duplicates = find_duplicate_candidates(shark_df, ices_btl_df, suffix="ices_btl")
 
     with pl.Config(tbl_cols=-1):
-        print(ices_duplicates.head(20))
-        print(ices_duplicates.height)
+        print(ices_btl_duplicates.head())
+        print(ices_btl_duplicates.height)
     
     # remove duplicates in ices df
-    print("remove shark duplicates from ices")
-    cleaned_ices = remove_duplicates(shark_df, ices_df)
+    print("remove shark duplicates from ices btl")
+    cleaned_ices_btl = remove_duplicates(shark_df, ices_btl_df)
+    print("remove shark duplicates from ices ctd")
+    cleaned_ices_ctd = remove_duplicates(shark_df, ices_ctd_df)
+
+    print("remove shark duplicates from emdonet ctd")
+    cleaned_emodnet_ctd = remove_duplicates(shark_df, emodnet_ctd_df)
+    print("remove shark duplicates from emodnet btl")
+    cleaned_emodnet_btl = remove_duplicates(shark_df, emodnet_btl_df)
+
+
+    _, ices_ices_duplicates = find_duplicate_candidates(cleaned_ices_ctd, cleaned_ices_btl)
+    with pl.Config(tbl_cols=-1):
+        print(ices_ices_duplicates.head())
+        print(f"{ices_ices_duplicates.height} duplicates between ices ctd and btl")
+
+    _, emodnet_emodnet_duplicates = find_duplicate_candidates(cleaned_emodnet_ctd, cleaned_emodnet_btl)
+    with pl.Config(tbl_cols=-1):
+        print(emodnet_emodnet_duplicates.head())
+        print(f"{emodnet_emodnet_duplicates.height} duplicates between emodnet ctd and btl")
     
-    return
-    print("\nCheck_duplicates for emodnet btl and ctd")
-    emodnet_df, emod_net_duplicates = find_duplicate_candidates(emodnet_btl_df, emodnet_ctd_df, suffix='emodnet_ctd')
-    emodnet_df.to_csv(os.path.join(output_dir, "emodnet.txt"), sep="\t", index=False)
-    emod_net_duplicates.to_csv(os.path.join(output_dir, "emodnet_duplicates.txt"), sep="\t", index=False)
-
-    print("\nCheck_duplicates for ices btl and ctd")
-    ices_df, ices_net_duplicates = find_duplicate_candidates(ices_btl_df, ices_ctd_df, suffix='ices_ctd')
-    ices_df.to_csv(os.path.join(output_dir, "ices.txt"), sep="\t", index=False)
-    ices_net_duplicates.to_csv(os.path.join(output_dir, "ices_duplicates.txt"), sep="\t", index=False)
-
-    print("\nCheck_duplicates for emodnet btl/ctd and ices btl/ctd")
-    merged_emodnet_ices, emodnet_ices_duplicates = find_duplicate_candidates(emodnet_df, ices_df, suffix='ices')
-    merged_emodnet_ices.to_csv(os.path.join(output_dir, "merged_emodnet_ices.txt"), sep="\t", index=False)
-    emodnet_ices_duplicates.drop_duplicates(subset=['lon', 'lat', 'date', 'source']).to_csv(os.path.join(output_dir, "emodnet_btl_ices_btl_duplicatecheck_ices_removed.txt"), sep="\t", index=False)
-
-    print("\nCheck_duplicates for syke and emodnet/ices")
-    # merged_emodnet_ices = pd.concat([emodnet_df, ices_df], ignore_index=True)
-    merged_emodnet_ices_syke, emodnet_ices_syke_duplicates = find_duplicate_candidates(syke_df, merged_emodnet_ices, suffix='emodnet_ices')
-    merged_emodnet_ices_syke.to_csv(os.path.join(output_dir, "merged_emodnet_ices_syke.txt"), sep="\t", index=False)
-    emodnet_ices_syke_duplicates.drop_duplicates(subset=['lon', 'lat', 'date', 'source']).to_csv(os.path.join(output_dir, "emodnet_ices_syke_duplicatecheck_emodnetisec_removed.txt"), sep="\t", index=False)
-
-    print("\nCheck_duplicates for shark vs emodnet/ices/syke")
-    # merged_emodnet_ices_syke = pd.concat([merged_emodnet_ices, syke_df], ignore_index=True)
-    merged_emodnet_ices_syke_shark, emodnet_ices_syke_shark_duplicates = find_duplicate_candidates(shark_df, merged_emodnet_ices_syke, time_threshold=4, vertical_threshold=2, oxygen_value_threshold=50, name1='shark', name2='emodnet_ices_syke')
-    merged_emodnet_ices_syke_shark.to_csv(os.path.join(output_dir, "merged_emodnet_ices_syke_shark.txt"), sep="\t", index=False)
-    emodnet_ices_syke_shark_duplicates.drop_duplicates(subset=['lon', 'lat', 'date', 'source']).to_csv(os.path.join(output_dir, "emodnet_ices_syke_shark_duplicatecheck_emodneticessyke_removed.txt"), sep="\t", index=False)
-
+"""    
     print("\nCheck_duplicates for iow vs emodnet/ices/syke/shark")
     merged_emodnet_ices_syke_shark_iow, emodnet_ices_syke_shark_iow_duplicates = find_duplicate_candidates(iow_df, merged_emodnet_ices_syke_shark, time_threshold=4, vertical_threshold=2, oxygen_value_threshold=50, name1='iow', name2='emodnet_ices_syke_shark')
     merged_emodnet_ices_syke_shark_iow.to_csv(os.path.join(output_dir, "merged_emodnet_ices_syke_shark_iow.txt"), sep="\t", index=False)
@@ -383,7 +249,7 @@ def main():
 
     # Save cleaned dataset
     formatted_df.to_csv(os.path.join(output_dir, "cleaned_df_using_dupl_250619.txt"), sep="\t", index=False)
-    bad_data_removed.to_csv(os.path.join(output_dir, "bad_data_removed_using_dupl.txt"), sep="\t", index=False)
+    bad_data_removed.to_csv(os.path.join(output_dir, "bad_data_removed_using_dupl.txt"), sep="\t", index=False)"""
     
 if __name__ == "__main__":
     main()

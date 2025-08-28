@@ -1,6 +1,7 @@
 xarray
 pandas
 polars
+pyarrow
 netcdf4
 numpy
 matplotlib
