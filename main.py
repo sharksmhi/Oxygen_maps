@@ -35,9 +35,9 @@ if __name__ == "__main__":
     # - backgroundfields (netcdf file either from DIVAnd or modeldata)
     input_dir = "data"
     
-    freja_input_dir = "/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/data/"
     freja_input_dir = "freja/inprut_dur"
-
+    freja_input_dir = "/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/data/"
+    
     on_freja = False
     if Path(freja_input_dir).is_dir():
         input_dir = freja_input_dir
@@ -88,7 +88,7 @@ if __name__ == "__main__":
     today = dt.datetime.now().strftime("%Y%m%d_%H%M")
     results_dir = Path(f"results/{basin.replace(' ', '_')}/{today}/")
     if on_freja:
-        results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/results//{basin.replace(' ', '_')}/{today}/")
+        results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results//{basin.replace(' ', '_')}/{today}/")
     results_dir.mkdir(parents=True, exist_ok=True)
     Path(results_dir, "figures/").mkdir(parents=True, exist_ok=True)
     Path(results_dir, "DIVArun/").mkdir(parents=True, exist_ok=True)
@@ -103,7 +103,7 @@ if __name__ == "__main__":
     1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016,
     2017, 2018, 2019, 2020, 2021, 2022])
     #year_list = json.dumps([1960, 1965, 1970, 1975, 1980, 1985, 1990, 1995, 2000, 2005, 2010, 2015, 2020])
-    #year_list = json.dumps([2015])
+    year_list = json.dumps([2015])
     print(f"calculating for years {year_list}")
 
     seasons_dict = {

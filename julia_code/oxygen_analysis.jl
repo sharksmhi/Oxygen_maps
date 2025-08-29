@@ -399,8 +399,19 @@ for monthlist_index in 1:length(month_list)
     res_filepath = joinpath("$(results_dir)/DIVArun", "$(varname)_$(season)_residual.txt")
     diva_res = obsval[sel] .- res[sel]
     res_data = [obsval[sel] diva_res res[sel] obslon[sel]  obslat[sel]  obsdepth[sel]  obstime_shifted[sel]  obsid[sel]]
+    
+    # Definiera header som en sträng med tab-separerade kolumnnamn
+    #obsval	diva	residual	lat	long	obsdepth	time	id
+    header = "obsval\tdiva\tresidual\tlong\tlat\tobsdepth\ttime\tid"
+    
+    # Skriv till fil med header
+    open(res_filepath, "w") do io
+        write(io, header * "\n")
+        writedlm(io, res_data, '\t')
+    end
+     
     # Spara till fil
-    writedlm(res_filepath, res_data, '\t')
+    #writedlm(res_filepath, res_data, '\t')
 
 end
 
