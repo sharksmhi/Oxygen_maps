@@ -1,18 +1,31 @@
 import polars as pl
+import datetime as dt
 
 def add_coarse_bins(df: pl.DataFrame) -> pl.DataFrame:
+    # Set a common startyear (default is 1970, but windows cant use that for years <1970)
+    epoch = dt.datetime(1970, 1, 1)#, tzinfo=dt.timezone.utc)
+    # Step 1: cast date column properly
+    # df = df.with_columns([
+    #     pl.col("date").str.to_datetime(time_zone="utc", format="%Y-%m-%dT%H:%M").alias("date")
+    # ])
+    # print(df.select(["date"]))
+
     return (
         df
         .with_columns([
-            pl.col("date").dt.date().alias("date_bin"),         # datetime bin (coarse)
+            # timebin 25 hours to catch midnight errors
+            (((pl.col("date").cast(pl.Datetime("us")) - pl.lit(epoch)).dt.total_seconds() / 3600 ) // 25).cast(pl.Int64).alias("date_bin"), 
             (pl.col("lat").round(2)).alias("lat_bin"),          # spatial bin ~1 km
-            (pl.col("lon").round(2)).alias("lon_bin"),
+            (pl.col("lon").round(2)).alias("lon_bin"),          # spatial bin ~1 km
             (pl.col("depth").round(1)).alias("depth_bin")
         ])
     )
 
 def find_duplicate_candidates(best_data, not_so_good_data, suffix="not_so_good_data"):
-
+    # print(best_data["date"])
+    # print(not_so_good_data["date"])
+    # not_so_good_data['date'] = not_so_good_data['date'].dt.tz_convert(None)  # make naive datetime
+    # best_data['date'] = best_data['date'].dt.tz_convert(None)  # make naive datetime
     best_data = add_coarse_bins(pl.from_pandas(best_data))
     not_so_good_data = add_coarse_bins(pl.from_pandas(not_so_good_data))
 
@@ -23,7 +36,8 @@ def find_duplicate_candidates(best_data, not_so_good_data, suffix="not_so_good_d
             how="inner",
             suffix=f"_{suffix}"
         )
-    )  
+    )
+    # print(candidates.select(["date", f"date_{suffix}"]))
     candidates = candidates.with_columns([
         (abs((pl.col("date") - pl.col(f"date_{suffix}")).dt.total_minutes())).alias("dt_minutes"),
         ((pl.col("lat") - pl.col(f"lat_{suffix}"))*111_000).alias("dy_m"),    # latdiff i meter
@@ -38,17 +52,10 @@ def find_duplicate_candidates(best_data, not_so_good_data, suffix="not_so_good_d
 
     # slutgiltig filtrering
     duplicates = candidates.filter(
-        (pl.col("dt_minutes") <= 90) &    # ≤ 90 min
-        (pl.col("dist_horiz_m") <= 1000) &    # ≤ 1000 m
-        (pl.col("dz_m") <= 1) &   # ≤ 1 m
-        (pl.col("dO2_umol") >= 0.446)
-    )
-
-    exact_value_duplicates = candidates.filter(
-        (pl.col("dt_minutes") <= 90) &    # ≤ 90 min
-        (pl.col("dist_horiz_m") <= 1000) &    # ≤ 1000 m
-        (pl.col("dz_m") <= 1) &   # ≤ 1 m
-        (pl.col("dO2_umol") >= 0.446)
+        (pl.col("dt_minutes") <= 90) &      # ≤ 90 min
+        (pl.col("dist_horiz_m") <= 1000) &  # ≤ 1000 m
+        (pl.col("dz_m") <= 1) &             # ≤ 1 m
+        (pl.col("dO2_umol") <= 0.446)       # 0.446 umol/l ca 0.1 ml/l
     )
 
     return candidates, duplicates
@@ -79,6 +86,7 @@ def remove_duplicates(best_data, not_so_good_data, dt = 90, dz = 1, do2 = 0.446,
     print(f"remove {duplicate_ids.height} rows of {pl.from_pandas(not_so_good_data).height} rows in original")
     print(not_so_good_data.columns)
 
-    df = pl.from_pandas(not_so_good_data).join(duplicate_ids, on=["id", "depth"], how="anti")
+    cleaned_data = pl.from_pandas(not_so_good_data).join(duplicate_ids, on=["id", "depth"], how="anti")
+    removed_data = pl.from_pandas(not_so_good_data).join(duplicate_ids, on=["id", "depth"], how="semi")
 
-    return df.to_pandas()
+    return cleaned_data.to_pandas(), removed_data.to_pandas()

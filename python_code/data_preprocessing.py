@@ -2,7 +2,7 @@ import pandas as pd
 import polars as pl
 import numpy as np
 from duplicate_check import find_duplicate_candidates, remove_duplicates
-from data_reader import load_ices_btl_data, load_ices_ctd_data, load_emodnet_btl_data, load_emodnet_ctd_data
+from data_reader import load_ices_btl_data, load_ices_ctd_data, load_emodnet_btl_data, load_emodnet_ctd_data, load_big_file_format, load_shark_data
 import os
 from pathlib import Path
 
@@ -37,17 +37,6 @@ def set_neg_oxyg_to(df, near_zero):
 def remove_shallow_low_ox_values(df, column, shallow_ox_threshold = 180, shallow_depth = 20):
     """Removes values shallower than given depth and with values below shallow_ox_threshold"""
     return df[~((df[column] <= shallow_ox_threshold) & (df["depth"] <= shallow_depth))]
-
-# Function to downscale the precision of timestamps to the least precise one
-def downscale_to_least_precise(ts1, ts2):
-    # Compare the precision (e.g., 'ns' for nanosecond precision)
-    if ts1.microsecond == 0 and ts2.microsecond == 0:
-        ts1 = ts1.normalize()  # Remove time (downscale to day precision)
-        ts2 = ts2.normalize()  # Remove time (downscale to day precision)
-    elif ts1.minute == 0 and ts2.minute == 0:
-        ts1 = ts1.replace(second=0, microsecond=0)  # Remove seconds and microseconds
-        ts2 = ts2.replace(second=0, microsecond=0)  # Remove seconds and microseconds
-    return ts1, ts2
 
 def remove_matching_rows(df, bad_data, column, log_file):
     """Removes rows in df that match rows in bad_data based on id column and logs removed rows."""
@@ -107,15 +96,6 @@ def load_shark_data(file_path):
 
     df = pd.read_csv(file_path, sep="\t", names=cols)
     df = df[['lon', 'lat', 'value', 'depth', 'date', 'id']]
-    return df
-
-def load_big_file_format(file_path):
-    """Loads generic tab-delimited dataset."""
-    cols = ['lon', 'lat', 'value', 'depth', 'drop1', 'drop2', 'drop3', 'drop4', 'drop5', 'date', 'id']
-    df = pd.read_csv(file_path, sep="\t", header=None)
-    df.columns = cols + df.columns[len(cols):].tolist()
-    df = df[['lon', 'lat', 'value', 'depth', 'date', 'id']]
-    
     return df
 
 def process_dataset(file_name, is_emodnet_btl=False, is_emodnet_ctd=False, is_iow=False, is_ices_btl=False, is_ices_ctd=False):
@@ -187,31 +167,28 @@ def main():
 
     _, ices_btl_duplicates = find_duplicate_candidates(shark_df, ices_btl_df, suffix="ices_btl")
 
-    with pl.Config(tbl_cols=-1):
-        print(ices_btl_duplicates.head())
-        print(ices_btl_duplicates.height)
+    # with pl.Config(tbl_cols=-1):
+    print(ices_btl_duplicates.head())
+    print(ices_btl_duplicates.height)
     
     # remove duplicates in ices df
     print("remove shark duplicates from ices btl")
-    cleaned_ices_btl = remove_duplicates(shark_df, ices_btl_df)
+    cleaned_ices_btl, removed_ices_btl = remove_duplicates(shark_df, ices_btl_df)
     print("remove shark duplicates from ices ctd")
-    cleaned_ices_ctd = remove_duplicates(shark_df, ices_ctd_df)
+    cleaned_ices_ctd, removed_ices_ctd = remove_duplicates(shark_df, ices_ctd_df)
 
     print("remove shark duplicates from emdonet ctd")
-    cleaned_emodnet_ctd = remove_duplicates(shark_df, emodnet_ctd_df)
+    cleaned_emodnet_ctd, removed_emodnet_ctd = remove_duplicates(shark_df, emodnet_ctd_df)
     print("remove shark duplicates from emodnet btl")
-    cleaned_emodnet_btl = remove_duplicates(shark_df, emodnet_btl_df)
-
+    cleaned_emodnet_btl, removed_emodnet_btl = remove_duplicates(shark_df, emodnet_btl_df)
 
     _, ices_ices_duplicates = find_duplicate_candidates(cleaned_ices_ctd, cleaned_ices_btl)
-    with pl.Config(tbl_cols=-1):
-        print(ices_ices_duplicates.head())
-        print(f"{ices_ices_duplicates.height} duplicates between ices ctd and btl")
+    print(ices_ices_duplicates.head())
+    print(f"{ices_ices_duplicates.height} duplicates between ices ctd and btl")
 
     _, emodnet_emodnet_duplicates = find_duplicate_candidates(cleaned_emodnet_ctd, cleaned_emodnet_btl)
-    with pl.Config(tbl_cols=-1):
-        print(emodnet_emodnet_duplicates.head())
-        print(f"{emodnet_emodnet_duplicates.height} duplicates between emodnet ctd and btl")
+    print(emodnet_emodnet_duplicates.head())
+    print(f"{emodnet_emodnet_duplicates.height} duplicates between emodnet ctd and btl")
     
 """    
     print("\nCheck_duplicates for iow vs emodnet/ices/syke/shark")

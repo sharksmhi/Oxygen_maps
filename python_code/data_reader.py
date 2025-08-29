@@ -5,10 +5,21 @@ import pandas as pd
 import numpy as np
 
 def _format_date(df):
-    df['date'] = pd.to_datetime(df['date'], format="mixed")
-    df['date'] = df['date'].astype(str).str.strip()
-    df['date'] = df['date'].str[:16]  # Trim milliseconds
+    df['date'] = pd.to_datetime(df['date'], format="mixed", utc=True)
+    # standardize as string with desired format, e.g. "YYYY-MM-DD HH:MM"
+    # df['date'] = df['date'].dt.strftime('%Y-%m-%dT%H:%M')
+    # df['date'] = df['date'].astype(str).str.strip()
+    # df['date'] = df['date'].str[:16]  # Trim milliseconds
 
+    return df
+
+def load_shark_data(file_path):
+    """Loads shark tab-delimited dataset."""
+    cols = ['depth', 'Dissolved oxygen O2 bottle (ml/l)', 'Q-flag Dissolved oxygen O2 bottle',	'Dissolved oxygen O2 CTD (ml/l)', 'Q-flag Dissolved oxygen O2 CTD',	'Hydrogen sulphide H2S (umol/l)', 'Q-flag Hydrogen sulphide H2S', 'DOXY_ml', 'value', 'NEG_DOXY_umol']
+
+    df = pd.read_csv(file_path, sep="\t", names=cols)
+    df = df[['lon', 'lat', 'value', 'depth', 'date', 'id']]
+    df = _format_date(df)
     return df
 
 def load_ices_btl_data(file_path):
@@ -269,4 +280,15 @@ def load_emodnet_ctd_data(file_path):
     )
     df = _format_date(df)
 
+    return df
+
+
+def load_big_file_format(file_path):
+    """Loads generic tab-delimited dataset."""
+    cols = ['lon', 'lat', 'value', 'depth', 'drop1', 'drop2', 'drop3', 'drop4', 'drop5', 'date', 'id']
+    df = pd.read_csv(file_path, sep="\t", header=None)
+    df.columns = cols + df.columns[len(cols):].tolist()
+    df = df[['lon', 'lat', 'value', 'depth', 'date', 'id']]
+    df = _format_date(df)
+    
     return df
