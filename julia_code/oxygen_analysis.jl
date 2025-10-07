@@ -202,6 +202,7 @@ end
 
 @show maximum(rdiag),mean(rdiag)
 epsilon_weighted = epsilon * rdiag;
+#@show epsilon_weighted
 
 # One metadata set up per season
 metadata=Array{DataStructures.OrderedDict{String,Any}}(undef,4) ;
@@ -338,16 +339,18 @@ for monthlist_index in 1:length(month_list)
               (obslon,obslat,obsdepth,obstime_shifted),
               obsval,
               len,
-              epsilon_weighted,
-              nc_filepath, varname,
+              epsilon_weighted, # error variance of the observations (normalized by the error variance of the background field)
+              nc_filepath,
+              varname,
               bathname = bathname,
               bathisglobal = bathisglobal,
-              ncvarattrib = ncvarattrib,
-              ncglobalattrib = ncglobalattrib,
+              ncvarattrib = ncvarattrib, # dictionary of the netcdf variable attributes
+              ncglobalattrib = ncglobalattrib, # dictionary of the netcdf global attributes
               timeorigin = timeorigin,
-              #Nedan anges epsilon inte epsilon2: Dvs ngt litet.
-              #transform = Anam.loglin(0.00001),
-              #transform = Anam.loglin(-5.),
+              # Nedan anges epsilon inte epsilon2: Dvs ngt litet. Det är här Karin och Örjan använt en annan epsilon än den ovan
+              #transform = Anam.loglin(0.01),
+              #fieldmin = 0.0,
+              #transform = Anam.loglin(270.; epsilon = 0.05),
               mask = new_mask,
               solver = :direct,
               niter_e = 1,
