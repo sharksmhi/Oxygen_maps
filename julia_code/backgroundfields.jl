@@ -41,6 +41,7 @@ location = ""
 
 freja_location = "/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/"
 freja_location = "freja/inprut_dur"
+freja_location = "/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/"
 
 on_freja = false
 if isdir(freja_location)
@@ -63,7 +64,8 @@ if !isdir(figdir)
 end
 
 # ## Load data big files created by program "data_handling"
-data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_250619"
+data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_250930"
+#data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_250619"
 #data_fname = "EMODNET_SHARK_ICES_SYKE_241216"
 #data_fname = "mat_file_1960_2024_reordered"
 @time obsval,obslon,obslat,obsdepth,obstime,obsid = loadbigfile(joinpath(location, "data/$data_fname.txt"));
@@ -163,7 +165,7 @@ len = (lenx, leny, lenz);
 lx = lenf
 ly = lenf
 
-epsilon = 0.1;
+#epsilon = 0.1;
 epsilon = Float64.(settings["Global"]["epsilon_background"])
 
 w_depth = 5.
@@ -367,10 +369,15 @@ for monthlist_index in 1:length(month_list)
            timeorigin = timeorigin,
            mask = new_mask,
            solver = :direct,
-           fitcorrlen = false, # inte med i vanliga
+           #fitcorrlen = false, # inte med i vanliga
            niter_e = 1,
            error_thresholds = error_thresholds,
-           MEMTOFIT = 120,
+           surfextend = true,
+           alphabc = 0,
+           minfield = 0.44662,  
+           maxfield = 600,
+           #stat_per_timeslice = true,
+           MEMTOFIT = 250 # tidigare 120 dvs ej samma som analysen
        );
 
     # Save the observation metadata in the NetCDF file
