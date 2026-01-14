@@ -210,214 +210,224 @@ metadata=Array{DataStructures.OrderedDict{String,Any}}(undef,4) ;
 #A list of created files
 file_list = []
 
-for monthlist_index in 1:length(month_list)
-    season = seasons[monthlist_index]
+# Ange vilket intervall du vill ha på bakgrundfältet
+start_year = 1960
+end_year   = 2024
 
-    #Background file for choosen season
-    bkg_filename = "Background_$(varname)_$(years)_$(season)_$(epsilon_background)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(bath_file_name).nc"
-    #bkg_filepath = "$(input_dir)\\$(bkg_filename)"
-    bkg_filepath = joinpath(input_dir, bkg_filename)
-    cp(bkg_filepath, joinpath(results_dir, joinpath("DIVArun",bkg_filename)); force=true)
-    
-    @info("Creating metadata dicitonary for the season $(season)")
-    metadata_season = OrderedDict(
-        # set attributes for DVIA run from our settings
-        "threshold_list" => "$threshold_list",
-        "season" => season,
-        "epsilon" => "$epsilon",
-        "horizontal correlation length m" => "$lx",
-        "start year" => string(year_list[1]),
-        "end year" => string(year_list[end]),
-        # Name of the project (SeaDataCloud, SeaDataNet, EMODNET-chemistry, ...)
-        "project" => "EMODNET-chemistry",
-        # URN code for the institution EDMO registry,
-        # e.g. SDN:EDMO::1579
-        "institution_urn" => "SDN:EDMO::545",
-        # Production group
-        "production" => "SMHI",
-        # Name and emails from authorsseasons
-        "Author_e-mail" => ["Martin Hansson <martin.hansson@smhi.se>"],
-        # Source of the observation
-        "source" => "observational data from SeaDataNet/EMODnet Chemistry Data Network",
-        # Additional comment
-        "comment" => "Every year of the time dimension corresponds to a 1-year centred average for one season.",
+# Skapa listan med rullande treårsintervall # [[1959,1960,1961],[], osv...]
+year_list_background = [[y-1, y, y+1] for y in start_year:end_year]  
+month_list_background = [[1,2,3,4,5,6,7,8,9,10,11,12]];  # 3 whole years climatology
 
-        # SeaDataNet Vocabulary P35 URN
-        # http://seadatanet.maris2.nl/v_bodc_vocab_v2/search.asp?lib=p35
-        # example: SDN:P35::WATERTEMP
-        "parameter_keyword_urn" => "$sdnp35", # Water body phosphate
+for year in year_list
+    @show(year)
+    for monthlist_index in 1:length(month_list)
+        season = seasons[monthlist_index]
 
-        # List of SeaDataNet Parameter Discovery Vocabulary P02 URNs
-        # http://seadatanet.maris2.nl/v_bodc_vocab_v2/search.asp?lib=p02
-        # example: ["SDN:P02::TEMP"]
-        "search_keywords_urn" => ["$sdnp02"], # Water body phosphate
+        #Background file for choosen season
+        bkg_filename = "Background_$(varname)_$(year)_All_$(epsilon_background)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(bath_file_name).nc"
+        #bkg_filepath = "$(input_dir)\\$(bkg_filename)"
+        bkg_filepath = joinpath(input_dir, bkg_filename)
+        cp(bkg_filepath, joinpath(results_dir, joinpath("DIVArun",bkg_filename)); force=true)
+        
+        @info("Creating metadata dicitonary for the season $(season)")
+        metadata_season = OrderedDict(
+            # set attributes for DVIA run from our settings
+            "threshold_list" => "$threshold_list",
+            "season" => season,
+            "epsilon" => "$epsilon",
+            "horizontal correlation length m" => "$lx",
+            "start year" => string(year_list[1]),
+            "end year" => string(year_list[end]),
+            # Name of the project (SeaDataCloud, SeaDataNet, EMODNET-chemistry, ...)
+            "project" => "EMODNET-chemistry",
+            # URN code for the institution EDMO registry,
+            # e.g. SDN:EDMO::1579
+            "institution_urn" => "SDN:EDMO::545",
+            # Production group
+            "production" => "SMHI",
+            # Name and emails from authorsseasons
+            "Author_e-mail" => ["Martin Hansson <martin.hansson@smhi.se>"],
+            # Source of the observation
+            "source" => "observational data from SeaDataNet/EMODnet Chemistry Data Network",
+            # Additional comment
+            "comment" => "Every year of the time dimension corresponds to a 1-year centred average for one season.",
 
-        # List of SeaDataNet Vocabulary C19 area URNs
-        # SeaVoX salt and fresh water body gazetteer (C19)
-        # http://seadatanet.maris2.nl/v_bodc_vocab_v2/search.asp?lib=C19
-        # example: ["SDN:C19::3_1"]
-        "area_keywords_urn" => ["SDN:C19::2"],
-        "product_version" => "2.0",
-        "product_code" => "SMHI-Baltic Sea-$(replace(varname,' '=>'_'))-v2023-ANA",
+            # SeaDataNet Vocabulary P35 URN
+            # http://seadatanet.maris2.nl/v_bodc_vocab_v2/search.asp?lib=p35
+            # example: SDN:P35::WATERTEMP
+            "parameter_keyword_urn" => "$sdnp35", # Water body phosphate
 
-        # bathymetry source acknowledgement
-        # see, e.g.
-        # * EMODnet Bathymetry Consortium (2016): EMODnet Digital Bathymetry (DTM).
-        # https://doi.org/10.12770/c7b53704-999d-4721-b1a3-04ec60c87238
-        #
-        # taken from
-        # http://www.emodnet-bathymetry.eu/data-products/acknowledgement-in-publications
-        #
-        # * The GEBCO Digital Atlas published by the British Oceanographic Data Centre on behalf of IOC and IHO, 2003
-        #
-        # taken from
-        # https://www.bodc.ac.uk/projects/data_management/international/gebco/gebco_digital_atlas/copyright_and_attribution/
+            # List of SeaDataNet Parameter Discovery Vocabulary P02 URNs
+            # http://seadatanet.maris2.nl/v_bodc_vocab_v2/search.asp?lib=p02
+            # example: ["SDN:P02::TEMP"]
+            "search_keywords_urn" => ["$sdnp02"], # Water body phosphate
 
-        "bathymetry_source" => "The GEBCO 30sec Digital Atlas published by the British Oceanographic Data Centre on behalf of IOC and IHO, 2003",
+            # List of SeaDataNet Vocabulary C19 area URNs
+            # SeaVoX salt and fresh water body gazetteer (C19)
+            # http://seadatanet.maris2.nl/v_bodc_vocab_v2/search.asp?lib=C19
+            # example: ["SDN:C19::3_1"]
+            "area_keywords_urn" => ["SDN:C19::2"],
+            "product_version" => "2.0",
+            "product_code" => "SMHI-Baltic Sea-$(replace(varname,' '=>'_'))-v2023-ANA",
 
-        # NetCDF CF standard name
-        # http://cfconventions.org/Data/cf-standard-names/current/build/cf-standard-name-table.html
-        # example "standard_name" = "sea_water_temperature",
-        "netcdf_standard_name" => "$(replace(varname,' '=>'_'))",
-        "netcdf_long_name" => "$varname",
-        "netcdf_units" => "$unit",
+            # bathymetry source acknowledgement
+            # see, e.g.
+            # * EMODnet Bathymetry Consortium (2016): EMODnet Digital Bathymetry (DTM).
+            # https://doi.org/10.12770/c7b53704-999d-4721-b1a3-04ec60c87238
+            #
+            # taken from
+            # http://www.emodnet-bathymetry.eu/data-products/acknowledgement-in-publications
+            #
+            # * The GEBCO Digital Atlas published by the British Oceanographic Data Centre on behalf of IOC and IHO, 2003
+            #
+            # taken from
+            # https://www.bodc.ac.uk/projects/data_management/international/gebco/gebco_digital_atlas/copyright_and_attribution/
 
-        # Abstract for the product
-        #"abstract" => "...",
+            "bathymetry_source" => "The GEBCO 30sec Digital Atlas published by the British Oceanographic Data Centre on behalf of IOC and IHO, 2003",
 
-        # This option provides a place to acknowledge various types of support for the
-        # project that produced the data
-        "acknowledgement" => "Aggregated data products are generated by SMHI with the support of SWAM",
-        "documentation" => "https://doi.org/10.6092/A8CFB472-10DB-4225-9737-5A60DA9AF523",
+            # NetCDF CF standard name
+            # http://cfconventions.org/Data/cf-standard-names/current/build/cf-standard-name-table.html
+            # example "standard_name" = "sea_water_temperature",
+            "netcdf_standard_name" => "$(replace(varname,' '=>'_'))",
+            "netcdf_long_name" => "$varname",
+            "netcdf_units" => "$unit",
 
-        # Digital Object Identifier of the data product
-        "doi" => "$doi",
+            # Abstract for the product
+            #"abstract" => "...",
 
-        "DIVAnd_source" => "https://github.com/gher-ulg/DIVAnd.jl",
-        "DIVAnd_version" => "2.7.5",
-        "DIVA_code_doi" => "10.5281/zenodo.4715361",
-        "DIVA_references" => "Barth, A.; Beckers, J.-M.; Troupin, C.; Alvera-Azcárate, A. & Vandenbulcke, L.
-        divand-1.0: n-dimensional variational data analysis for ocean observations
-        Geoscientific Model Development, 2014, 7, 225-241. DOI: :10.5194/gmd-7-225-2014");
+            # This option provides a place to acknowledge various types of support for the
+            # project that produced the data
+            "acknowledgement" => "Aggregated data products are generated by SMHI with the support of SWAM",
+            "documentation" => "https://doi.org/10.6092/A8CFB472-10DB-4225-9737-5A60DA9AF523",
 
-    metadata[monthlist_index]=metadata_season
-    ncglobalattrib = metadata_season
-    ncvarattrib = OrderedDict(
-        "standard_name" => "$(replace(varname,' '=>'_'))",
-        "long_name" => "$varname",
-        "units" => "$unit")
+            # Digital Object Identifier of the data product
+            "doi" => "$doi",
 
-    @show(metadata_season)
-    @show(ncvarattrib)
+            "DIVAnd_source" => "https://github.com/gher-ulg/DIVAnd.jl",
+            "DIVAnd_version" => "2.7.5",
+            "DIVA_code_doi" => "10.5281/zenodo.4715361",
+            "DIVA_references" => "Barth, A.; Beckers, J.-M.; Troupin, C.; Alvera-Azcárate, A. & Vandenbulcke, L.
+            divand-1.0: n-dimensional variational data analysis for ocean observations
+            Geoscientific Model Development, 2014, 7, 225-241. DOI: :10.5194/gmd-7-225-2014");
 
-    @info("starting DIVAnd computations for $(seasons[monthlist_index])")
-    @info(Dates.now())
+        metadata[monthlist_index]=metadata_season
+        ncglobalattrib = metadata_season
+        ncvarattrib = OrderedDict(
+            "standard_name" => "$(replace(varname,' '=>'_'))",
+            "long_name" => "$varname",
+            "units" => "$unit")
+              
+        @info("starting DIVAnd computations for $(year) and $(seasons[monthlist_index])")
+        @info(Dates.now())
 
-    # Time selection for the analyse. This was already defined together with yearlist, month_list, seasons
-    TS = DIVAnd.TimeSelectorYearListMonthList(year_list,month_list[monthlist_index:monthlist_index])
-    TSbackground = DIVAnd.TimeSelectorYearListMonthList(year_list_background,month_list[monthlist_index:monthlist_index]);
+        # Time selection for the analyse. This was already defined together with yearlist, month_list, seasons
+        TS = DIVAnd.TimeSelectorYearListMonthList([year],month_list[monthlist_index:monthlist_index])
+        TSbackground = DIVAnd.TimeSelectorYearListMonthList([year],month_list_background);
 
-    @show(TS)
-    # File name based on the variable (but all spaces are replaced by _)
-    nc_filename = "$(replace(varname,' '=>'_'))_$(minimum(year_list))-$(maximum(year_list))_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(bath_file_name)_varcorrlenz.nc"
-    nc_filename_res = "$(replace(varname,' '=>'_'))_$(minimum(year_list))-$(maximum(year_list))_$(season)_residuals.nc"
-    nc_filepath = joinpath("$(results_dir)/DIVArun", nc_filename)
-    nc_filepath_res = joinpath("$(results_dir)/DIVArun", nc_filename_res)
+        @show(TS)
+        @show(TSbackground)
+        # File name based on the variable (but all spaces are replaced by _)
+        nc_filename = "$(replace(varname,' '=>'_'))_$(year)_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(bath_file_name)_varcorrlenz.nc"
+        nc_filename_res = "$(replace(varname,' '=>'_'))_$(year)_$(season)_residuals.nc"
+        nc_filepath = joinpath("$(results_dir)/DIVArun", nc_filename)
+        nc_filepath_res = joinpath("$(results_dir)/DIVArun", nc_filename_res)
 
-    #Append the created files to file_list
-    push!(file_list, nc_filename)
+        #Append the created files to file_list
+        push!(file_list, nc_filename)
+        push!(file_list, bkg_filename)
 
-    if isfile(nc_filepath)
-       rm(nc_filepath) # delete the previous analysis
+        if isfile(nc_filepath)
+        rm(nc_filepath) # delete the previous analysis
+        end
+
+        @info("Will write results in $nc_filepath")
+        # create attributes for the netcdf file (need an internet connexion) and does sometimes not work. We fixed this by doing our own attributes.
+        #ncglobalattrib,ncvarattrib = SDNMetadata(metadata_season,nc_filepath,varname,lonr,latr)
+        @show(bkg_filename)
+        @time dbinfo = diva3d((lonr,latr,depthr,TS),
+                (obslon,obslat,obsdepth,obstime_shifted),
+                obsval,
+                len,
+                epsilon_weighted, # error variance of the observations (normalized by the error variance of the background field)
+                nc_filepath,
+                varname,
+                bathname = bathname,
+                bathisglobal = bathisglobal,
+                ncvarattrib = ncvarattrib, # dictionary of the netcdf variable attributes
+                ncglobalattrib = ncglobalattrib, # dictionary of the netcdf global attributes
+                timeorigin = timeorigin,
+                # Nedan anges epsilon inte epsilon2: Dvs ngt litet. Det är här Karin och Örjan använt en annan epsilon än den ovan
+                #transform = Anam.loglin(0.01),
+                minfield = 0.44662,  # Keep the results within min-max field
+                maxfield = 600,
+                #transform = Anam.loglin(270.; epsilon = 0.05),
+                mask = new_mask,
+                solver = :direct,
+                niter_e = 1,
+                background = DIVAnd.backgroundfile(bkg_filepath,varname,TSbackground),
+                error_thresholds = error_thresholds,
+                surfextend = true,
+                alphabc = 0,
+                #stat_per_timeslice = true,
+                MEMTOFIT = 250
+        );
+
+        #residuals = dbinfo[:residuals]
+        res = get(dbinfo, :residuals, 0)
+        @show(keys(dbinfo))
+        #Residuals with NaNs removed
+        sel = .!isnan.(res)
+        #res2 = res[sel]
+        #obsid2=obsid[sel]
+        @show(length(res))
+        @show(length(obsval))
+
+        #@show extrema(res2);
+        #@show quantile(res2, [0.01, 0.99]);
+        @info("Lowest and highest redisuals might be a error sample...>250 and <-250")
+        indices = findall(x -> x > 250 || x < -250, res)
+        println("Number of possible data errors: $length(indices)")
+        # Visa både index och värde
+        for i in indices
+            println("Residual: $(res[i]), obsval: $(obsval[i]), DIVAnd: $(obsval[i]-res[i]), obsdepth:$(obsdepth[i]), obsid: $(obsid[i])")
+        end
+
+    #     @info("Get the residuals...")
+    #     selection_per_timeslice = dbinfo[:selection_per_timeslice]
+    #     residuals_per_timeslice = dbinfo[:residuals_per_timeslice]
+    #     selection_per_timeslice = dbinfo[:selection_per_timeslice]
+    #
+    #     max_residuals = fill(-Inf,length(residuals_per_timeslice))
+    #     for n = 1:length(selection_per_timeslice)
+    #         sel = selection_per_timeslice[n]
+    #         max_residuals[sel] = max.(max_residuals[sel],residuals_per_timeslice[n])
+    #     end
+    #     @show(max_residuals)
+
+        # Save the observation metadata in the NetCDF file
+        DIVAnd.saveobs(nc_filepath,"Oxygen_data", obsval, (obslon,obslat,obsdepth,obstime_shifted),obsid, used = dbinfo[:used])
+        DIVAnd.saveobs(nc_filepath_res,"$(varname)_residual",res[sel], (obslon[sel], obslat[sel], obsdepth[sel], obstime_shifted[sel]),obsid[sel])
+
+        # Sparar undan alla indata, Divananlays och residualer i varje indata punkt.
+        res_filepath = joinpath("$(results_dir)/DIVArun", "$(varname)_$(season)_residual.txt")
+        diva_res = obsval[sel] .- res[sel]
+        res_data = [obsval[sel] diva_res res[sel] obslon[sel]  obslat[sel]  obsdepth[sel]  obstime_shifted[sel]  obsid[sel]]
+        
+        # Definiera header som en sträng med tab-separerade kolumnnamn
+        #obsval	diva	residual	lat	long	obsdepth	time	id
+        header = "obsval\tdiva\tresidual\tlong\tlat\tobsdepth\ttime\tid"
+        
+        # Skriv till fil med header
+        open(res_filepath, "w") do io
+            write(io, header * "\n")
+            writedlm(io, res_data, '\t')
+        end
+        
+        # Spara till fil
+        #writedlm(res_filepath, res_data, '\t')
+
     end
-
-    @info("Will write results in $nc_filepath")
-    # create attributes for the netcdf file (need an internet connexion) and does sometimes not work. We fixed this by doing our own attributes.
-    #ncglobalattrib,ncvarattrib = SDNMetadata(metadata_season,nc_filepath,varname,lonr,latr)
-    @show(bkg_filename)
-    @time dbinfo = diva3d((lonr,latr,depthr,TS),
-              (obslon,obslat,obsdepth,obstime_shifted),
-              obsval,
-              len,
-              epsilon_weighted, # error variance of the observations (normalized by the error variance of the background field)
-              nc_filepath,
-              varname,
-              bathname = bathname,
-              bathisglobal = bathisglobal,
-              ncvarattrib = ncvarattrib, # dictionary of the netcdf variable attributes
-              ncglobalattrib = ncglobalattrib, # dictionary of the netcdf global attributes
-              timeorigin = timeorigin,
-              # Nedan anges epsilon inte epsilon2: Dvs ngt litet. Det är här Karin och Örjan använt en annan epsilon än den ovan
-              #transform = Anam.loglin(0.01),
-              #fieldmin = 0.0,
-              #transform = Anam.loglin(270.; epsilon = 0.05),
-              mask = new_mask,
-              solver = :direct,
-              niter_e = 1,
-              background = DIVAnd.backgroundfile(bkg_filepath,varname,TSbackground),
-              error_thresholds = error_thresholds,
-              surfextend = true,
-              alphabc = 0,
-              #stat_per_timeslice = true,
-              MEMTOFIT = 250
-       );
-
-    #residuals = dbinfo[:residuals]
-    res = get(dbinfo, :residuals, 0)
-    @show(keys(dbinfo))
-    #Residuals with NaNs removed
-    sel = .!isnan.(res)
-    #res2 = res[sel]
-    #obsid2=obsid[sel]
-    @show(length(res))
-    @show(length(obsval))
-
-    #@show extrema(res2);
-    #@show quantile(res2, [0.01, 0.99]);
-    @info("Lowest and highest redisuals might be a error sample...>250 and <-250")
-    indices = findall(x -> x > 250 || x < -250, res)
-    println("Number of possible data errors: $length(indices)")
-    # Visa både index och värde
-    for i in indices
-        println("Residual: $(res[i]), obsval: $(obsval[i]), DIVAnd: $(obsval[i]-res[i]), obsdepth:$(obsdepth[i]), obsid: $(obsid[i])")
-    end
-
-#     @info("Get the residuals...")
-#     selection_per_timeslice = dbinfo[:selection_per_timeslice]
-#     residuals_per_timeslice = dbinfo[:residuals_per_timeslice]
-#     selection_per_timeslice = dbinfo[:selection_per_timeslice]
-#
-#     max_residuals = fill(-Inf,length(residuals_per_timeslice))
-#     for n = 1:length(selection_per_timeslice)
-#         sel = selection_per_timeslice[n]
-#         max_residuals[sel] = max.(max_residuals[sel],residuals_per_timeslice[n])
-#     end
-#     @show(max_residuals)
-
-    # Save the observation metadata in the NetCDF file
-    DIVAnd.saveobs(nc_filepath,"Oxygen_data", obsval, (obslon,obslat,obsdepth,obstime_shifted),obsid, used = dbinfo[:used])
-    DIVAnd.saveobs(nc_filepath_res,"$(varname)_residual",res[sel], (obslon[sel], obslat[sel], obsdepth[sel], obstime_shifted[sel]),obsid[sel])
-
-    # Sparar undan alla indata, Divananlays och residualer i varje indata punkt.
-    res_filepath = joinpath("$(results_dir)/DIVArun", "$(varname)_$(season)_residual.txt")
-    diva_res = obsval[sel] .- res[sel]
-    res_data = [obsval[sel] diva_res res[sel] obslon[sel]  obslat[sel]  obsdepth[sel]  obstime_shifted[sel]  obsid[sel]]
-    
-    # Definiera header som en sträng med tab-separerade kolumnnamn
-    #obsval	diva	residual	lat	long	obsdepth	time	id
-    header = "obsval\tdiva\tresidual\tlong\tlat\tobsdepth\ttime\tid"
-    
-    # Skriv till fil med header
-    open(res_filepath, "w") do io
-        write(io, header * "\n")
-        writedlm(io, res_data, '\t')
-    end
-     
-    # Spara till fil
-    #writedlm(res_filepath, res_data, '\t')
-
-end
-
+end    
 # Serialize the list of filenames to JSON and print it
 json_string = JSON.json(file_list)
 # Write the JSON string to a file

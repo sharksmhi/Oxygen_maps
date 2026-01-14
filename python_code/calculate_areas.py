@@ -78,7 +78,7 @@ def area_at_threshold(threshold, ds, df):
     # Then, use these indices to extract the corresponding depth values
     ds[f"Min_depth_{threshold}"] = ds['depth'].where(mask_below_threshold).isel(depth=first_layer_indices)
 
-    # Then, use these indices to extract the corresponding depth values
+    # Then, use these indices to extract the corresponding depth values - not used?
     ds[f"{threshold}_mask_firstlayer"] = ds[f"{threshold}_mask"].where(mask_below_threshold).isel(depth=first_layer_indices)
 
     # Step 5: Extract corresponding values for the variable Oxygen_relerr using the mask from step 4
@@ -146,7 +146,7 @@ def calculate_areas(results_dir, file_list, threshold_list, save_area_data=False
         else:
             ds = xr.open_dataset(f"{results_dir}/DIVArun/{netcdf_filename}")
             print(f"{results_dir}/DIVArun/{netcdf_filename}")
-            print(ds.attrs)
+            #print(ds.attrs)
             season = ds.attrs['season']
             start_year = ds.attrs['start year']
             end_year = ds.attrs['end year']

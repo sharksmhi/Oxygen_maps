@@ -14,15 +14,12 @@ import matplotlib.patches as mpatches
 mpl.rcParams['hatch.linewidth'] = 0.1
 
 def create_custom_colormap(levels, colors):
-    # Define color ranges and corresponding colors
-    #ranges = np.linspace(0, 1, len(levels) + 1)
     cmap = ListedColormap(colors)
     norm = BoundaryNorm(levels, cmap.N)
 
     return cmap, norm
 
 def set_up_basemap(ds, axis):
-
     # Create a Basemap instance
     m = Basemap(projection='merc', llcrnrlat=ds['lat'].min(), urcrnrlat=ds['lat'].max(),
                 llcrnrlon=ds['lon'].min(), urcrnrlon=ds['lon'].max(), resolution='l', ax=axis)
@@ -36,9 +33,8 @@ def set_up_basemap(ds, axis):
 
     return m
 
-def sub_plot_parameter_basemap(ds, parameter, axis, year, show_depth, vmin, vmax, observation_span=2, bath_file=None):
-    year_list = [datetime.strftime(timestr.astype('datetime64[M]').item(), '%Y') for timestr in ds["time"][:].values]
-    time_index = year_list.index(str(year))
+def sub_plot_parameter_basemap(ds, parameter, axis, year, show_depth, vmin, vmax, observation_span=2, bath_file=None, time_index=0):
+    
     depth_index = ds["depth"][:].values == show_depth
 
     # Create a Basemap instance
@@ -58,10 +54,9 @@ def sub_plot_parameter_basemap(ds, parameter, axis, year, show_depth, vmin, vmax
 
 def sub_plot_only_observations(ds, axis, year, 
                                   show_depth = 0, vmin = 0, vmax = 180, observation_span=2, 
-                                  colorbar = True, color = 'k'):
+                                  colorbar = True, color = 'k', time_index=0):
     
-    year_list = [datetime.strftime(timestr.astype('datetime64[M]').item(), '%Y') for timestr in ds["time"][:].values]
-    time_index = year_list.index(str(year))
+
     time_value = ds['time'][time_index].values.astype('datetime64[M]').item()
 
     # Plocka ut observationer
@@ -92,7 +87,7 @@ def sub_plot_only_observations(ds, axis, year,
         # Change vmin and vmax after the plot is created
         pcm.set_clim(vmin=vmin, vmax=vmax)
 
-        m.scatter(lon, lat, s=5, c=observations, cmap=cmap, edgecolors='k', linewidth=0.2, facecolor='none',
+        m.scatter(lon, lat, s=5, c=observations, cmap=cmap, edgecolors='k', linewidth=0.2, alpha=0.5,
               vmin=vmin, vmax=vmax)
         
         # Add a colorbar
@@ -101,7 +96,6 @@ def sub_plot_only_observations(ds, axis, year,
                                     bbox_transform=axis.transAxes)
         cbar = plt.colorbar(pcm, cax = cbax,  orientation = 'horizontal')
         cbar.ax.tick_params(labelsize = 4)
-        # cbar.set_label(label='µmol/l', fontsize = 10,  y=1.05)
 
         # Modify the colormap levels to control the step length
         levels = np.arange(vmin, vmax+1, 45)
@@ -116,10 +110,8 @@ def sub_plot_only_observations(ds, axis, year,
 
 def sub_plot_observations_basemap(ds, parameter, axis, year, 
                                   show_depth = 0, vmin = 0, vmax = 180, observation_span=2, 
-                                  colorbar = True, color = 'k'):
+                                  colorbar = True, color = 'k', time_index=0):
     
-    year_list = [datetime.strftime(timestr.astype('datetime64[M]').item(), '%Y') for timestr in ds["time"][:].values]
-    time_index = year_list.index(str(year))
     time_value = ds['time'][time_index].values.astype('datetime64[M]').item()
 
     # Plocka ut observationer
@@ -149,7 +141,7 @@ def sub_plot_observations_basemap(ds, parameter, axis, year,
         # Change vmin and vmax after the plot is created
         pcm.set_clim(vmin=vmin, vmax=vmax)
 
-        m.scatter(lon, lat, s=5, c=observations, cmap=cmap, edgecolors='k', linewidth=0.2, facecolor='none',
+        m.scatter(lon, lat, s=5, c=observations, cmap=cmap, edgecolors='k', linewidth=0.2, alpha=0.5,
               vmin=vmin, vmax=vmax)
         
         # Add a colorbar
@@ -173,9 +165,7 @@ def sub_plot_observations_basemap(ds, parameter, axis, year,
 
     return pcm
 
-def sub_plot_area_at_threshold_basemap(ds, parameter, axis, year, threshold, vmin = 0, vmax = 180, unit='umol/l', bath_file=None, colorbar=True, color = 'k', levels=[0.5, 1.5], hatches = []):
-    year_list = [datetime.strftime(timestr.astype('datetime64[M]').item(), '%Y') for timestr in ds["time"][:].values]
-    time_index = year_list.index(str(year))
+def sub_plot_area_at_threshold_basemap(ds, parameter, axis, year, threshold, vmin = 0, vmax = 180, unit='umol/l', bath_file=None, colorbar=True, color = 'k', levels=[0.5, 1.5], hatches = [], time_index=0):
 
     # Create a Basemap instance with Mercator projection
     m = Basemap(projection='merc', llcrnrlat=ds['lat'].min(), urcrnrlat=ds['lat'].max(),
@@ -212,12 +202,7 @@ def sub_plot_area_at_threshold_basemap(ds, parameter, axis, year, threshold, vmi
     else:
         pcm = m.contourf(lon, lat, data,  levels=levels, colors=[color], hatches = hatches)
 
-def sub_plot_error_area_at_threshold_basemap(ds, parameter, axis, year, vmin, vmax, threshold, unit='umol/l', bath_file=None):
-    year_list = [datetime.strftime(timestr.astype('datetime64[M]').item(), '%Y') for timestr in ds["time"][:].values]
-    print(str(year))
-    print(year_list)
-    time_index = year_list.index(str(year))
-    print(time_index)
+def sub_plot_error_area_at_threshold_basemap(ds, parameter, axis, year, vmin, vmax, threshold, unit='umol/l', bath_file=None, time_index=0):
 
     # Create a Basemap instance with Mercator projection
     m = Basemap(projection='merc', llcrnrlat=ds['lat'].min(), urcrnrlat=ds['lat'].max(),
@@ -293,13 +278,13 @@ def sub_plot_errorfields_basemap(ds, parameter, axis, year, show_depth, vmin, vm
     cbar.set_ticks(levels)
     axis.set_title(f'Errorfield at {show_depth} m', fontsize=6)
 
-def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interval):
+def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interval, time_index, BG):
     # 1 ml/l of O2 is approximately 43.570 µmol/kg
     # (assumes a molar volume of O2 of 22.392 l/mole and
     # a constant seawater potential density of 1025 kg/m3).
     # https://www.nodc.noaa.gov/OC5/WOD/wod18-notes.html
     unit = 'umol/l'
-    #Fullt sätt att fixa till den sträng som threshold_list verkar ha blivit när det var inne en sväng i julia.
+    #Fult sätt att fixa till den sträng som threshold_list verkar ha blivit när det var inne en sväng i julia.
     threshold_list = eval(threshold_list.replace("Any", ""))
 
     n_figs = len(threshold_list)
@@ -322,20 +307,20 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
 
     if 0 in threshold_list:
         if season == "Winter":
-            fig.suptitle(f"Hypoxia and anoxia: {'BG' if np.isnan(year) else f'{int(year-1)}-{int(year)}'} {season}", fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
+            fig.suptitle(f"Hypoxia and anoxia: {'BG' if BG else f'{int(year)-1}-{int(year)}'} {season}", fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
                          verticalalignment='bottom')
         else:
-            fig.suptitle(f"Hypoxia and anoxia: {'BG' if np.isnan(year) else f'{int(year)}'} {season}", fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='bottom')
+            fig.suptitle(f"Hypoxia and anoxia: {'BG' if BG else f'{int(year)}'} {season}", fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='bottom')
     else:
         if season == "Winter":
-            fig.suptitle(f"{'BG' if np.isnan(year) else f'{int(year-1)}-{int(year)}'} {season}", fontsize=8, x=0.5, y=0.53, horizontalalignment='center',
+            fig.suptitle(f"{'BG' if BG else f'{int(year-1)}-{int(year)}'} {season}", fontsize=8, x=0.5, y=0.53, horizontalalignment='center',
                          verticalalignment='center')
         else:
-            fig.suptitle(f"{'BG' if np.isnan(year) else f'{int(year)}'} {season}", fontsize=8, x=0.5, y=0.53, horizontalalignment='center',
+            fig.suptitle(f"{'BG' if BG else f'{int(year)}'} {season}", fontsize=8, x=0.5, y=0.53, horizontalalignment='center',
                      verticalalignment='center')
 
     # Save the plot
-    if "Background" in netcdf_filename:
+    if BG:
         plt.savefig(f'{results_dir}/figures/BG_threshold_result{str(interval).replace(", ", "_")}_{season}.png', dpi=300,
                     transparent=False)
         plt.close()
@@ -372,13 +357,13 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
     # Add title and labels
     # Set the title for the whole figure
     if season == "Winter":
-        fig.suptitle(f'{year-1}-{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
+        fig.suptitle(f'{int(year)-1}-{int(year)} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
                      verticalalignment='top')
     else:
         fig.suptitle(f'{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
 
     # Save the plot
-    if "Background" in netcdf_filename:
+    if BG:
         plt.savefig(f'{results_dir}/figures/BG_surf_{str(interval).replace(", ", "_")}_{season}.png', dpi=300, transparent=False)
         plt.close()
     else:
@@ -397,7 +382,6 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
         vmin_o2 = 90
         vmax_o2 = 360
 
-    # 1111111 Plot the data on the 1st subplot
     # on the 1st and 2nd plot we show oxygen set min and max for colorscale
     subplot_no = 0
     for show_depth in [60, 70, 80, 90]:
@@ -410,17 +394,16 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
         except ValueError:
             continue
 
-
     # Add title and labels
     # Set the title for the whole figure
     if season == "Winter":
-        fig.suptitle(f'{year-1}-{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
+        fig.suptitle(f'{int(year)-1}-{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
                      verticalalignment='top')
     else:
         fig.suptitle(f'{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
 
     # Save the plot
-    if "Background" in netcdf_filename:
+    if BG:
         plt.savefig(f'{results_dir}/figures/BG_halo_{str(interval).replace(", ", "_")}_{season}.png', dpi=300, transparent=False)
         plt.close()
     else:
@@ -438,7 +421,7 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
     else:
         vmin_o2 = 90
         vmax_o2 = 360
-    # 1111111 Plot the data on the 1st subplot
+
     # on the 1st and 2nd plot we show oxygen set min and max for colorscale
     subplot_no = 0
     skipped_depth = []
@@ -460,13 +443,13 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
         # Add title and labels
         # Set the title for the whole figure
         if season == "Winter":
-            fig.suptitle(f'{year - 1}-{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
+            fig.suptitle(f'{int(year) - 1}-{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
                          verticalalignment='top')
         else:
             fig.suptitle(f'{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
 
         # Save the plot
-        if "Background" in netcdf_filename:
+        if BG:
             plt.savefig(f'{results_dir}/figures/BG_deep_{str(interval).replace(", ", "_")}_{season}.png', dpi=300, transparent=False)
             plt.close()
         else:
@@ -511,7 +494,7 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
         # Add title and labels
         # Set the title for the whole figure
         if season == "Winter":
-            fig.suptitle(f'{year - 1}-{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
+            fig.suptitle(f'{int(year) - 1}-{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
                          verticalalignment='top')
         else:
             fig.suptitle(f'Hypoxia and anoxia:  {year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
@@ -541,10 +524,9 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
                      verticalalignment='top')
         if len(threshold_list) < 3:
             print("Bara två thresholds, ändra legenden!")
-    #fake_marker =['none','none','none','none','o',]
 
     # Save the plot
-    if "Background" in netcdf_filename:
+    if BG:
         plt.savefig(f'{results_dir}/figures/BG'
                     f'_result_{str(interval).replace(", ", "_")}_{season}.png', dpi=300, transparent=False)
         plt.close()
@@ -554,46 +536,30 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
 
 ## extract values that are within our limits, save to a new variable and nc-file. ####
 
-def read_processed_nc(results_dir,file_list,year_list: json, yearlist_background: json):
-    year_list = json.loads(year_list)
-    yearlist_background = json.loads(yearlist_background)
-
+def read_processed_nc(results_dir,file_list):
+    
     for netcdf_filename in file_list:
+        BG = False
+        if 'Background' in netcdf_filename:
+            BG = True
+        
         print(f'plot from {netcdf_filename}')
         ds = xr.open_dataset(f"{results_dir}/processed/{netcdf_filename}", engine='h5netcdf')
+        
+        ds_year_list = [datetime.strftime(timestr.astype('datetime64[M]').item(), '%Y') for timestr in ds["time"][:].values]
+        if not len(ds_year_list) == 1:
+            print('Skipping file due to multiple years in files')
+            continue
+        ds_year = ds_year_list[0]    
+        time_index = 0
         season = ds.attrs['season']
         epsilon = ds.attrs['epsilon']
         threshold_list = ds.attrs['threshold_list']
         corrlen = ds.attrs['horizontal correlation length m']
-        #start_year = ds.attrs['start year']
-        #end_year = ds.attrs['end year']
 
-        if "Background" in netcdf_filename:
-            print(f'Plot background...')
-            #Calculate mid - years based on yearlist_background
-            mid_years = [(start + end) // 2 for start, end in yearlist_background]
-
-            interval_to_mid = {tuple(interval): mid for interval, mid in zip(yearlist_background, mid_years)}
-            used_intervals = set()
-
-            for year in year_list:
-                for interval_list in yearlist_background:
-                    interval = tuple(interval_list)
-                    start, end = interval
-                    if start <= year <= end:
-                        if interval not in used_intervals:
-                            mid = interval_to_mid[interval]
-                            used_intervals.add(interval)
-
-                            # Call your function here
-                            print(f"Year {year} hits interval {interval}, using mid-year {mid}")
-                            #plot(results_dir, netcdf_filename, np.nan, season, ds, threshold_list, interval)
-                            plot(results_dir, netcdf_filename, mid, season, ds, threshold_list, interval)
-        else:
-            for year in year_list:
-                print(f'plotting {year}')
-                interval=[]
-                plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interval)
+        print(str(ds_year))
+        interval = [int(ds_year) -1, int(ds_year) +1]   #Background year +/- 1
+        plot(results_dir, netcdf_filename, ds_year, season, ds, threshold_list, interval,time_index,BG)
 
 if __name__ == "__main__":
     print("running")

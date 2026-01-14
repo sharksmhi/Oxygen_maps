@@ -45,7 +45,7 @@ if __name__ == "__main__":
 
     # Input data filename
     #data_fname = "mat_file_1960_2024_reordered.txt"
-    data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_250619.txt"
+    data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_260113.txt"
 
     # Definiera basins
     #basin = "Kattegat"
@@ -102,8 +102,9 @@ if __name__ == "__main__":
     1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997,
     1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016,
     2017, 2018, 2019, 2020, 2021, 2022])
-    #year_list = json.dumps([1960, 1965, 1970, 1975, 1980, 1985, 1990, 1995, 2000, 2005, 2010, 2015, 2020])
-    year_list = json.dumps([2015])
+    year_list = json.dumps([1960, 1970,1980,1990,2000,2010,2015,2020,2023])
+    yearlist_background = year_list
+    #year_list = json.dumps([2015])
     print(f"calculating for years {year_list}")
 
     seasons_dict = {
@@ -153,6 +154,7 @@ if __name__ == "__main__":
     # #Call the function and save a json-file with a file_list containing the results. That we can send to the calculate_areas function.
     try:
         run_julia_function(args)
+        
     except Exception as e:
         # If exception occurs, prompt user
         print(e)
@@ -173,21 +175,21 @@ if __name__ == "__main__":
             print("No path was removed.")
             exit()
 
-    file_list = []
 
-    # Add backgroundfield and analysis to file_list to cal areas and plot
-    for season in json.loads(seasons):
-        file_list.append(f"Background_Oxygen_{years}_{season}_{epsilon_background}_{lenf}_{dx}_{w_depth}_{w_days}_{bath_file_name}.nc")
-        file_list.append(f"Oxygen_{min(json.loads(year_list))}-{max(json.loads(year_list))}_{season}_{json.loads(epsilon)}_{lenf}_{json.loads(dx)}_{w_depth}_{w_days}_{bath_file_name}_varcorrlenz.nc")
-    
+
+    #results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results//{basin.replace(' ', '_')}/20260114_1117/")
+
+    with open(f'{results_dir}/file_list.json', "r", encoding="utf-8") as f:
+        file_list = json.load(f)
+
     # #Calculate areas from DIVA-results and save in a new nc-file. Results in file_list
     print("calculating areas...")
     print(file_list)
     calculate_areas.calculate_areas(results_dir, file_list, json.loads(threshold_list), save_area_data)
 
     # Read and plot areas in file_list
-    print("plotting...")
-    plot_result.read_processed_nc(results_dir,file_list,year_list,yearlist_background)
+    #print("plotting...")
+    #plot_result.read_processed_nc(results_dir,file_list)
 
     #print("plotting area...")
     #plot_area.area_bar_plot(results_dir,year_list)

@@ -64,9 +64,8 @@ if !isdir(figdir)
 end
 
 # ## Load data big files created by program "data_handling"
-data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_250930"
+data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_260113"
 #data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_250619"
-#data_fname = "EMODNET_SHARK_ICES_SYKE_241216"
 #data_fname = "mat_file_1960_2024_reordered"
 @time obsval,obslon,obslat,obsdepth,obstime,obsid = loadbigfile(joinpath(location, "data/$data_fname.txt"));
 
@@ -104,26 +103,22 @@ lenz_ = Float64.(settings[basin]["lenz_"])
 lenf = Float64.(settings[basin]["lenf"])
 yearlist_json = settings[basin]["yearlist_background"]
 # Konvertera varje par i yearlist till ett intervall (range) i Julia
-year_list = [year[1]:year[2] for year in yearlist_json]
-years = settings[basin]["years"]
+#year_list = [year[1]:year[2] for year in yearlist_json]
+#years = settings[basin]["years"]
 threshold_list = settings[basin]["threshold_list"]
 
-@show(year_list)
-years = "3_run_years_all_month"
-# Ange vilket intervall du vill ha
+# Ange vilket intervall du vill ha på bakgrundfältet
 start_year = 1960
 end_year   = 2024
 
-# Skapa listan med rullande treårsintervall
-year_list = [[y-1, y, y+1] for y in start_year:end_year]  # [[1959,1960,1961],[]]
-#year_list = [(y-1):(y+1) for y = start_year:end_year]   # [[1959:1961],[]]
+# Skapa listan med rullande treårsintervall # [[1959,1960,1961],[], osv...]
+year_list = [[y-1, y, y+1] for y in start_year:end_year]  
+
 @show(year_list)
 
 #BACKGROUND
-
 #month_list = [ [11,12,1,2], [3,4,5], [6,7,8], [8,9,10]];  # Seasonal climatology
 month_list = [[1,2,3,4,5,6,7,8,9,10,11,12]];  # 3 whole years climatology
-TSbackground = DIVAnd.TimeSelectorYearListMonthList(year_list,month_list);
 
 #seasons=["Winter","Spring","Summer","Autumn"]
 #months=["(Nov-Feb)","(Mar-May)","(June-Aug)","(Aug-Oct)"];
@@ -135,7 +130,6 @@ timeorigin = DateTime(1900,1,1,0,0,0);
 aspect_ratio = 1/cos(mean(latr) * pi/180);
 
 "BATHYMETRY"
-#bathname = joinpath(location, "bathymetry/gebco_30sec_4.nc")
 bathname = joinpath(location, "data/bat_elevation_Baltic_Sea_masked.nc")
 bath_file_name = split(bathname,"/")[end]
 bathisglobal = true;
@@ -168,18 +162,14 @@ new_mask = mask_edit .* .!sel_mask1 .* .!sel_mask2 .* .!sel_mask3 .* .!sel_mask4
 
 # ## Analysis parameters
 sz = (length(lonr), length(latr), length(depthr));
-#lenf = 40_000.
 lenx = fill(lenf,sz)   # 200 km
 leny = fill(lenf,sz)   # 200 km
-#lenz = [min(max(10.,depthr[k]/150),300.) for i = 1:sz[1], j = 1:sz[2], k = 1:sz[3]]
-#lenz = fill(10,sz);      # 25 m
 lenz =  [lenz_[k] for i = 1:sz[1], j = 1:sz[2], k = 1:sz[3]];
 len = (lenx, leny, lenz);
 
 lx = lenf
 ly = lenf
 
-#epsilon = 0.1;
 epsilon = Float64.(settings["Global"]["epsilon_background"])
 
 w_depth = 5.
@@ -199,52 +189,10 @@ end
 @show maximum(rdiag),mean(rdiag)
 epsilon_weighted = epsilon * rdiag;
 
-
-# To include December from previous year in the analyse
-obstime_shifted = copy(obstime)
-# Get all dates with dec and nov and add one year to these specific dates.
-# Winter period will be jan-feb + nov-dec from previous year.
-#obstime_shifted[Dates.month.(obstime) .== 12 .| Dates.month.(obstime) .== 11] .+= Dates.Year(1)
-# Iterera över elementen och justera datum om månaden är 11 eller 12
-# for i in eachindex(obstime)
-#     month = Dates.month(obstime[i])  # Hämta månaden
-#     if month == 11 || month == 12
-#         obstime_shifted[i] += Year(1)  # Lägg till ett år
-#     end
-# end
+#obstime_shiftet removed! No need for that since we make BG-fields for a whole year
 
 # Settings for DIVAnd-------------------------------------------------------------------------------
 error_thresholds = [("L1", 0.3), ("L2", 0.5)];
-
-# Filnamn för utmatning
-output_file = "obstime_output.txt"
-
-# Skriv till fil
-open(output_file, "w") do io
-    write(io, "Original obstime and shifted obstime:\n")
-    for (orig, shifted) in zip(obstime, obstime_shifted)
-        write(io, "Original: $orig, Shifted: $shifted\n")
-    end
-end
-
-#println("Data written to $output_file")
-
-#filenamebackground = joinpath(outputdir, "$(replace(varname,' '=>'_'))_$(basin)_$(lenf)_$(epsilon)_$(years)_background_weighted_0.05_field_$(bath_file_name)")
-
-#  dbinfo = @time diva3d((lonr,latr,depthr,TSbackground),
-#             (obslon,obslat,obsdepth,obstime_shifted), obsval,
-#             len, epsilon_weighted,
-#             filenamebackground,varname,
-#             bathname=bathname,
-#             mask = new_mask,
-#             fitcorrlen = false,
-#             niter_e = 1,
-#             solver = :direct,
-#             MEMTOFIT = 120,
-#         );
-
-#A test to make separate files for each season in the background field to be able to calculate the
-#A list of created files
 
 # One metadata set up per season
 metadata=Array{DataStructures.OrderedDict{String,Any}}(undef,4) ;
@@ -257,7 +205,6 @@ for year_list_index in 1:length(year_list)
     @show(year_list[year_list_index][1])
     @show(year_list[year_list_index][2])
     @show(year_list[year_list_index][3])
-    #@show(year_list[year_list_index[1]] : year_list[year_list_index[3]])
     
     years = string(year_list[year_list_index][2]) # Year to the analysis +/- 1 år
 
@@ -364,12 +311,9 @@ for year_list_index in 1:length(year_list)
         @info("$(month_list[monthlist_index:monthlist_index])")
 
         # File name based on the variable (but all spaces are replaced by _)
-        #nc_filename = "Background_$(replace(varname,' '=>'_'))_$(years)_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(bath_file_name)_varcorrlenz.nc"
         nc_filename = "Background_$(replace(varname,' '=>'_'))_$(years)_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(bath_file_name)"
-        #nc_filename_res = "$(replace(varname,' '=>'_'))_$(minimum(year_list))-$(maximum(year_list))_$(season)_residuals.nc"
         nc_filepath = joinpath(outputdir, nc_filename)
-        #nc_filepath_res = joinpath("$(results_dir)/DIVArun", nc_filename_res)
-
+ 
         #Append the created files to file_list
         push!(file_list, nc_filename)
 
@@ -382,7 +326,7 @@ for year_list_index in 1:length(year_list)
         #ncglobalattrib,ncvarattrib = SDNMetadata(metadata_season,nc_filepath,varname,lonr,latr)
 
         dbinfo = @time diva3d((lonr,latr,depthr,TS),
-            (obslon,obslat,obsdepth,obstime_shifted),
+            (obslon,obslat,obsdepth,obstime),
             obsval,
             len,
             epsilon_weighted,
@@ -406,6 +350,6 @@ for year_list_index in 1:length(year_list)
         );
 
         # Save the observation metadata in the NetCDF file
-        DIVAnd.saveobs(nc_filepath,"Oxygen_data", obsval, (obslon,obslat,obsdepth,obstime_shifted),obsid, used = dbinfo[:used])
+        DIVAnd.saveobs(nc_filepath,"Oxygen_data", obsval, (obslon,obslat,obsdepth,obstime),obsid, used = dbinfo[:used])
     end    
 end

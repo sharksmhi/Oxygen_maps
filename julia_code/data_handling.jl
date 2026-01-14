@@ -12,8 +12,9 @@ Emodnet, SHARKweb, ICES and SYKE data
 -Merge to one dataset
 # ### Lena Viktorsson & Martin Hansson
 =#
+#import Pkg
 #using Pkg
-#Pkg.add("PyCall")
+#Pkg.add("CSV")
 
 # #### Add necessary packages
 using DIVAnd
@@ -62,7 +63,11 @@ unit = "umol/l";
 # File name based on the variable (but all spaces are replaced by _) _varlenz
 # data-files
 #location = "//winfs-proj/proj/havgem/DIVA/syrekartor/"
+#Lokal:
 location = "C:/Work/DIVAnd/Oxygen_maps/"
+#På Freja:
+location = "/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/"
+
 outputdir = joinpath(location,"data/");
 if !isdir(outputdir)
     mkpath(outputdir)
@@ -78,7 +83,8 @@ end
 # ## Load data big files
 # emodnet BTL + CTD
 @show("Loading SHARK BTL/CTD...")
-fname_shark = joinpath(location, "data/all_baltic/sharkweb_btlctd_02_241107.txt")
+#fname_shark = joinpath(location, "data/all_baltic/sharkweb_btlctd_02_241107.txt")
+fname_shark = joinpath(location, "data/all_baltic/sharkweb_btlctd_02_251128.txt")
 @time obsval_shark,obslon_shark,obslat_shark,obsdepth_shark,obstime_shark,obsid_shark = loadbigfile(fname_shark);
 
 @show("Loading IOW BTL/CTD...")
@@ -87,7 +93,8 @@ fname_iow = joinpath(location, "data/all_baltic/IOW_1959_2024.txt")
 obsid_iow = string.("IOW-",obsid_iow)
 
 @show("Loading EMODNET BTL...")
-datafile_emod_btl = joinpath(location, "data/EMODNET_2024/BTL_data_from_EMODnet_Eutrophication_European_2024_unrestricted.txt")
+#datafile_emod_btl = joinpath(location, "data/EMODNET_2024/BTL_data_from_EMODnet_Eutrophication_European_2024_unrestricted.txt")
+datafile_emod_btl = joinpath(location, "data/all_baltic/BTL_data_from_EMODnet_Eutrophication_European_2024_unrestricted.txt")
 @time obsval_emod_btl,obslon_emod_btl,obslat_emod_btl,obsdepth_emod_btl,obstime_emod_btl,obsid_emod_btl = ODVspreadsheet.load(Float64,[datafile_emod_btl],
                            ["Water body dissolved oxygen concentration"]; nametype = :localname );
 # obsid_emod_btl = LOCAL_CDI_ID + EMOD_CODE
@@ -95,6 +102,7 @@ obsid_emod_btl = string.("emod_btl-",obsid_emod_btl)
 
 @show("Loading EMODNET CTD...")
 datafile_emod_ctd = joinpath(location, "data/EMODNET_2024/CTD_data_from_EMODnet_Eutrophication_European_2024_unrestricted.txt")
+datafile_emod_ctd = joinpath(location, "data/all_baltic/CTD_data_from_EMODnet_Eutrophication_European_2024_unrestricted.txt")
 @time obsval_emod_ctd,obslon_emod_ctd,obslat_emod_ctd,obsdepth_emod_ctd,obstime_emod_ctd,obsid_emod_ctd = ODVspreadsheet.load(Float64,[datafile_emod_ctd],
                            ["Water body dissolved oxygen concentration"]; nametype = :localname );
 obsid_emod_ctd = string.("emod_ctd-",obsid_emod_ctd)
@@ -102,6 +110,7 @@ obsid_emod_ctd = string.("emod_ctd-",obsid_emod_ctd)
 
 @show("Loading ICES...")
 datafile_ices_btlctd = joinpath(location, "data/all_baltic/ICES_btl_lowres_ctd_02_241107.txt")
+datafile_ices_btlctd = joinpath(location, "data/all_baltic/ICES_btl_lowres_ctd_02_250328.txt")
 @time obsval_ices,obslon_ices,obslat_ices,obsdepth_ices,obstime_ices,obsid_ices = loadbigfile(datafile_ices_btlctd);
 obsid_ices = string.("ICES-", obsid_ices)
 @show(obsid_ices[1])
@@ -110,6 +119,7 @@ obsid_ices = string.("ICES-", obsid_ices)
 datafile_syke_btlctd = joinpath(location, "data/all_baltic/syke_data_no_header_241107.txt")
 @time obsval_syke,obslon_syke,obslat_syke,obsdepth_syke,obstime_syke,obsid_syke = loadbigfile(datafile_syke_btlctd);
 @show(obsid_syke[1])
+
 
 @show("Loading BAD-data file...data to be removed")
 datafile_bad_data = joinpath(location, "data/all_baltic/bad_data.txt")
@@ -188,9 +198,6 @@ obsdepth_shark_syke = [obsdepth_shark; obsdepth_syke[newpoints_syke]];
 obstime_shark_syke = [obstime_shark; obstime_syke[newpoints_syke]];
 obsval_shark_syke = [obsval_shark; obsval_syke[newpoints_syke]];
 obsid_shark_syke = [obsid_shark; obsid_syke[newpoints_syke]];
-
-
-
 
 # ## Remove IOW_data when SHARK_SYKE_data is available.
 # Remove true duplicates, hence when exactly the same data is found in both datasets.
@@ -416,7 +423,7 @@ println("\nFiltrerat data, antal rader:")
 println(nrow(filtered_data))
 
 # Skriver data till fil
-filename = "SHARK_SYKE_IOW_EMODNET_ICES_250619"
+filename = "SHARK_SYKE_IOW_EMODNET_ICES_260113"
 CSV.write(joinpath(outputdir, "$(filename).txt"), filtered_data, delim="\t", writeheader=false)
 CSV.write(joinpath(outputdir, "$(filename)_with_header.txt"), filtered_data, delim="\t", writeheader=true)
 #DIVAnd.saveobs(joinpath(outputdir, "$(filename).nc"),varname, obsval, (obslon,obslat,obsdepth,obstime),obsid)

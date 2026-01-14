@@ -1,7 +1,7 @@
 {   "Global": {
             "w_depth": 5,
             "w_days": 2,
-            "epsilon_background": 2
+            "epsilon_background": 2.0
             },
     "Baltic_Proper": {
             "lonr": [9,31],
