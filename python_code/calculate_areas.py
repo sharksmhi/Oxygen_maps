@@ -101,6 +101,7 @@ def area_at_threshold(threshold, ds, df):
 
 
 def calculate_areas(results_dir, file_list, threshold_list, save_area_data=False):
+    print("calculating areas...")
     #List for results to txt
     area_results_BG = []
     area_results = []
@@ -108,70 +109,41 @@ def calculate_areas(results_dir, file_list, threshold_list, save_area_data=False
     fig, axs = plt.subplots(1, 1, figsize=(10, 8))
     fig2, axs2 = plt.subplots(1, 1, figsize=(10, 8))
     for netcdf_filename in file_list:
+        ds = xr.open_dataset(f"{results_dir}/DIVArun/{netcdf_filename}")
+        print(f"{results_dir}/DIVArun/{netcdf_filename}")
+        print(ds.attrs)
+        season = ds.attrs['season']
+        start_year = ds.attrs['start year']
+        end_year = ds.attrs['end year']
+        ### Calculate area of all grid cells
+        # Get the latitude and longitude coordinates
+        lon, lat = np.meshgrid(ds['lon'], ds['lat'])
 
+        grid_areas = calculate_grid_areas(latitudes=lat, longitudes=lon)
+        # assign the calculated areas to the dataset and return the updated dataset
+        ds = ds.assign(grid_area=(('lat', 'lon'), grid_areas))
+        ### Find anox gridcells and set them to 1 all others to NaN
+        #To do: Ändra så att vi kan skicka in en lista på gränsvärden.
+
+        df = pd.DataFrame()
+        for threshold in threshold_list:
+            area_at_threshold(threshold, ds, df)
+        # save the updated dataset
+        print(f"writing to {results_dir}/processed/{netcdf_filename}...")
+        ds.to_netcdf(f'{results_dir}/processed/{netcdf_filename}') # rewrite to netcdf
+
+        df["year"] = ds.time.values.astype('datetime64[Y]').astype(int) + 1970
+        df["season"] = season
         if "Background" in netcdf_filename:
-
-            ds = xr.open_dataset(f"{results_dir}/DIVArun/{netcdf_filename}")
-            print(f"{results_dir}/DIVArun/{netcdf_filename}")
-            print(ds.attrs)
-            season = ds.attrs['season']
-            start_year = ds.attrs['start year']
-            end_year = ds.attrs['end year']
-            ### Calculate area of all grid cells
-            # Get the latitude and longitude coordinates
-            lon, lat = np.meshgrid(ds['lon'], ds['lat'])
-            grid_areas = calculate_grid_areas(latitudes=lat, longitudes=lon)
-            # assign the calculated areas to the dataset and return the updated dataset
-            ds = ds.assign(grid_area=(('lat', 'lon'), grid_areas))
-
-            var_name = "Oxygen"
-            relerr_lim = 0.5
-            ### Find anox gridcells and set them to 1 all others to NaN
-            # To do: Ändra så att vi kan skicka in en lista på gränsvärden.
-            df = pd.DataFrame()
-            for threshold in threshold_list:
-                area_at_threshold(threshold, ds, df)
-            df["year"] = ds.time.values.astype('datetime64[Y]').astype(int) + 1970
-            df["season"] = season
             area_results_BG.append(df)
-
             # save the updated dataset
             print(f"writing to {results_dir}/processed/{netcdf_filename}...")
-            ds.to_netcdf(f'{results_dir}/processed/{netcdf_filename}')  # rewrite to netcdf
-
+            
             # combing area results from all seasons and saving to a textfile
             if save_area_data:
                 pd.concat(area_results_BG).to_csv(f'{results_dir}/Background_area_data.txt', sep='\t', index=False)
-
         else:
-            ds = xr.open_dataset(f"{results_dir}/DIVArun/{netcdf_filename}")
-            print(f"{results_dir}/DIVArun/{netcdf_filename}")
-            #print(ds.attrs)
-            season = ds.attrs['season']
-            start_year = ds.attrs['start year']
-            end_year = ds.attrs['end year']
-            ### Calculate area of all grid cells
-            # Get the latitude and longitude coordinates
-            lon, lat = np.meshgrid(ds['lon'], ds['lat'])
-            grid_areas = calculate_grid_areas(latitudes=lat, longitudes=lon)
-            # assign the calculated areas to the dataset and return the updated dataset
-            ds = ds.assign(grid_area=(('lat', 'lon'), grid_areas))
-
-            var_name = "Oxygen"
-            relerr_lim = 0.5
-            ### Find anox gridcells and set them to 1 all others to NaN
-            #To do: Ändra så att vi kan skicka in en lista på gränsvärden.
-            df = pd.DataFrame()
-            for threshold in threshold_list:
-                area_at_threshold(threshold,ds,df)
-            df["year"] = ds.time.values.astype('datetime64[Y]').astype(int) + 1970
-            df["season"] = season
             area_results.append(df)
-
-            # save the updated dataset
-            print(f"writing to {results_dir}/processed/{netcdf_filename}...")
-            ds.to_netcdf(f'{results_dir}/processed/{netcdf_filename}') # rewrite to netcdf
-
             # combing area results from all seasons and saving to a textfile
             if save_area_data:
                 pd.concat(area_results).to_csv(f'{results_dir}/area_data_{start_year}_{end_year}.txt', sep='\t', index=False)

@@ -154,7 +154,7 @@ if __name__ == "__main__":
     # #Call the function and save a json-file with a file_list containing the results. That we can send to the calculate_areas function.
     try:
         run_julia_function(args)
-        
+        #print("skipping julia run")
     except Exception as e:
         # If exception occurs, prompt user
         print(e)
@@ -175,21 +175,17 @@ if __name__ == "__main__":
             print("No path was removed.")
             exit()
 
-
-
     #results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results//{basin.replace(' ', '_')}/20260114_1117/")
 
     with open(f'{results_dir}/file_list.json', "r", encoding="utf-8") as f:
         file_list = json.load(f)
 
     # #Calculate areas from DIVA-results and save in a new nc-file. Results in file_list
-    print("calculating areas...")
-    print(file_list)
+    print(f"{len(file_list)} files in filelist")
     calculate_areas.calculate_areas(results_dir, file_list, json.loads(threshold_list), save_area_data)
 
     # Read and plot areas in file_list
-    #print("plotting...")
-    #plot_result.read_processed_nc(results_dir,file_list)
+    plot_result.read_processed_nc(results_dir, file_list)
 
     #print("plotting area...")
     #plot_area.area_bar_plot(results_dir,year_list)

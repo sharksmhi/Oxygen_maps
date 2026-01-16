@@ -6,8 +6,7 @@ from datetime import datetime
 import pandas as pd
 import json
 from mpl_toolkits.basemap import Basemap
-from mpl_toolkits.axes_grid1 import inset_locator
-from mpl_toolkits.axes_grid1 import make_axes_locatable
+from mpl_toolkits.axes_grid1 import inset_locator, make_axes_locatable
 import matplotlib as mpl
 import matplotlib.patches as mpatches
 
@@ -54,18 +53,35 @@ def sub_plot_parameter_basemap(ds, parameter, axis, year, show_depth, vmin, vmax
 
 def sub_plot_only_observations(ds, axis, year, 
                                   show_depth = 0, vmin = 0, vmax = 180, observation_span=2, 
-                                  colorbar = True, color = 'k', time_index=0):
-    
+                                  colorbar = True, color = 'k', time_index=0, BG=False):
 
     time_value = ds['time'][time_index].values.astype('datetime64[M]').item()
-
+    start_year = ds.attrs["start year"]
+    end_year = ds.attrs["end year"]
+    if not (int(start_year) <= int(year) <= int(end_year)):
+        print(f"WARNING: {year} to plot not in range {start_dt.year}-{end_dt.year}")
+        
+    # Convert start/end years to pandas Timestamps
+    start_dt = pd.Timestamp(f"{int(start_year)}-01-01")
+    end_dt = pd.Timestamp(f"{int(end_year)}-12-31")
+    # If we are plotting a background field we want observations from all years used
+    # If it is not a background field we want observations from the year of the analysis
+    # after the change to make one netcdf per analysed year, 
+    if not BG:
+        year = time_value.year
+        start_dt = pd.Timestamp(f"{year}-01-01")
+        end_dt = pd.Timestamp(f"{year}-12-31")
     # Plocka ut observationer
     # OBS att DIVAnd resultatet ligger under dimensionen 'Oxygen' i datasetet och obsevrationerna under 'Oxygen_data'
     df = pd.DataFrame(
         {'obsyear': ds['obsyear'], 'obslon': ds['obslon'], 'obslat': ds['obslat'], 'Oxygen_data': ds['Oxygen_data'],
          'depth': ds['obsdepth']})
-    selection = ((df.obsyear == datetime.strftime(time_value, '%Y')) & (
-            df.depth >= show_depth - observation_span) & (df.depth <= show_depth + observation_span))
+    selection = (
+        (df.obsyear >= start_dt) &
+        (df.obsyear <= end_dt) &
+        (df.depth >= show_depth - observation_span) &
+        (df.depth <= show_depth + observation_span)
+    )
 
     observations = df.loc[selection, 'Oxygen_data']
     lon = df.loc[selection, 'obslon']
@@ -110,17 +126,36 @@ def sub_plot_only_observations(ds, axis, year,
 
 def sub_plot_observations_basemap(ds, parameter, axis, year, 
                                   show_depth = 0, vmin = 0, vmax = 180, observation_span=2, 
-                                  colorbar = True, color = 'k', time_index=0):
+                                  colorbar = True, color = 'k', time_index=0, BG = False):
     
     time_value = ds['time'][time_index].values.astype('datetime64[M]').item()
+    start_year = ds.attrs["start year"]
+    end_year = ds.attrs["end year"]
+    if not (int(start_year) <= int(year) <= int(end_year)):
+        print(f"WARNING: {year} to plot not in range {start_dt.year}-{end_dt.year}")
+        
+    # Convert start/end years to pandas Timestamps
+    start_dt = pd.Timestamp(f"{int(start_year)}-01-01")
+    end_dt = pd.Timestamp(f"{int(end_year)}-12-31")
+    # If we are plotting a background field we want observations from all years used
+    # If it is not a background field we want observations from the year of the analysis
+    # after the change to make one netcdf per analysed year, 
+    if not BG:
+        year = time_value.year
+        start_dt = pd.Timestamp(f"{year}-01-01")
+        end_dt = pd.Timestamp(f"{year}-12-31")    
 
     # Plocka ut observationer
     # OBS att DIVAnd resultatet ligger under dimensionen 'Oxygen' i datasetet och obsevrationerna under 'Oxygen_data'
     df = pd.DataFrame(
         {'obsyear': ds['obsyear'], 'obslon': ds['obslon'], 'obslat': ds['obslat'], 'Oxygen_data': ds['Oxygen_data'],
          'depth': ds['obsdepth']})
-    selection = ((df.obsyear == datetime.strftime(time_value, '%Y')) & (
-            df.depth >= show_depth - observation_span) & (df.depth <= show_depth + observation_span))
+    selection = (
+        (df.obsyear >= start_dt) &
+        (df.obsyear <= end_dt) &
+        (df.depth >= show_depth - observation_span) &
+        (df.depth <= show_depth + observation_span)
+    )
 
     observations = df.loc[selection, 'Oxygen_data']
     lon = df.loc[selection, 'obslon']
@@ -284,12 +319,14 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
     # a constant seawater potential density of 1025 kg/m3).
     # https://www.nodc.noaa.gov/OC5/WOD/wod18-notes.html
     unit = 'umol/l'
-    #Fult sätt att fixa till den sträng som threshold_list verkar ha blivit när det var inne en sväng i julia.
-    threshold_list = eval(threshold_list.replace("Any", ""))
+    print(f"now plotting from: {netcdf_filename}")
+    ############### FIRST plot, threshold results #################
 
-    n_figs = len(threshold_list)
-    # plot of areas at thresholds
+    # Row 1: maps with error fields for each threshol
+    # Row 2: maps of the depth of the onset of each threshold
     # Create a 2x2 grid of subplots
+    n_figs = len(threshold_list)
+    
     fig, axs = plt.subplots(2, n_figs, figsize=(10, 4.5))
     # Adjust the spacing between subplots
     fig.tight_layout()
@@ -329,6 +366,8 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
                     transparent=False)
         plt.close()
 
+    ################### SECOND plot surface layer results ############################
+
     # plots of results at 4 different depths 10, 40, 50, 60
     fig, axs = plt.subplots(2, 4, figsize=(10, 4.5))
     # Adjust the spacing between subplots
@@ -340,13 +379,12 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
         vmin_o2 = 90
         vmax_o2 = 360
 
-    # 1111111 Plot the data on the 1st subplot
     # on the 1st and 2nd plot we show oxygen set min and max for colorscale
     subplot_no = 0
     for show_depth in [10, 20, 30, 50]:
         try:
             sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, subplot_no], year=year, show_depth=show_depth, vmin=vmin_o2,
-                                        vmax=vmax_o2)
+                                        vmax=vmax_o2, BG=BG)
 
             sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[1, subplot_no], year=year, show_depth=show_depth,
                                         vmin=0, vmax=0.5)
@@ -370,6 +408,8 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
         plt.savefig(f'{results_dir}/figures/surf_{year}_{season}.png', dpi=300, transparent=False)
         plt.close()
 
+    ######################## THIRD plot halocline results #############################
+
     # plots of results at 4 different depths 60, 70, 80, 90
     fig, axs = plt.subplots(2, 4, figsize=(10, 4.5))
     # Adjust the spacing between subplots
@@ -386,7 +426,7 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
     subplot_no = 0
     for show_depth in [60, 70, 80, 90]:
         try:
-            sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, subplot_no], year=year, show_depth=show_depth, vmin=vmin_o2, vmax=vmax_o2)
+            sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, subplot_no], year=year, show_depth=show_depth, vmin=vmin_o2, vmax=vmax_o2, BG=BG)
 
             sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[1, subplot_no], year=year, show_depth=show_depth,
                                         vmin=0, vmax=0.5)
@@ -410,6 +450,8 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
         plt.savefig(f'{results_dir}/figures/halo_{year}_{season}.png', dpi = 300, transparent=False)
         plt.close()
 
+    ################# FOURTH plot results in the deep water ########################
+
     # plots of results at 4 different depths 100, 110, 125, 150
     fig, axs = plt.subplots(2, 4, figsize=(10, 4.5)) #4
     # Adjust the spacing between subplots
@@ -428,7 +470,7 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
     for show_depth in [100, 110, 125, 150]:
         try:
             sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, subplot_no], year=year, show_depth=show_depth, vmin=vmin_o2,
-                                    vmax=vmax_o2)
+                                    vmax=vmax_o2, BG=BG)
 
             sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[1, subplot_no], year=year, show_depth=show_depth,
                                     vmin=0, vmax=0.5)
@@ -456,6 +498,8 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
             plt.savefig(f'{results_dir}/figures/deep_{year}_{season}.png', dpi=300, transparent=False)
             plt.close()
 
+    ################# FIFTH plot final result map  ###########################
+
     # plots of results all observations and hypox area and with anox area overlayed
     fig, axs = plt.subplots(1, 1, figsize=(10, 4.5))
     # Adjust the spacing between subplots
@@ -474,7 +518,7 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
     for index, threshold in enumerate(threshold_list):
         sub_plot_area_at_threshold_basemap(ds, parameter=f'Relerr_per_grid_at_min_{threshold}_depth', axis=axs, year=year, colorbar=False, color = 'none', hatches=[hatches_list[index]],threshold=threshold)
 
-    sub_plot_only_observations(ds, axis=axs, year=year, colorbar=False, color = 'r',observation_span = 500)
+    sub_plot_only_observations(ds, axis=axs, year=year, colorbar=False, color = 'r',observation_span = 500, BG=BG)
 
     # Lägg till en "fejk" legend om syrefritt är med
     if 0 in threshold_list:
@@ -536,14 +580,13 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
 
 ## extract values that are within our limits, save to a new variable and nc-file. ####
 
-def read_processed_nc(results_dir,file_list):
+def read_processed_nc(results_dir, file_list):
     
     for netcdf_filename in file_list:
         BG = False
         if 'Background' in netcdf_filename:
             BG = True
         
-        print(f'plot from {netcdf_filename}')
         ds = xr.open_dataset(f"{results_dir}/processed/{netcdf_filename}", engine='h5netcdf')
         
         ds_year_list = [datetime.strftime(timestr.astype('datetime64[M]').item(), '%Y') for timestr in ds["time"][:].values]
@@ -555,11 +598,13 @@ def read_processed_nc(results_dir,file_list):
         season = ds.attrs['season']
         epsilon = ds.attrs['epsilon']
         threshold_list = ds.attrs['threshold_list']
+        # När attribute till nc sätts blir det av type Any, läses som en str från ds.attrs
+        threshold_list = eval(threshold_list.replace("Any", ""))
         corrlen = ds.attrs['horizontal correlation length m']
 
-        print(str(ds_year))
+        print(f"year in netcdf: {str(ds_year)}")
         interval = [int(ds_year) -1, int(ds_year) +1]   #Background year +/- 1
-        plot(results_dir, netcdf_filename, ds_year, season, ds, threshold_list, interval,time_index,BG)
+        plot(results_dir, netcdf_filename, ds_year, season, ds, threshold_list, interval, time_index, BG)
 
 if __name__ == "__main__":
     print("running")
@@ -578,8 +623,4 @@ if __name__ == "__main__":
 
     year_list = json.dumps([2015])
     yearlist_background = json.dumps([[1960, 1969], [1970, 1979], [1980, 1989], [1990, 1999], [2000, 2009], [2010, 2019], [2020, 2024]])
-    ##ear_list = json.dumps([1960, 1961, 1962, 1963, 1964, 1965, 1966, 1967, 1968, 1969, 1970, 1971, 1972, 1973, 1974, 1975, 1976, 1977, 1978,
-    # 1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997,
-    # 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016,
-    # 2017, 2018, 2019, 2020, 2021]);
     read_processed_nc(results_dir, file_list, year_list, yearlist_background)
