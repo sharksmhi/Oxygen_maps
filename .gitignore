@@ -1,5 +1,6 @@
 bathymetry/**
 .idea/**
+.venv/**
 data/**
 resultat/**
 python_code/test*
