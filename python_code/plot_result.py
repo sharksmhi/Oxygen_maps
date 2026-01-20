@@ -1,16 +1,30 @@
+from pathlib import Path
 import xarray as xr
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap, BoundaryNorm
 from datetime import datetime
 import pandas as pd
-import json
-from mpl_toolkits.basemap import Basemap
-from mpl_toolkits.axes_grid1 import inset_locator, make_axes_locatable
+import cartopy.crs as ccrs
+from cartopy.mpl.ticker import (LongitudeFormatter, LatitudeFormatter,
+                                LatitudeLocator)
+from mpl_toolkits.axes_grid1 import inset_locator
 import matplotlib as mpl
 import matplotlib.patches as mpatches
 
 mpl.rcParams['hatch.linewidth'] = 0.1
+
+def add_created_stamp(ax, author="SMHI", fontsize=6):
+    today = datetime.today().strftime("%Y-%m-%d")
+    ax.text(
+        0.02, 0.98,
+        f"Created {today} by {author}",
+        transform=ax.transAxes,
+        ha="left",
+        va="top",
+        fontsize=fontsize,
+        bbox=dict(facecolor="white", alpha=0.6, edgecolor="none"),
+    )
 
 def create_custom_colormap(levels, colors):
     cmap = ListedColormap(colors)
@@ -18,256 +32,325 @@ def create_custom_colormap(levels, colors):
 
     return cmap, norm
 
-def set_up_basemap(ds, axis):
-    # Create a Basemap instance
-    m = Basemap(projection='merc', llcrnrlat=ds['lat'].min(), urcrnrlat=ds['lat'].max(),
-                llcrnrlon=ds['lon'].min(), urcrnrlon=ds['lon'].max(), resolution='l', ax=axis)
+def oxygen_cmap_norm(vmin, vmax, step=45):
+    levels = np.arange(vmin, vmax + step, step)
+    colors = ['black', 'brown', 'red', 'orange', 'yellow', 'green']
+    cmap, _ = create_custom_colormap(levels, colors)
+    norm = plt.Normalize(vmin=vmin, vmax=vmax)
+    return cmap, norm, levels
 
-    # Rita kustlinjer
-    m.drawcoastlines(linewidth=0.5, color='gray')
-
-    # Rita meridian- och parallelgränser med anpassade intervall
-    m.drawmeridians(np.arange(9, 31, 4), labels=[True, False, False, True], linewidth=0.1, fontsize=3)
-    m.drawparallels(np.arange(54, 67, 1), labels=[True, False, False, True], linewidth=0.1, fontsize=3)
-
-    return m
-
-def sub_plot_parameter_basemap(ds, parameter, axis, year, show_depth, vmin, vmax, observation_span=2, bath_file=None, time_index=0):
+def create_colorbar(axis, plot_object, levels, title = None):
+    # Create an inset_axes for the colorbar
+    cbax = inset_locator.inset_axes(
+        axis,
+        width="40%",
+        height="3%",
+        loc="lower right",
+        bbox_to_anchor=(0, 0.1, 1, 1),
+        bbox_transform=axis.transAxes,
+    )
+    cbar = plt.colorbar(plot_object, cax=cbax, orientation='horizontal')
+    cbar.ax.tick_params(labelsize=5)
+    cbar.set_ticks(levels)
     
-    depth_index = ds["depth"][:].values == show_depth
+    if title is not None:
+        cbar.ax.set_title(title, fontsize=6, pad=2)
 
-    # Create a Basemap instance
-    m = set_up_basemap(ds, axis)
+    return cbar
 
-    # Plot data
-    data = ds[parameter].sel(time=ds['time'][time_index], depth = ds['depth'][depth_index]).squeeze()
-    lon = ds['lon'].values
-    lat = ds['lat'].values
+def set_up_cartopy_map(axis):
+    """
+    Create a map with cartopy in the given axis. 
+    The map projections is PlateCarre to be able to plot gridlines and ticks.
+    When creating the figures use ccrs.Mercator() to get a map with better ratio for our latitudes
+    
+    :param axis: matplotlib axis object
+    """
+    # Set map extent
+    axis.set_extent(
+        [
+            9,
+            29,
+            53.5,
+            61,
+        ],
+        crs=ccrs.PlateCarree()
+    )
 
-    lon, lat = np.meshgrid(lon, lat)
-    lon, lat = m(lon, lat)
+    # Coastlines
+    axis.coastlines(resolution='10m', linewidth=0.5, color='gray')
 
-    pcm = m.pcolormesh(lon, lat, data, cmap='jet', vmin=vmin, vmax=vmax)
+    # Gridlines (meridians/parallels)
+    gl = axis.gridlines(
+        crs=ccrs.PlateCarree(), 
+        draw_labels=True,
+        linewidth=0.1,
+        color='gray',
+        alpha=0.5
+    )
+    gl.ylocator = LatitudeLocator()
+    gl.xformatter = LongitudeFormatter()
+    gl.yformatter = LatitudeFormatter()
+    gl.top_labels = False
+    gl.right_labels = False
+    gl.xlabel_style = {'size': 6}
+    gl.ylabel_style = {'size': 6}
 
-    return m, pcm
+    return axis
 
-def sub_plot_only_observations(ds, axis, year, 
-                                  show_depth = 0, vmin = 0, vmax = 180, observation_span=2, 
-                                  colorbar = True, color = 'k', time_index=0, BG=False):
+def plot_parameter(
+    ds,
+    parameter,
+    axis,
+    show_depth=None,
+    vmin=None,
+    vmax=None,
+    levels=None,
+    colors=None,
+    time_index=0,
+    cmap=None,
+    norm=None,
+    hatches=None,
+    contourf=False
+):
+    """
+    Plots a parameter from the xarray ds at the specified depth and time
+    """
+    axis = set_up_cartopy_map(axis)
 
+    # select data to plot
+    if "depth" in ds[parameter].dims and show_depth is not None:
+        depth_index = ds["depth"].values == show_depth
+        data = (
+            ds[parameter]
+            .isel(time=time_index)
+            .sel(depth=ds["depth"][depth_index])
+            .squeeze()
+        )
+    else:
+        data = ds[parameter].isel(time=time_index).squeeze()
+
+    lon = ds["lon"].values
+    lat = ds["lat"].values
+
+    lon2d, lat2d = np.meshgrid(lon, lat)
+
+    # Build colormap & normalization if not provided
+    if cmap is None or norm is None:
+        if levels is not None and colors is not None:
+            # Discrete colormap
+            cmap, _ = create_custom_colormap(levels, colors)
+            norm = plt.Normalize(vmin=min(levels), vmax=max(levels))
+        elif vmin is not None and vmax is not None:
+            # Continuous colormap
+            cmap = plt.get_cmap('jet') if cmap is None else cmap
+            norm = plt.Normalize(vmin=vmin, vmax=vmax)
+        else:
+            # Default fallback
+            cmap = plt.get_cmap('jet')
+            norm = plt.Normalize(vmin=float(data.min()), vmax=float(data.max()))
+
+    # add data to the axis and return axis and pcm to later change cmap
+    if contourf:
+        pcm = axis.contourf(
+            lon,
+            lat,
+            data,
+            levels=levels,
+            colors=colors,
+            hatches=hatches,
+            transform=ccrs.PlateCarree(),
+        )
+    else:
+        pcm = axis.pcolormesh(
+            lon2d,
+            lat2d,
+            data,
+            cmap=cmap,
+            norm=norm,
+            transform=ccrs.PlateCarree(),
+        )
+    
+
+    return pcm
+
+def overlay_observations(
+    ds, axis, year,
+    show_depth, observation_span,
+    cmap, norm,
+    time_index=0, BG=False
+):
+    """
+    plots observations as scatter with colors from the observation values.
+    """
     time_value = ds['time'][time_index].values.astype('datetime64[M]').item()
     start_year = ds.attrs["start year"]
     end_year = ds.attrs["end year"]
-    if not (int(start_year) <= int(year) <= int(end_year)):
-        print(f"WARNING: {year} to plot not in range {start_dt.year}-{end_dt.year}")
-        
-    # Convert start/end years to pandas Timestamps
+
     start_dt = pd.Timestamp(f"{int(start_year)}-01-01")
     end_dt = pd.Timestamp(f"{int(end_year)}-12-31")
-    # If we are plotting a background field we want observations from all years used
-    # If it is not a background field we want observations from the year of the analysis
-    # after the change to make one netcdf per analysed year, 
+
     if not BG:
         year = time_value.year
         start_dt = pd.Timestamp(f"{year}-01-01")
         end_dt = pd.Timestamp(f"{year}-12-31")
-    # Plocka ut observationer
-    # OBS att DIVAnd resultatet ligger under dimensionen 'Oxygen' i datasetet och obsevrationerna under 'Oxygen_data'
-    df = pd.DataFrame(
-        {'obsyear': ds['obsyear'], 'obslon': ds['obslon'], 'obslat': ds['obslat'], 'Oxygen_data': ds['Oxygen_data'],
-         'depth': ds['obsdepth']})
-    selection = (
+
+    df = pd.DataFrame({
+        'obsyear': ds['obsyear'],
+        'obslon': ds['obslon'],
+        'obslat': ds['obslat'],
+        'value': ds['Oxygen_data'],
+        'depth': ds['obsdepth'],
+    })
+
+    sel = (
         (df.obsyear >= start_dt) &
         (df.obsyear <= end_dt) &
         (df.depth >= show_depth - observation_span) &
         (df.depth <= show_depth + observation_span)
     )
 
-    observations = df.loc[selection, 'Oxygen_data']
-    lon = df.loc[selection, 'obslon']
-    lat = df.loc[selection, 'obslat']
-
-    m = set_up_basemap(ds, axis)
-    lon, lat = m(lon, lat)
-
-    if colorbar:
-        levels = np.arange(vmin, vmax, 45)
-        colors = ['black', 'brown', 'red', 'orange', 'yellow', 'green']
-        # Create the custom colormap
-        cmap, norm = create_custom_colormap(levels, colors)
-        pcm = m.pcolormesh(lon, lat, observations, cmap='jet', vmin=vmin, vmax=vmax)
-
-        # Change the colormap after the plot is created
-        pcm.set_cmap(cmap)
-        pcm.set_norm(norm)
-        # Change vmin and vmax after the plot is created
-        pcm.set_clim(vmin=vmin, vmax=vmax)
-
-        m.scatter(lon, lat, s=5, c=observations, cmap=cmap, edgecolors='k', linewidth=0.2, alpha=0.5,
-              vmin=vmin, vmax=vmax)
-        
-        # Add a colorbar
-        # Create an inset_axes for the colorbar
-        cbax = inset_locator.inset_axes(axis, width="40%", height="3%", loc="lower right", bbox_to_anchor=(0, 0.15, 1, 1),
-                                    bbox_transform=axis.transAxes)
-        cbar = plt.colorbar(pcm, cax = cbax,  orientation = 'horizontal')
-        cbar.ax.tick_params(labelsize = 4)
-
-        # Modify the colormap levels to control the step length
-        levels = np.arange(vmin, vmax+1, 45)
-        norm = plt.Normalize(vmin=vmin, vmax=vmax)
-        pcm.set_norm(norm)
-        # Set the colorbar levels explicitly
-        cbar.set_ticks(levels)
-        axis.set_title(f'Oxygen at {show_depth} m\nobservation at +/- {observation_span} m', fontsize=8)
-
-    else:
-        m.scatter(lon, lat, s=5, edgecolors='k', linewidth=0.2, facecolor=color)
-
-def sub_plot_observations_basemap(ds, parameter, axis, year, 
-                                  show_depth = 0, vmin = 0, vmax = 180, observation_span=2, 
-                                  colorbar = True, color = 'k', time_index=0, BG = False):
-    
-    time_value = ds['time'][time_index].values.astype('datetime64[M]').item()
-    start_year = ds.attrs["start year"]
-    end_year = ds.attrs["end year"]
-    if not (int(start_year) <= int(year) <= int(end_year)):
-        print(f"WARNING: {year} to plot not in range {start_dt.year}-{end_dt.year}")
-        
-    # Convert start/end years to pandas Timestamps
-    start_dt = pd.Timestamp(f"{int(start_year)}-01-01")
-    end_dt = pd.Timestamp(f"{int(end_year)}-12-31")
-    # If we are plotting a background field we want observations from all years used
-    # If it is not a background field we want observations from the year of the analysis
-    # after the change to make one netcdf per analysed year, 
-    if not BG:
-        year = time_value.year
-        start_dt = pd.Timestamp(f"{year}-01-01")
-        end_dt = pd.Timestamp(f"{year}-12-31")    
-
-    # Plocka ut observationer
-    # OBS att DIVAnd resultatet ligger under dimensionen 'Oxygen' i datasetet och obsevrationerna under 'Oxygen_data'
-    df = pd.DataFrame(
-        {'obsyear': ds['obsyear'], 'obslon': ds['obslon'], 'obslat': ds['obslat'], 'Oxygen_data': ds['Oxygen_data'],
-         'depth': ds['obsdepth']})
-    selection = (
-        (df.obsyear >= start_dt) &
-        (df.obsyear <= end_dt) &
-        (df.depth >= show_depth - observation_span) &
-        (df.depth <= show_depth + observation_span)
+    sc = axis.scatter(
+        df.loc[sel, 'obslon'],
+        df.loc[sel, 'obslat'],
+        c=df.loc[sel, 'value'],
+        s=6,
+        cmap=cmap,
+        norm=norm,
+        edgecolors='k',
+        linewidth=0.2,
+        alpha=0.6,
+        transform=ccrs.PlateCarree(),
     )
 
-    observations = df.loc[selection, 'Oxygen_data']
-    lon = df.loc[selection, 'obslon']
-    lat = df.loc[selection, 'obslat']
+    return sc
 
-    m, pcm = sub_plot_parameter_basemap(ds, parameter, axis, year, show_depth, vmin, vmax)
-    lon, lat = m(lon, lat)
+def plot_parameter_with_observations(
+    ds, parameter, axis, year,
+    show_depth=0, observation_span=2,
+    vmin=0, vmax=180,
+    time_index=0, BG=False,
+    add_colorbar=True
+):
+    """
+    Combines a parameter at specified depth (using sub_plot_parameter)
+    with observations using overlay_observations
+    """
+    cmap, norm, levels = oxygen_cmap_norm(vmin, vmax)
 
-    if colorbar:
-        levels = np.arange(vmin, vmax, 45)
-        colors = ['black', 'brown', 'red', 'orange', 'yellow', 'green']
-        # Create the custom colormap
-        cmap, norm = create_custom_colormap(levels, colors)
+    pcm = plot_parameter(
+        ds=ds,
+        parameter=parameter,
+        axis=axis,
+        show_depth=show_depth,
+        time_index=time_index,
+        cmap=cmap,
+        norm=norm,
+    )
 
-        # Change the colormap after the plot is created
-        pcm.set_cmap(cmap)
-        pcm.set_norm(norm)
-        # Change vmin and vmax after the plot is created
-        pcm.set_clim(vmin=vmin, vmax=vmax)
+    sc = overlay_observations(
+        ds, axis, year,
+        show_depth, observation_span,
+        cmap, norm,
+        time_index, BG
+    )
 
-        m.scatter(lon, lat, s=5, c=observations, cmap=cmap, edgecolors='k', linewidth=0.2, alpha=0.5,
-              vmin=vmin, vmax=vmax)
-        
-        # Add a colorbar
-        # Create an inset_axes for the colorbar
-        cbax = inset_locator.inset_axes(axis, width="40%", height="3%", loc="lower right", bbox_to_anchor=(0, 0.15, 1, 1),
-                                    bbox_transform=axis.transAxes)
-        cbar = plt.colorbar(pcm, cax = cbax,  orientation = 'horizontal')
-        cbar.ax.tick_params(labelsize = 3)
+    if add_colorbar:
+        create_colorbar(axis, pcm, levels, title="Oxygen umol/l")
 
-        # Modify the colormap levels to control the step length
-        levels = np.arange(vmin, vmax+1, 45)
-        norm = plt.Normalize(vmin=vmin, vmax=vmax)
-        pcm.set_norm(norm)
-        # Set the colorbar levels explicitly
-        cbar.set_ticks(levels)
-    else:
-        m.scatter(lon, lat, s=5, edgecolors='k', linewidth=0.2, facecolor=color)
-
-    # Add labels to the subplot
-    axis.set_title(f'Oxygen at {show_depth} m\nobservation at +/- {observation_span} m [µmol/l]', fontsize = 4)
+    axis.set_title(
+        f'Oxygen at {show_depth} m\nobservations ±{observation_span} m',
+        fontsize=8
+    )
 
     return pcm
 
-def sub_plot_area_at_threshold_basemap(ds, parameter, axis, year, threshold, vmin = 0, vmax = 180, unit='umol/l', bath_file=None, colorbar=True, color = 'k', levels=[0.5, 1.5], hatches = [], time_index=0):
+def plot_only_observations(
+    ds, axis, year,
+    show_depth=0, observation_span=2,
+    vmin=0, vmax=180,
+    colorbar=True,
+    color='k', time_index=0, BG=False
+):
+    """
+    This plots observations from a selected depth 
+    
+    :param show_depth: integer, the depth that you want observations from, default 0 m (surface)
+    :param observation_span: how large span around the show_depth you accept, default 2 m.
+    :param BG: default False, set to True if the ds is a background fiels
+    """
 
-    # Create a Basemap instance with Mercator projection
-    m = Basemap(projection='merc', llcrnrlat=ds['lat'].min(), urcrnrlat=ds['lat'].max(),
-                llcrnrlon=ds['lon'].min(), urcrnrlon=ds['lon'].max(), resolution='l', ax=axis)
+    time_value = ds['time'][time_index].values.astype('datetime64[M]').item()
 
-    # Plot land borders
-    m.drawcoastlines(linewidth=0.5, color='gray')
-    m.drawmeridians(np.arange(9, 31, 4), labels=[True, False, False, True], linewidth=0.1, fontsize=3)
-    m.drawparallels(np.arange(54, 67, 1), labels=[True, False, False, True], linewidth=0.1, fontsize=3)
+    start_year = ds.attrs["start year"]
+    end_year = ds.attrs["end year"]
 
-    # Plot data
-    try:
-        data = ds[parameter].sel(time=ds['time'][time_index])
-    except KeyError:
-        print(f'No {parameter} in file')
+    if not (int(start_year) <= int(year) <= int(end_year)):
+        print(f"WARNING: {year} to plot not in range {start_year}-{end_year}")
 
-    lon = ds['lon'].values
-    lat = ds['lat'].values
+    start_dt = pd.Timestamp(f"{int(start_year)}-01-01")
+    end_dt = pd.Timestamp(f"{int(end_year)}-12-31")
 
-    lon, lat = np.meshgrid(lon, lat)
-    lon, lat = m(lon, lat)
+    if not BG:
+        year = time_value.year
+        start_dt = pd.Timestamp(f"{year}-01-01")
+        end_dt = pd.Timestamp(f"{year}-12-31")
 
-    # Plot data using pcolormesh
+    df = pd.DataFrame(
+        {'obsyear': ds['obsyear'], 'obslon': ds['obslon'], 'obslat': ds['obslat'], 'Oxygen_data': ds['Oxygen_data'],
+         'depth': ds['obsdepth']})
+
+    selection = (
+        (df.obsyear >= start_dt) &
+        (df.obsyear <= end_dt) &
+        (df.depth >= show_depth - observation_span) &
+        (df.depth <= show_depth + observation_span)
+    )
+
+    observations = df.loc[selection, 'Oxygen_data']
+    lon = df.loc[selection, 'obslon']
+    lat = df.loc[selection, 'obslat']
+
+    axis = set_up_cartopy_map(axis)
+
     if colorbar:
-        pcm = m.pcolormesh(lon, lat, data, cmap='ocean', vmin=vmin, vmax=vmax)
-        # Add a colorbar
-        # Create an inset_axes for the colorbar
-        cbax = inset_locator.inset_axes(axis, width="40%", height="3%", loc="lower right", bbox_to_anchor=(0, 0.15, 1, 1),
-                                    bbox_transform=axis.transAxes)
-        cbar = plt.colorbar(pcm, cax = cbax,  orientation = 'horizontal')
-        cbar.ax.tick_params(labelsize = 6)
-        #cbar.ax.patch.set_facecolor('white')
-        axis.set_title(f'Area <= {threshold} {unit}', fontsize=6)
+        levels = np.arange(vmin, vmax, 45)
+        colors = ['black', 'brown', 'red', 'orange', 'yellow', 'green']
+        cmap, norm = create_custom_colormap(levels, colors)
+
+        sc = axis.scatter(
+            lon,
+            lat,
+            s=5,
+            c=observations,
+            cmap=cmap,
+            norm=norm,
+            edgecolors='k',
+            linewidth=0.2,
+            alpha=0.5,
+            transform=ccrs.PlateCarree()
+        )
+
+        create_colorbar(axis, sc, levels=np.arange(vmin, vmax+1, 45))
+
+        axis.set_title(
+            f'Oxygen at {show_depth} m\nobservation at +/- {observation_span} m',
+            fontsize=8
+        )
+
     else:
-        pcm = m.contourf(lon, lat, data,  levels=levels, colors=[color], hatches = hatches)
+        sc = axis.scatter(
+            lon,
+            lat,
+            s=5,
+            edgecolors='k',
+            linewidth=0.2,
+            facecolor=color,
+            transform=ccrs.PlateCarree()
+        )
+    return sc
 
-def sub_plot_error_area_at_threshold_basemap(ds, parameter, axis, year, vmin, vmax, threshold, unit='umol/l', bath_file=None, time_index=0):
-
-    # Create a Basemap instance with Mercator projection
-    m = Basemap(projection='merc', llcrnrlat=ds['lat'].min(), urcrnrlat=ds['lat'].max(),
-                llcrnrlon=ds['lon'].min(), urcrnrlon=ds['lon'].max(), resolution='l', ax=axis)
-
-    # Plot land borders
-    m.drawcoastlines(linewidth=0.5, color='gray')
-    m.drawmeridians(np.arange(9, 31, 4), labels=[True, False, False, True], linewidth=0.1, fontsize=3)
-    m.drawparallels(np.arange(54, 67, 1), labels=[True, False, False, True], linewidth=0.1, fontsize=3)
-
-    # Plot data
-    try:
-        data = ds[parameter].sel(time=ds['time'][time_index])
-    except KeyError:
-        print(f'No {parameter} in file')
-
-    lon = ds['lon'].values
-    lat = ds['lat'].values
-
-    lon, lat = np.meshgrid(lon, lat)
-    lon, lat = m(lon, lat)
-
-    # Plot data using pcolormesh
-    pcm = m.pcolormesh(lon, lat, data, cmap='jet', vmin=vmin, vmax=vmax)
-
-    # Add a colorbar, Create an inset_axes for the colorbar
-    cbax = inset_locator.inset_axes(axis, width="40%", height="3%", loc="lower right", bbox_to_anchor=(0, 0.15, 1, 1),
-                                    bbox_transform=axis.transAxes)
-    cbar = plt.colorbar(pcm, cax=cbax, orientation='horizontal')
-    cbar.ax.tick_params(labelsize=5)
+def plot_errorfield(ds, parameter, axis, show_depth=None):
 
     # Modify the colormap levels to control the step length
     levels = [0,0.3,0.5,1]
@@ -276,42 +359,14 @@ def sub_plot_error_area_at_threshold_basemap(ds, parameter, axis, year, vmin, vm
     colors = ['green', 'orange', 'red']
     cmap, norm = create_custom_colormap(levels, colors)
 
-    # Change the colormap after the plot is created
-    pcm.set_cmap(cmap)
-    pcm.set_norm(norm)
-
-    cbar.set_ticks(levels)
-
-    # Add labels to the subplot with adjusted text size
-    axis.set_title(f'Error at <= {threshold} {unit} depth', fontsize=6)
-
-def sub_plot_errorfields_basemap(ds, parameter, axis, year, show_depth, vmin, vmax):
-
-    m, pcm = sub_plot_parameter_basemap(ds, parameter, axis, year, show_depth, vmin, vmax)
+    pcm = plot_parameter(
+        ds, parameter, axis, show_depth=show_depth, cmap=cmap, norm=norm
+    )
 
     # Add a colorbar
-    # Create an inset_axes for the colorbar
-    cbax = inset_locator.inset_axes(axis, width="40%", height="3%", loc="lower right", bbox_to_anchor=(0, 0.15, 1, 1),
-                                    bbox_transform=axis.transAxes)
-    cbar = plt.colorbar(pcm, cax=cbax, orientation='horizontal')
-    cbar.ax.tick_params(labelsize=5)
+    create_colorbar(axis=axis, plot_object=pcm, levels=levels)
 
-    # Modify the colormap levels to control the step length
-    levels = [0,0.3,0.5,1]
-    # Create a custom discrete colormap
-    #        0       0.3       0.5
-    colors = ['green', 'orange', 'red']
-
-    cmap, norm = create_custom_colormap(levels, colors)
-
-    # Change the colormap after the plot is created
-    pcm.set_cmap(cmap)
-    pcm.set_norm(norm)
-
-    # Change vmin and vmax after the plot is created
-    pcm.set_clim(vmin=vmin, vmax=vmax)
-    cbar.set_ticks(levels)
-    axis.set_title(f'Errorfield at {show_depth} m', fontsize=6)
+    axis.set_title(f'Errorfield at {show_depth} m', fontsize=8)
 
 def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interval, time_index, BG):
     # 1 ml/l of O2 is approximately 43.570 µmol/kg
@@ -320,41 +375,51 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
     # https://www.nodc.noaa.gov/OC5/WOD/wod18-notes.html
     unit = 'umol/l'
     print(f"now plotting from: {netcdf_filename}")
-    ############### FIRST plot, threshold results #################
 
+    ############### FIRST plot, errors and min depths results #################
     # Row 1: maps with error fields for each threshol
     # Row 2: maps of the depth of the onset of each threshold
     # Create a 2x2 grid of subplots
     n_figs = len(threshold_list)
     
-    fig, axs = plt.subplots(2, n_figs, figsize=(10, 4.5))
+    fig, axs = plt.subplots(2, n_figs, subplot_kw={'projection': ccrs.Mercator()}, figsize=(10, 4.5))
     # Adjust the spacing between subplots
-    fig.tight_layout()
+    # fig.tight_layout()
 
     for index, threshold in enumerate(threshold_list):
         # Select a time index from year and depth level from show_depth
-        ds['obsyear'] = ds['obstime'].values.astype('datetime64[Y]')
 
-        sub_plot_error_area_at_threshold_basemap(ds, parameter=f'Relerr_per_grid_at_min_{threshold}_depth', axis=axs[0, index], year=year,
-                                                 vmin=0, vmax=1, threshold=threshold)
-        sub_plot_area_at_threshold_basemap(ds, parameter=f'Min_depth_{threshold}', axis=axs[1, index], year=year, threshold=threshold, vmin=50, vmax=150,)
+        # plot the relative error with a custom discrete colormap
+        plot_errorfield(
+            ds,
+            parameter=f"Relerr_per_grid_at_min_{threshold}_depth",
+            axis=axs[0, index],
+        )
+        axs[0, index].set_title(f'Error at <= {threshold} {unit} depth', fontsize=8)
+        # second row plot the whole area each threshold with a colormap showing min_depth
+        pcm = plot_parameter(ds, parameter=f"Min_depth_{threshold}",
+            axis=axs[1, index], vmin=50,
+            vmax=150,)
+        axs[1, index].set_title(f'Area <= {threshold} {unit}', fontsize=8)
+        create_colorbar(axs[1, index], pcm, levels=np.arange(50,150,20), title="depth [m]")
 
     # Add title and labels
     # Set the title for the whole figure
-
     if 0 in threshold_list:
-        if season == "Winter":
-            fig.suptitle(f"Hypoxia and anoxia: {'BG' if BG else f'{int(year)-1}-{int(year)}'} {season}", fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
-                         verticalalignment='bottom')
-        else:
-            fig.suptitle(f"Hypoxia and anoxia: {'BG' if BG else f'{int(year)}'} {season}", fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='bottom')
+        title_start = "Hypoxia and anoxia: "
     else:
-        if season == "Winter":
-            fig.suptitle(f"{'BG' if BG else f'{int(year-1)}-{int(year)}'} {season}", fontsize=8, x=0.5, y=0.53, horizontalalignment='center',
-                         verticalalignment='center')
-        else:
-            fig.suptitle(f"{'BG' if BG else f'{int(year)}'} {season}", fontsize=8, x=0.5, y=0.53, horizontalalignment='center',
-                     verticalalignment='center')
+        title_start = ""
+    
+    if season == "Winter":
+        fig.suptitle(
+            f"{title_start}{f'BG {int(year)-1}-{int(year)+1}' if BG else f'{int(year) - 1}-{int(year)}'} {season}",
+            fontsize=10,
+        )
+    else:
+        fig.suptitle(
+            f"{title_start}{f'BG {int(year)-1}-{int(year)+1}' if BG else f'{int(year)}'} {season}",
+            fontsize=10,
+            )
 
     # Save the plot
     if BG:
@@ -366,185 +431,114 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
                     transparent=False)
         plt.close()
 
-    ################### SECOND plot surface layer results ############################
+    # ################### SECOND to FOURTH plot result at different depthlayers ############################
+    for name, depths in {"surf": [10, 20, 30, 50], "halo": [60, 70, 80, 90], "deep": [100, 110, 125, 150]}.items():
 
-    # plots of results at 4 different depths 10, 40, 50, 60
-    fig, axs = plt.subplots(2, 4, figsize=(10, 4.5))
-    # Adjust the spacing between subplots
-    fig.tight_layout()  # (left, bottom, width, height)
-    if 0 in threshold_list:
-        vmin_o2 = -45
-        vmax_o2 = 180 + 45
-    else:
-        vmin_o2 = 90
-        vmax_o2 = 360
+        # plots of results at 4 different depths 10, 40, 50, 60
+        fig, axs = plt.subplots(2, 4, subplot_kw={'projection': ccrs.Mercator()}, figsize=(10, 4.5), layout="constrained")
 
-    # on the 1st and 2nd plot we show oxygen set min and max for colorscale
-    subplot_no = 0
-    for show_depth in [10, 20, 30, 50]:
-        try:
-            sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, subplot_no], year=year, show_depth=show_depth, vmin=vmin_o2,
-                                        vmax=vmax_o2, BG=BG)
+        if 0 in threshold_list:
+            vmin_o2 = -45
+            vmax_o2 = 180 + 45
+        else:
+            vmin_o2 = 90
+            vmax_o2 = 360
 
-            sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[1, subplot_no], year=year, show_depth=show_depth,
-                                        vmin=0, vmax=0.5)
-            subplot_no += 1
-        except ValueError:
-            continue
-
-    # Add title and labels
-    # Set the title for the whole figure
-    if season == "Winter":
-        fig.suptitle(f'{int(year)-1}-{int(year)} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
-                     verticalalignment='top')
-    else:
-        fig.suptitle(f'{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
-
-    # Save the plot
-    if BG:
-        plt.savefig(f'{results_dir}/figures/BG_surf_{str(interval).replace(", ", "_")}_{season}.png', dpi=300, transparent=False)
-        plt.close()
-    else:
-        plt.savefig(f'{results_dir}/figures/surf_{year}_{season}.png', dpi=300, transparent=False)
-        plt.close()
-
-    ######################## THIRD plot halocline results #############################
-
-    # plots of results at 4 different depths 60, 70, 80, 90
-    fig, axs = plt.subplots(2, 4, figsize=(10, 4.5))
-    # Adjust the spacing between subplots
-    fig.tight_layout() # (left, bottom, width, height)
-
-    if 0 in threshold_list:
-        vmin_o2 = -45
-        vmax_o2 = 180 + 45
-    else:
-        vmin_o2 = 90
-        vmax_o2 = 360
-
-    # on the 1st and 2nd plot we show oxygen set min and max for colorscale
-    subplot_no = 0
-    for show_depth in [60, 70, 80, 90]:
-        try:
-            sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, subplot_no], year=year, show_depth=show_depth, vmin=vmin_o2, vmax=vmax_o2, BG=BG)
-
-            sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[1, subplot_no], year=year, show_depth=show_depth,
-                                        vmin=0, vmax=0.5)
-            subplot_no += 1
-        except ValueError:
-            continue
-
-    # Add title and labels
-    # Set the title for the whole figure
-    if season == "Winter":
-        fig.suptitle(f'{int(year)-1}-{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
-                     verticalalignment='top')
-    else:
-        fig.suptitle(f'{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
-
-    # Save the plot
-    if BG:
-        plt.savefig(f'{results_dir}/figures/BG_halo_{str(interval).replace(", ", "_")}_{season}.png', dpi=300, transparent=False)
-        plt.close()
-    else:
-        plt.savefig(f'{results_dir}/figures/halo_{year}_{season}.png', dpi = 300, transparent=False)
-        plt.close()
-
-    ################# FOURTH plot results in the deep water ########################
-
-    # plots of results at 4 different depths 100, 110, 125, 150
-    fig, axs = plt.subplots(2, 4, figsize=(10, 4.5)) #4
-    # Adjust the spacing between subplots
-    fig.tight_layout()  # (left, bottom, width, height)
-
-    if 0 in threshold_list:
-        vmin_o2 = -45
-        vmax_o2 = 180 + 45
-    else:
-        vmin_o2 = 90
-        vmax_o2 = 360
-
-    # on the 1st and 2nd plot we show oxygen set min and max for colorscale
-    subplot_no = 0
-    skipped_depth = []
-    for show_depth in [100, 110, 125, 150]:
-        try:
-            sub_plot_observations_basemap(ds, parameter='Oxygen', axis=axs[0, subplot_no], year=year, show_depth=show_depth, vmin=vmin_o2,
-                                    vmax=vmax_o2, BG=BG)
-
-            sub_plot_errorfields_basemap(ds, parameter='Oxygen_relerr', axis=axs[1, subplot_no], year=year, show_depth=show_depth,
-                                    vmin=0, vmax=0.5)
+        # on the 1st and 2nd plot we show oxygen set min and max for colorscale
+        subplot_no = 0
+        for show_depth in depths:
+            plot_parameter_with_observations(
+                    ds,
+                    parameter="Oxygen",
+                    axis=axs[0, subplot_no],
+                    year=year,
+                    show_depth=show_depth,
+                    vmin=vmin_o2,
+                    vmax=vmax_o2,
+                    BG=BG,
+                )
+                
+            # bottom row, plot error field at the selected depht
+            plot_errorfield(
+                ds,
+                parameter="Oxygen_relerr",
+                axis=axs[1, subplot_no],
+                show_depth=show_depth
+            )
             subplot_no += 1
 
-        except ValueError:
-            print("Its not deep enough skip this depth...")
-            skipped_depth.append(show_depth)
-            continue
-
-    if skipped_depth != [100, 110, 125, 150]:
         # Add title and labels
         # Set the title for the whole figure
         if season == "Winter":
-            fig.suptitle(f'{int(year) - 1}-{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
-                         verticalalignment='top')
+            fig.suptitle(f'{int(year)-1}-{int(year)} {season}', fontsize=10,)
         else:
-            fig.suptitle(f'{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center', verticalalignment='top')
+            fig.suptitle(f"{f'BG {int(year)-1}-{int(year)+1}' if BG else f'{int(year)}'} {season}", fontsize=10)
 
         # Save the plot
         if BG:
-            plt.savefig(f'{results_dir}/figures/BG_deep_{str(interval).replace(", ", "_")}_{season}.png', dpi=300, transparent=False)
+            plt.savefig(f'{results_dir}/figures/BG_{name}_{str(interval).replace(", ", "_")}_{season}.png', dpi=300, transparent=False)
             plt.close()
         else:
-            plt.savefig(f'{results_dir}/figures/deep_{year}_{season}.png', dpi=300, transparent=False)
+            plt.savefig(f'{results_dir}/figures/{name}_{year}_{season}.png', dpi=300, transparent=False)
             plt.close()
 
     ################# FIFTH plot final result map  ###########################
 
     # plots of results all observations and hypox area and with anox area overlayed
-    fig, axs = plt.subplots(1, 1, figsize=(10, 4.5))
-    # Adjust the spacing between subplots
-    fig.tight_layout()  # (left, bottom, width, height)
+    fig, axs = plt.subplots(1, 1, subplot_kw={'projection': ccrs.Mercator()}, figsize=(10, 4.5), layout="constrained")
 
     # Vänder på threshold_list för att högst threshold skall hamna underst.
     threshold_list.reverse()
     color_list = ['lightgrey', 'darkgrey', 'grey']
-    hatches_list = [10 * '/', 10 * "\\",10*'|']
+    hatches_list = [10 * '/', 10 * "\\", 10*'|']
 
     for index, threshold in enumerate(threshold_list):
-        #for threshold, index in threshold_list:
-        sub_plot_area_at_threshold_basemap(ds, parameter=f'{threshold}_mask_firstlayer', axis=axs, year=year, colorbar=False, color = color_list[index],
-                                       threshold=threshold)
-
+        pcm = plot_parameter(
+            ds,
+            parameter=f"{threshold}_mask_firstlayer",
+            axis=axs,
+            colors=[color_list[index]],
+            hatches=[""], 
+            levels=[0.5, 1.5], 
+            contourf=True
+        )
+    
     for index, threshold in enumerate(threshold_list):
-        sub_plot_area_at_threshold_basemap(ds, parameter=f'Relerr_per_grid_at_min_{threshold}_depth', axis=axs, year=year, colorbar=False, color = 'none', hatches=[hatches_list[index]],threshold=threshold)
+        # Mark areas with relative error >? with hatches
+        pcm = plot_parameter(
+            ds,
+            parameter=f"Relerr_per_grid_at_min_{threshold}_depth",
+            axis=axs,
+            colors=["none"],
+            hatches=[hatches_list[index]],
+            levels=[0.5,1.5],
+            contourf=True
+        )
 
-    sub_plot_only_observations(ds, axis=axs, year=year, colorbar=False, color = 'r',observation_span = 500, BG=BG)
+    # plot all points with observations in red
+    sc = plot_only_observations(
+        ds, axis=axs, year=year, colorbar=False, color="r", observation_span=500, BG=BG
+    )
 
-    # Lägg till en "fejk" legend om syrefritt är med
-    if 0 in threshold_list:
-        fake_labels = [f'<{threshold_list[0]} µmol/l', f'<{threshold_list[1]} µmol/l', f'<{threshold_list[2]} µmol/l',
+    # Skapa handle till legenden som motsvarar observationer i plotten
+    sc.set_label("Observations")
+
+    # Skapa colors and hatches objects for area handles
+    area_colors = [color_list[0], color_list[1], color_list[2],'none', 'none','none']
+    error_hatches = ['', '','', hatches_list[0], hatches_list[1],hatches_list[2]]
+
+    # Skapa labels till patcherna 
+    legend_labels_areas = [f'<{threshold_list[0]} µmol/l', f'<{threshold_list[1]} µmol/l', f'<{threshold_list[2]} µmol/l',
                        f'Error field <{threshold_list[0]} µmol/l', f'Error field <{threshold_list[1]} µmol/l',
                        f'Error field <{threshold_list[2]} µmol/l']
-        fake_colors = [color_list[0], color_list[1], color_list[2],'none', 'none','none']
-        fake_hatches = ['', '','', hatches_list[0], hatches_list[1],hatches_list[2]]
-        # Skapa proxy-objekt för legenden
-        patches = [mpatches.Patch(facecolor=color, hatch=hatch, label=label)
-                   for color, hatch, label in zip(fake_colors, fake_hatches, fake_labels)]
+    
+    # Skapa patch objekt till legenden
+    patches = [mpatches.Patch(facecolor=color, hatch=hatch, label=label)
+                   for color, hatch, label in zip(area_colors, error_hatches, legend_labels_areas)]
 
-        # Lägg till en "fejk" röd marker 'o'
-        fake_marker = plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='red', markeredgecolor='k', markersize=2, label='Observations')
-        # Lägg till legenden
-        axs.legend(handles=patches + [fake_marker], loc='lower right', fontsize=7)
-        # Add title and labels
-        # Set the title for the whole figure
-        if season == "Winter":
-            fig.suptitle(f'{int(year) - 1}-{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
-                         verticalalignment='top')
-        else:
-            fig.suptitle(f'Hypoxia and anoxia:  {year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
-                     verticalalignment='top')
-
-    else: #om bottniska viken.
+    # Lägg till en "fejk" legend om syrefritt är med
+    if 0 not in threshold_list:
+        # om bottniska viken.
         fake_labels = [f'<{threshold_list[0]} µmol/l', f'<{threshold_list[1]} µmol/l', f'<{threshold_list[2]} µmol/l',
                        f'Error field <{threshold_list[0]} µmol/l', f'Error field <{threshold_list[1]} µmol/l', f'Error field <{threshold_list[2]} µmol/l']
         fake_colors = [color_list[0], color_list[1], color_list[2],'none', 'none','none']
@@ -553,21 +547,18 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
         patches = [mpatches.Patch(facecolor=color, hatch=hatch, label=label)
                    for color, hatch, label in zip(fake_colors, fake_hatches, fake_labels)]
 
-        # Lägg till en "fejk" röd marker 'o'
-        fake_marker = plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='red', markeredgecolor='k',
-                                 markersize=4, label='Observations', markeredgewidth=0.5)
-        # Lägg till legenden
-        axs.legend(handles=patches + [fake_marker], loc='lower right', fontsize=6)
-        # Add title and labels
-        # Set the title for the whole figure
-        if season == "Winter":
-            fig.suptitle(f'{year - 1}-{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
-                         verticalalignment='top')
-        else:
-            fig.suptitle(f'{year} {season}', fontsize=8, x=0.5, y=1.0, horizontalalignment='center',
-                     verticalalignment='top')
         if len(threshold_list) < 3:
             print("Bara två thresholds, ändra legenden!")
+
+    # Lägg till legenden
+    axs.legend(handles=patches + [sc], loc='lower right', fontsize=8)
+    add_created_stamp(axs)
+    # Add title and labels
+    # Set the title for the whole figure
+    if season == "Winter":
+        fig.suptitle(f'{int(year) - 1}-{year} {season}', fontsize=10)
+    else:
+        fig.suptitle(f'Hypoxia and anoxia: {f'BG {int(year)-1}-{int(year)+1}' if BG else f'{int(year)}'} {season}', fontsize=10)
 
     # Save the plot
     if BG:
@@ -580,14 +571,18 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
 
 ## extract values that are within our limits, save to a new variable and nc-file. ####
 
-def read_processed_nc(results_dir, file_list):
+def read_processed_nc(results_dir):
     
-    for netcdf_filename in file_list:
+    processed_files = Path(results_dir) / "processed"
+    for netcdf_filepath in list(processed_files.glob('*.nc')):#file_list:
+        netcdf_filename = netcdf_filepath.name
+        print(netcdf_filename)
         BG = False
         if 'Background' in netcdf_filename:
             BG = True
         
         ds = xr.open_dataset(f"{results_dir}/processed/{netcdf_filename}", engine='h5netcdf')
+        ds['obsyear'] = ds['obstime'].values.astype('datetime64[Y]')
         
         ds_year_list = [datetime.strftime(timestr.astype('datetime64[M]').item(), '%Y') for timestr in ds["time"][:].values]
         if not len(ds_year_list) == 1:
@@ -596,11 +591,9 @@ def read_processed_nc(results_dir, file_list):
         ds_year = ds_year_list[0]    
         time_index = 0
         season = ds.attrs['season']
-        epsilon = ds.attrs['epsilon']
         threshold_list = ds.attrs['threshold_list']
         # När attribute till nc sätts blir det av type Any, läses som en str från ds.attrs
         threshold_list = eval(threshold_list.replace("Any", ""))
-        corrlen = ds.attrs['horizontal correlation length m']
 
         print(f"year in netcdf: {str(ds_year)}")
         interval = [int(ds_year) -1, int(ds_year) +1]   #Background year +/- 1
@@ -609,18 +602,5 @@ def read_processed_nc(results_dir, file_list):
 if __name__ == "__main__":
     print("running")
     # Result directory
-    results_dir = "C:/LenaV/code/DIVAnd/resultat/"
-    results_dir = "C:/Work/DIVAnd/Oxygen_maps/resultat/Baltic_Proper/20250613_0959/"
-
-    file_list = ["Oxygen_2015-2015_Autumn_0.2_80000.0_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked_varcorrlenz.nc",
-                 "Oxygen_2015-2015_Spring_0.2_80000.0_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked_varcorrlenz.nc",
-                 "Oxygen_2015-2015_Summer_0.2_80000.0_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked_varcorrlenz.nc",
-                 "Oxygen_2015-2015_Winter_0.2_80000.0_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked_varcorrlenz.nc",
-                 "Background_Oxygen_10_year_Autumn_0.1_80000.0_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked.nc",
-                 "Background_Oxygen_10_year_Spring_0.1_80000.0_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked.nc",
-                 "Background_Oxygen_10_year_Summer_0.1_80000.0_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked.nc",
-                 "Background_Oxygen_10_year_Winter_0.1_80000.0_0.05_5.0_2.0_bat_elevation_Baltic_Sea_masked.nc"]
-
-    year_list = json.dumps([2015])
-    yearlist_background = json.dumps([[1960, 1969], [1970, 1979], [1980, 1989], [1990, 1999], [2000, 2009], [2010, 2019], [2020, 2024]])
-    read_processed_nc(results_dir, file_list, year_list, yearlist_background)
+    results_dir = "./results/Baltic_Proper/20260114_1653/"
+    read_processed_nc(results_dir)
