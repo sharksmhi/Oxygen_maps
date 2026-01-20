@@ -185,7 +185,7 @@ if __name__ == "__main__":
     calculate_areas.calculate_areas(results_dir, file_list, json.loads(threshold_list), save_area_data)
 
     # Read and plot areas in file_list
-    plot_result.read_processed_nc(results_dir, file_list)
+    plot_result.read_processed_nc(results_dir)
 
     #print("plotting area...")
     #plot_area.area_bar_plot(results_dir,year_list)
