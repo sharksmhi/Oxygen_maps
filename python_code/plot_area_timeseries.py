@@ -20,6 +20,9 @@ if Path(freja_results_dir).is_dir():
 
 files = list(Path(results_dir).glob("area_data*.txt"))
 df = pd.read_csv(files[0], sep="\t")
+df["Area_90_km2_only"] = df["Area_90_km2"] - df["Area_0_km2"] 
+df["Area_180_km2_only"] = df["Area_180_km2"] - df["Area_90_km2"] 
+
 df_matlab = pd.read_csv('./data/area_volume_data_from_matlab.txt', sep = '\t')
 df_matlab.rename(columns={"Anoxic_area_km2": "Area_0_km2", "Hypoxic_area_km2": "Area_90_km2"}, inplace=True)
 
@@ -160,6 +163,36 @@ cbar.set_label('Year')
 
 temp_results_dir = "resultat"
 fig.savefig(f'{temp_results_dir}/figures/seasonal_lineplot_{df.year.min()}-{df.year.max()}.png', dpi = 300)
+
+# Create figure with 3 subplots
+# List of variables to plot
+variables = ['Area_0_km2', 'Area_90_km2_only', 'Area_180_km2_only']
+variable_labels = ['Anoxic (0 µmol/l)', 'Hypoxic (90 µmol/l) only', 'Normoxic (180 µmol/l) only']
+fig, axes = plt.subplots(1, 3, figsize=(16,5), sharey=True)
+
+for ax, var, label in zip(axes, variables, variable_labels):
+    for i, year in enumerate(years):
+        subset = df[df['year'] == year]
+        # Make sure seasons are in correct order
+        subset = subset.set_index('season').reindex(seasons)
+        y = subset[var].values
+        ax.plot(seasons, y, color=colors[i], linewidth=1)
+    
+    ax.set_title(label)
+    ax.set_xlabel('Season')
+    ax.grid(axis='y', linewidth=0.1)
+    ax.ticklabel_format(style='scientific', axis='y')
+    
+axes[0].set_ylabel('Area (km²)')
+
+# Add a single colorbar for all subplots
+sm = cm.ScalarMappable(cmap=cmap, norm=norm)
+sm.set_array([])
+cbar = fig.colorbar(sm, ax=axes, orientation='vertical', fraction=0.03, pad=0.02)
+cbar.set_label('Year')
+
+temp_results_dir = "resultat"
+fig.savefig(f'{temp_results_dir}/figures/seasonal_lineplot_diff_{df.year.min()}-{df.year.max()}.png', dpi = 300)
 
 # create figure object
 fig, ax = plt.subplots(2, 1,  figsize=(10, 8), sharey=True, sharex=True)
