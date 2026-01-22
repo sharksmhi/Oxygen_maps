@@ -1,5 +1,6 @@
 xarray
 pandas
+geopandas
 netcdf4
 numpy
 matplotlib
