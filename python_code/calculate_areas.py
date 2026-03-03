@@ -5,8 +5,15 @@ import numpy as np
 import math
 import pandas as pd
 import geopandas as gpd
+import rioxarray
 
-BASINS = gpd.read_file("./data/HELCOM_subbasins_2022_level2/HELCOM_subbasins_2022_level2.shp")
+BASIN_PATH = Path("./data/HELCOM_subbasins_2022_level2/HELCOM_subbasins_2022_level2.shp")
+if BASIN_PATH.exists():
+    BASINS = gpd.read_file(BASIN_PATH)
+else:
+    BASIN_PATH = Path("/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/data/HELCOM_subbasins_2022_level2/HELCOM_subbasins_2022_level2.shp")
+    BASINS = gpd.read_file(BASIN_PATH)
+
 BASINS = BASINS.to_crs("EPSG:4326")
 BASINS["basin_name"] = BASINS["level_2"].astype(str)
 BASINS["basin_id"] = BASINS["HELCOM_ID"].astype(str)
@@ -218,15 +225,16 @@ def basin_area_at_threshold(ds, basin_mask, threshold, relerr_lim=0.5):
 def calculate_areas(results_dir, threshold_list, save_area_data=False):
     print("calculating areas...")
     #List for results to txt
-    raw_files = Path(results_dir) / "processed"
+    raw_files = Path(results_dir) / "DIVArun"
+    nc_files = [f for f in raw_files.glob("*.nc") if "residuals" not in f.name]
     df_list = []
     df_BG_list = []
-    for netcdf_filepath in list(raw_files.glob('*.nc')):
+    for netcdf_filepath in nc_files:
+        print(f"read file {netcdf_filepath}")
         netcdf_filename = netcdf_filepath.name
         ds = xr.open_dataset(netcdf_filepath)
         ds = ds.rio.set_spatial_dims(x_dim="lon", y_dim="lat", inplace=False)
         ds = ds.rio.write_crs("EPSG:4326", inplace=False)
-        print(netcdf_filepath)
         print(ds.attrs)
         season = ds.attrs['season']
         start_year = ds.attrs['start year']
@@ -240,7 +248,6 @@ def calculate_areas(results_dir, threshold_list, save_area_data=False):
         assert grid_areas.shape == (len(ds.lat)-1, len(ds.lon)-1)
         ds = ds.assign(grid_area=(('lat', 'lon'), np.pad(grid_areas, ((0,1),(0,1)), "edge")))
         ### Find anox gridcells and set them to 1 all others to NaN
-        #To do: Ändra så att vi kan skicka in en lista på gränsvärden.
         ds["basin_mask"] = build_basin_masks(
                                             ds,
                                             BASINS,
@@ -290,11 +297,9 @@ def calculate_areas(results_dir, threshold_list, save_area_data=False):
                 },
                 name=f"Relerr_area_{threshold}_basin"
             ).set_index(basin="basin_id")
-        print(ds["Relerr_area_180_basin"].coords)
-        ds[f"Area_{180}_basin"].sel(basin="SEA-007")
         # save the updated dataset
-        print(f"writing to {results_dir}/processed_test/{netcdf_filename}...")
-        ds.to_netcdf(f'{results_dir}/processed_test/{netcdf_filename}') # rewrite to netcdf
+        print(f"writing to {results_dir}/processed/{netcdf_filename}...")
+        ds.to_netcdf(f'{results_dir}/processed/{netcdf_filename}') # rewrite to netcdf
         if "Background" in netcdf_filename:
             df_BG = extract_area_data(ds, threshold_list, basin_ids=BASINIDS_SUBSET)
             df_BG_list.append(df_BG)
@@ -313,12 +318,12 @@ def extract_area_data(ds, threshold_list, basin_ids=None):
         # Extract year from timestamp
         year = pd.to_datetime(t_val).year
         row = {"year": year}
-        row["season": season]
+        row["season"] = season
 
         # Total areas
         for threshold in threshold_list:
-            row[f"Area_{threshold}_km2"] = float(ds[f"Area_{threshold}"].isel(time=t_idx).values).round(3)
-            row[f"Relerr_area_{threshold}_km2"] = float(ds[f"Relerr_area_{threshold}"].isel(time=t_idx).values).round(3)
+            row[f"Area_{threshold}_km2"] = float(ds[f"Area_{threshold}"].isel(time=t_idx).values)
+            row[f"Relerr_area_{threshold}_km2"] = float(ds[f"Relerr_area_{threshold}"].isel(time=t_idx).values)
 
         # Basin areas
         if basin_ids:
@@ -326,10 +331,10 @@ def extract_area_data(ds, threshold_list, basin_ids=None):
                 for threshold in threshold_list:
                     row[f"Area_{threshold}_{basin_id_val}_km2"] = float(
                         ds[f"Area_{threshold}_basin"].sel(basin=basin_id_val).isel(time=t_idx).values
-                    ).round(3)
+                    )
                     row[f"Relerr_area_{threshold}_{basin_id_val}_km2"] = float(
                         ds[f"Relerr_area_{threshold}_basin"].sel(basin=basin_id_val).isel(time=t_idx).values
-                    ).round(3)
+                    )
 
         rows.append(row)
 
@@ -338,7 +343,7 @@ def extract_area_data(ds, threshold_list, basin_ids=None):
 
 if __name__ == "__main__":
     # Result directory
-    results_dir = "./results/Baltic_Proper/20260114_1653/"
-   # Thresholds to analyse in µmol/l oxygen (0, 2, 4 ml/l)
+    results_dir = "./resultat/Baltic_Proper/20260114_1653/"
+    # Thresholds to analyse in µmol/l oxygen (0, 2, 4 ml/l)
     threshold_list = [0, 90, 180]
     calculate_areas(results_dir, threshold_list)
