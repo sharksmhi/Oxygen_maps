@@ -1,5 +1,7 @@
 xarray
+rioxarray
 pandas
+geopandas
 netcdf4
 numpy
 matplotlib

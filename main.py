@@ -1,6 +1,6 @@
 """
-julia julia_code\oxygen_analysis.jl, år, säsong, DIVAsettings
-python python_code\calculata_areas.py, år, säsong, DIVASettings
+julia julia_code/oxygen_analysis.jl, år, säsong, DIVAsettings
+python python_code/calculata_areas.py, år, säsong, DIVASettings
 """
 import shutil
 import subprocess
@@ -42,7 +42,7 @@ if __name__ == "__main__":
     if Path(freja_input_dir).is_dir():
         input_dir = freja_input_dir
         on_freja = True
-
+    print(f"{on_freja=}, {input_dir=}")
     # Input data filename
     #data_fname = "mat_file_1960_2024_reordered.txt"
     data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_260113.txt"
@@ -88,12 +88,12 @@ if __name__ == "__main__":
     today = dt.datetime.now().strftime("%Y%m%d_%H%M")
     results_dir = Path(f"results/{basin.replace(' ', '_')}/{today}/")
     if on_freja:
-        results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results//{basin.replace(' ', '_')}/{today}/")
+        results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results/{basin.replace(' ', '_')}/{today}/")
     results_dir.mkdir(parents=True, exist_ok=True)
     Path(results_dir, "figures/").mkdir(parents=True, exist_ok=True)
     Path(results_dir, "DIVArun/").mkdir(parents=True, exist_ok=True)
     Path(results_dir, "processed/").mkdir(parents=True, exist_ok=True)
-    
+    print(f"saving results to {results_dir=}")
     with open(Path(results_dir, 'settings.json'), 'w') as file:
         json.dump(obj=settings[basin],fp=file)
  
@@ -151,10 +151,10 @@ if __name__ == "__main__":
     print("running DIVAnd in Julia...")
     args = ['julia', 'julia_code/oxygen_analysis.jl', input_dir, results_dir, data_fname, year_list, month_list, seasons, lenf, epsilon, dx, bath_file_name, w_depth, w_days, depthr, lenz_, lonr, latr, basin, threshold_list, bkg_filename, yearlist_background, years, epsilon_background]
 
-    # #Call the function and save a json-file with a file_list containing the results. That we can send to the calculate_areas function.
+    # Call the function and save a json-file with a file_list containing the results. That we can send to the calculate_areas function.
     try:
         run_julia_function(args)
-        #print("skipping julia run")
+        # print("skipping julia run")
     except Exception as e:
         # If exception occurs, prompt user
         print(e)
@@ -175,14 +175,14 @@ if __name__ == "__main__":
             print("No path was removed.")
             exit()
 
-    #results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results//{basin.replace(' ', '_')}/20260114_1117/")
+    #results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results//{basin.replace(' ', '_')}/20260114_1653")
+    print("DIVAnd is done with its stuff...")
+    t1 = time.perf_counter()
+    print(f"finished in ({t1/60 - t0/60:.0f} min)")
+    print(f"now calculate areas")
 
-    with open(f'{results_dir}/file_list.json', "r", encoding="utf-8") as f:
-        file_list = json.load(f)
-
-    # #Calculate areas from DIVA-results and save in a new nc-file. Results in file_list
-    print(f"{len(file_list)} files in filelist")
-    calculate_areas.calculate_areas(results_dir, file_list, json.loads(threshold_list), save_area_data)
+    # Calculate areas from DIVA-results and save in a new nc-file. Results in file_list
+    calculate_areas.calculate_areas(results_dir, json.loads(threshold_list), save_area_data)
 
     # Read and plot areas in file_list
     plot_result.read_processed_nc(results_dir)
@@ -190,9 +190,6 @@ if __name__ == "__main__":
     #print("plotting area...")
     #plot_area.area_bar_plot(results_dir,year_list)
 
-print("DIVAnd is done with its stuff...")
-t1 = time.perf_counter()
-print(f"finished in ({t1/60 - t0/60:.0f} min)")
 
 ### extract values that are within our limits, save to a new variable and nc-file. ####
 # 1 ml/l of O2 is approximately 43.570 µmol/kg
