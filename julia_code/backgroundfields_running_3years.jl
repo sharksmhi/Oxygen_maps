@@ -64,12 +64,10 @@ if !isdir(figdir)
 end
 
 # ## Load data big files created by program "data_handling"
-data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_260113"
+data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_260116"
 #data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_250619"
 #data_fname = "mat_file_1960_2024_reordered"
 @time obsval,obslon,obslat,obsdepth,obstime,obsid = loadbigfile(joinpath(location, "data/$data_fname.txt"));
-
-dx, dy = 0.05, 0.05         #~5km?
 
 #Bottniska viken
 #basin = "Gulf_of_Bothnia"
@@ -108,7 +106,7 @@ yearlist_json = settings[basin]["yearlist_background"]
 threshold_list = settings[basin]["threshold_list"]
 
 # Ange vilket intervall du vill ha på bakgrundfältet
-start_year = 1960
+start_year = 1985
 end_year   = 2024
 
 # Skapa listan med rullande treårsintervall # [[1959,1960,1961],[], osv...]
@@ -188,7 +186,7 @@ end
 
 @show maximum(rdiag),mean(rdiag)
 epsilon_weighted = epsilon * rdiag;
-
+@show minimum(epsilon_weighted), maximum(epsilon_weighted),mean(epsilon_weighted)
 #obstime_shiftet removed! No need for that since we make BG-fields for a whole year
 
 # Settings for DIVAnd-------------------------------------------------------------------------------
@@ -202,10 +200,7 @@ file_list = []
 # BG field for [1960,1961,1962] [All month] to be used for year 1961 in analysis. 
 # BG field for [1961,1962,1963] [All month] to be used for year 1962 in analysis. 
 for year_list_index in 1:length(year_list)
-    @show(year_list[year_list_index][1])
-    @show(year_list[year_list_index][2])
-    @show(year_list[year_list_index][3])
-    
+
     years = string(year_list[year_list_index][2]) # Year to the analysis +/- 1 år
 
     for monthlist_index in 1:length(month_list)
@@ -298,9 +293,6 @@ for year_list_index in 1:length(year_list)
             "standard_name" => "$(replace(varname,' '=>'_'))",
             "long_name" => "$varname",
             "units" => "$unit")
-
-        @show(metadata_season)
-        @show(ncvarattrib)
 
         @info("starting DIVAnd computations for $(seasons[monthlist_index])")
         @info(Dates.now())

@@ -45,7 +45,7 @@ if __name__ == "__main__":
     print(f"{on_freja=}, {input_dir=}")
     # Input data filename
     #data_fname = "mat_file_1960_2024_reordered.txt"
-    data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_260113.txt"
+    data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_260116.txt"
 
     # Definiera basins
     #basin = "Kattegat"
@@ -101,8 +101,8 @@ if __name__ == "__main__":
     year_list = json.dumps([1960, 1961, 1962, 1963, 1964, 1965, 1966, 1967, 1968, 1969, 1970, 1971, 1972, 1973, 1974, 1975, 1976, 1977, 1978,
     1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997,
     1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016,
-    2017, 2018, 2019, 2020, 2021, 2022])
-    year_list = json.dumps([1960, 1970,1980,1990,2000,2010,2015,2020, 2023])
+    2017, 2018, 2019, 2020, 2021, 2022, 2023])
+    #year_list = json.dumps([1960, 2023])
     yearlist_background = year_list
     #year_list = json.dumps([2015])
     print(f"calculating for years {year_list}")
@@ -141,15 +141,11 @@ if __name__ == "__main__":
     w_depth = json.dumps(5.)
     w_days = json.dumps(2.)
 
-    background_filename = f"Background_Oxygen_{years}_{season}_{epsilon_background}_{lenf}_{dx}_{w_depth}_{w_days}_{bath_file_name}.nc"
-
-    bkg_filename = json.dumps(f"{input_dir}/{background_filename}")
-
     #Set True if you want to save area_data to file (for time-series bar plots)
     save_area_data=True
 
     print("running DIVAnd in Julia...")
-    args = ['julia', 'julia_code/oxygen_analysis.jl', input_dir, results_dir, data_fname, year_list, month_list, seasons, lenf, epsilon, dx, bath_file_name, w_depth, w_days, depthr, lenz_, lonr, latr, basin, threshold_list, bkg_filename, yearlist_background, years, epsilon_background]
+    args = ['julia', 'julia_code/oxygen_analysis.jl', input_dir, results_dir, data_fname, year_list, month_list, seasons, lenf, epsilon, dx, bath_file_name, w_depth, w_days, depthr, lenz_, lonr, latr, basin, threshold_list, years, epsilon_background]
 
     # Call the function and save a json-file with a file_list containing the results. That we can send to the calculate_areas function.
     try:

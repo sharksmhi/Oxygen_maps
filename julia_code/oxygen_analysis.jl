@@ -43,10 +43,8 @@ lonr = args[15]
 latr = args[16]
 basin = args[17]
 threshold_list = JSON.parse(args[18])
-# bkg_filename = JSON.parse(args[19])
-year_list_background = JSON.parse(args[20])
-years = args[21]
-epsilon_background = JSON.parse(args[22])
+years = args[19]
+epsilon_background = JSON.parse(args[20])
 
 dy = dx
 lonr = replace(lonr, "dx" => string(dx))
@@ -214,8 +212,6 @@ file_list = []
 start_year = 1960
 end_year   = 2024
 
-# Skapa listan med rullande treårsintervall # [[1959,1960,1961],[], osv...]
-year_list_background = [[y-1, y, y+1] for y in start_year:end_year]  
 month_list_background = [[1,2,3,4,5,6,7,8,9,10,11,12]];  # 3 whole years climatology
 
 for year in year_list
