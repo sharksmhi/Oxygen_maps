@@ -343,9 +343,9 @@ def plot_only_observations(
         sc = axis.scatter(
             lon,
             lat,
-            s=5,
+            s=3,
             edgecolors='k',
-            linewidth=0.2,
+            linewidth=0.05,
             facecolor=color,
             transform=ccrs.PlateCarree()
         )
@@ -385,7 +385,7 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
         fig_name = f'threshold_result_{year}_{season}.png'
     fig_path = Path(f'{results_dir}/figures/{fig_name}')
     
-    if not fig_path.exists():   
+    if fig_path.exists():   
         print(f"thresholdplot, errors and min depths results from: {netcdf_filename}")
         n_figs = len(threshold_list)
         
@@ -432,6 +432,7 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
         plt.savefig(fig_path, dpi=300,
                         transparent=False)
         plt.close()
+        print(f"saved {fig_name}")
     else:
         print(f"skip {fig_name} because it already exists")
         
@@ -445,7 +446,7 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
             fig_name = f'{name}_{year}_{season}.png'
         fig_path = Path(f'{results_dir}/figures/{fig_name}')
 
-        if not fig_path.exists():
+        if fig_path.exists():
             #print(f"plot result at different depthlayers results from: {netcdf_filename}")
             # plots of results at 4 different depths 10, 40, 50, 60
             fig, axs = plt.subplots(2, 4, subplot_kw={'projection': ccrs.Mercator()}, figsize=(10, 4.5), layout="constrained")
@@ -490,6 +491,7 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
             # Save the plot
             plt.savefig(fig_path, dpi=300, transparent=False)
             plt.close()
+            print(f"saved {fig_name}")
         else:
             print(f"skip {fig_name} because it already exists")
 
@@ -497,12 +499,12 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
 
     # plots of results all observations and hypox area and with anox area overlayed
     if BG:
-            fig_name = f'BG_result_{str(interval).replace(", ", "_")}_{season}.png'
+        fig_name = f'BG_result_{str(interval[0])}-{str(interval[-1])}_{season}.png'
     else:
         fig_name = f'final_result_{year}_{season}.png'
     fig_path = Path(f'{results_dir}/figures/{fig_name}')
 
-    if not fig_path.exists():
+    if fig_path.exists():
         fig, axs = plt.subplots(1, 1, subplot_kw={'projection': ccrs.Mercator()}, figsize=(10, 4.5), layout="constrained")
         
         # Vänder på threshold_list för att högst threshold skall hamna underst.
@@ -535,7 +537,7 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
 
         # plot all points with observations in red
         sc = plot_only_observations(
-            ds, axis=axs, year=year, colorbar=False, color="r", observation_span=500, BG=BG
+            ds, axis=axs, year=year, colorbar=False, color="none", observation_span=500, BG=BG
         )
 
         # Skapa handle till legenden som motsvarar observationer i plotten
@@ -581,6 +583,7 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
         # Save the plot
         plt.savefig(fig_path, dpi=300, transparent=False)
         plt.close()
+        print(f"saved {fig_name}")
     else:
         print(f"skip {fig_name} because it already exists")
 
