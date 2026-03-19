@@ -385,7 +385,7 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
         fig_name = f'threshold_result_{year}_{season}.png'
     fig_path = Path(f'{results_dir}/figures/{fig_name}')
     
-    if fig_path.exists():   
+    if not fig_path.exists():   
         print(f"thresholdplot, errors and min depths results from: {netcdf_filename}")
         n_figs = len(threshold_list)
         
@@ -446,7 +446,7 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
             fig_name = f'{name}_{year}_{season}.png'
         fig_path = Path(f'{results_dir}/figures/{fig_name}')
 
-        if fig_path.exists():
+        if not fig_path.exists():
             #print(f"plot result at different depthlayers results from: {netcdf_filename}")
             # plots of results at 4 different depths 10, 40, 50, 60
             fig, axs = plt.subplots(2, 4, subplot_kw={'projection': ccrs.Mercator()}, figsize=(10, 4.5), layout="constrained")
@@ -504,7 +504,7 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
         fig_name = f'final_result_{year}_{season}.png'
     fig_path = Path(f'{results_dir}/figures/{fig_name}')
 
-    if fig_path.exists():
+    if not fig_path.exists():
         fig, axs = plt.subplots(1, 1, subplot_kw={'projection': ccrs.Mercator()}, figsize=(10, 4.5), layout="constrained")
         
         # Vänder på threshold_list för att högst threshold skall hamna underst.
