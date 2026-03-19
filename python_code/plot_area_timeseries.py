@@ -13,6 +13,7 @@ end_year = 2022
 
 date = "20260303_1535"
 freja_results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results/Baltic_Proper/{date}//")
+freja_results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results_lena_temp/Baltic_Proper/20260305_1417/")
 on_freja = False
 if Path(freja_results_dir).is_dir():
     results_dir = freja_results_dir
@@ -82,7 +83,7 @@ fig.suptitle(basin.strip("_"))
 # save figure
 # TODO: fixa filnamnet!
 temp_results_dir = "resultat"
-fig.savefig(f'{temp_results_dir}/figures/{basin}{df.year.min()}-{df.year.max()}.png', dpi = 300)
+fig.savefig(f'{results_dir}/figures/{basin}{df.year.min()}-{df.year.max()}.png', dpi = 300)
 
 # Timeseries group seasons together
 basins = ["", "SEA-007_", "SEA-009_", "SEA-010_", ]
@@ -213,7 +214,7 @@ cbar = fig.colorbar(sm, ax=axes, orientation='vertical', fraction=0.03, pad=0.02
 cbar.set_label('Year')
 
 temp_results_dir = "resultat"
-fig.savefig(f'{temp_results_dir}/figures/LLL_{basin}seasonal_lineplot_diff_{df.year.min()}-{df.year.max()}.png', dpi = 300)
+fig.savefig(f'{results_dir}/figures/ALL_{basin}seasonal_lineplot_diff_{df.year.min()}-{df.year.max()}.png', dpi = 300)
 
 # create figure object
 fig, ax = plt.subplots(2, 1,  figsize=(10, 8), sharey=True, sharex=True)

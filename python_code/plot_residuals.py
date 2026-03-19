@@ -4,7 +4,7 @@ import numpy as np
 from sklearn.metrics import r2_score
 
 # Läs in tabbseparerad fil
-filnamn = r"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results/Baltic_Proper/20250829_1138_m_BG/DIVArun/Oxygen_Spring_residual.txt"
+filnamn = r"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results/Baltic_Proper/20260305_1417/DIVArun/Oxygen_Spring_residual.txt"
 df = pd.read_csv(filnamn, sep="\t")
 
 #obsval	diva	residual	lat	long	depth	time	id
