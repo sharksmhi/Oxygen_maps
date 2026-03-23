@@ -406,8 +406,8 @@ for year in year_list
 
         # Sparar undan alla indata, Divananlays och residualer i varje indata punkt.
         res_filepath = joinpath("$(results_dir)/DIVArun", "$(varname)_$(year)_$(season)_residual.txt")
-        diva_res = obsval[sel] .- res[sel]
-        res_data = [obsval[sel] diva_res res[sel] obslon[sel]  obslat[sel]  obsdepth[sel]  obstime_shifted[sel]  obsid[sel]]
+        diva_result = obsval[sel] .- res[sel]
+        res_data = [obsval[sel] diva_result res[sel] obslon[sel]  obslat[sel]  obsdepth[sel]  obstime_shifted[sel]  obsid[sel]]
         
         # Definiera header som en sträng med tab-separerade kolumnnamn
         #obsval	diva	residual	lat	long	obsdepth	time	id
