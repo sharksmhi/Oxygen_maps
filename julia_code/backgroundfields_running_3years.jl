@@ -64,7 +64,7 @@ if !isdir(figdir)
 end
 
 # ## Load data big files created by program "data_handling"
-data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_260116"
+data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_260320"
 #data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_250619"
 #data_fname = "mat_file_1960_2024_reordered"
 @time obsval,obslon,obslat,obsdepth,obstime,obsid = loadbigfile(joinpath(location, "data/$data_fname.txt"));
@@ -106,7 +106,7 @@ yearlist_json = settings[basin]["yearlist_background"]
 threshold_list = settings[basin]["threshold_list"]
 
 # Ange vilket intervall du vill ha på bakgrundfältet
-start_year = 1985
+start_year = 1959
 end_year   = 2024
 
 # Skapa listan med rullande treårsintervall # [[1959,1960,1961],[], osv...]

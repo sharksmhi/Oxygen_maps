@@ -120,6 +120,11 @@ datafile_syke_btlctd = joinpath(location, "data/all_baltic/syke_data_no_header_2
 @time obsval_syke,obslon_syke,obslat_syke,obsdepth_syke,obstime_syke,obsid_syke = loadbigfile(datafile_syke_btlctd);
 @show(obsid_syke[1])
 
+@show("Loading .mat data...")
+datafile_mat_btlctd = joinpath(location, "data/all_baltic/mat_BIG_file_1960_2025.txt")
+@time obsval_mat,obslon_mat,obslat_mat,obsdepth_mat,obstime_mat,obsid_mat = loadbigfile(datafile_mat_btlctd);
+@show(obsid_mat[1])
+
 
 @show("Loading BAD-data file...data to be removed")
 datafile_bad_data = joinpath(location, "data/all_baltic/bad_data.txt")
@@ -131,6 +136,7 @@ bad_data = CSV.read(datafile_bad_data, DataFrame)
 @show(length(obsval_emod_ctd));
 @show(length(obsval_ices));
 @show(length(obsval_syke));
+@show(length(obsval_mat));
 
 # ## EMODNET: Remove low res CTD when BTL is available.
 # ## Criteria (can be adapted according to the application):
@@ -294,12 +300,49 @@ pcdupl = round(ndupl / length(obslon_ices) * 100; digits=2);
 newpoints_ICES = isempty.(dupl);
 @info("Number of new points: $(sum(newpoints_ICES)))")
 
-obslon = [obslon_shark_syke_iow_emod; obslon_ices[newpoints_ICES]];
-obslat = [obslat_shark_syke_iow_emod; obslat_ices[newpoints_ICES]];
-obsdepth = [obsdepth_shark_syke_iow_emod; obsdepth_ices[newpoints_ICES]];
-obstime = [obstime_shark_syke_iow_emod; obstime_ices[newpoints_ICES]];
-obsval = [obsval_shark_syke_iow_emod; obsval_ices[newpoints_ICES]];
-obsid = [obsid_shark_syke_iow_emod; obsid_ices[newpoints_ICES]];
+obslon_shark_syke_iow_emod_ices = [obslon_shark_syke_iow_emod; obslon_ices[newpoints_ICES]];
+obslat_shark_syke_iow_emod_ices = [obslat_shark_syke_iow_emod; obslat_ices[newpoints_ICES]];
+obsdepth_shark_syke_iow_emod_ices = [obsdepth_shark_syke_iow_emod; obsdepth_ices[newpoints_ICES]];
+obstime_shark_syke_iow_emod_ices = [obstime_shark_syke_iow_emod; obstime_ices[newpoints_ICES]];
+obsval_shark_syke_iow_emod_ices = [obsval_shark_syke_iow_emod; obsval_ices[newpoints_ICES]];
+obsid_shark_syke_iow_emod_ices = [obsid_shark_syke_iow_emod; obsid_ices[newpoints_ICES]];
+
+# ## Remove mat data when SHARK_SYKE_IOW_EMOD_ICES is available.
+# Remove true duplicates, hence when exactly the same data is found in both datasets.
+# ## Criteria (can be adapted according to the application):
+# Horizontal distance: 0.01 degree (about 1km)
+xy_dist = 0.05
+# Vertical separation: 0.01 m depth
+depth_dist= 1
+#Time separation: 10 minute.
+time_sep = 60
+#obsval difference: 1 µmol/l correspond to ~pyttelite ml/l
+obsval_diff = 100
+
+@time dupl = DIVAnd.Quadtrees.checkduplicates(
+    (obslon_shark_syke_iow_emod_ices,obslat_shark_syke_iow_emod_ices,obsdepth_shark_syke_iow_emod_ices,obstime_shark_syke_iow_emod_ices), obsval_shark_syke_iow_emod_ices,
+    (obslon_mat,obslat_mat,obsdepth_mat,obstime_mat),obsval_mat,
+    (xy_dist,xy_dist,depth_dist,time_sep/(24*60)),obsval_diff);
+
+# ## Find the indices of the possible duplicates:
+index = findall(.!isempty.(dupl));
+ndupl = length(index);
+pcdupl = round(ndupl / length(obslon_mat) * 100; digits=2);
+@info("Number of possible duplicates in SHARKweb_SYKE_IOW_EMOD_ICES/mat: $ndupl")
+@info("Percentage of duplicates: $pcdupl%")
+# ## If you decide to combine the 2 (or more) datasets:
+newpoints_mat = isempty.(dupl);
+@info("Number of new points: $(sum(newpoints_mat)))")
+
+obslon = [obslon_shark_syke_iow_emod_ices; obslon_mat[newpoints_mat]];
+obslat = [obslat_shark_syke_iow_emod_ices; obslat_mat[newpoints_mat]];
+obsdepth = [obsdepth_shark_syke_iow_emod_ices; obsdepth_mat[newpoints_mat]];
+obstime = [obstime_shark_syke_iow_emod_ices; obstime_mat[newpoints_mat]];
+obsval = [obsval_shark_syke_iow_emod_ices; obsval_mat[newpoints_mat]];
+obsid = [obsid_shark_syke_iow_emod_ices; obsid_mat[newpoints_mat]];
+
+
+
 
 # # ## Remove SYKE data when EMODnet_SHARK_ICES data is available.
 # # Remove true duplicates, hence when exactly the same data is found in both datasets.
@@ -386,20 +429,26 @@ ylim(53, 66);
 xlim(8, 31);
 #contourf(bx, by, permutedims(Float64.(mask_edit[:,:,1]),[2,1]),
 #    levels=[-1e5,0],cmap="binary");
+plot(obslon_mat[newpoints_mat], obslat_mat[newpoints_mat], "wo", mfc="none",
+   markersize=.2, label="mat-file")
 plot(obslon_ices[newpoints_ICES], obslat_ices[newpoints_ICES], "ro", mfc="none",
-   markersize=.2, label="Additional data\nfrom ICES BTL lowres CTD")
+   markersize=.2, label="ICES BTL lowres CTD")
 plot(obslon_emod[newpoints_emod], obslat_emod[newpoints_emod], "go",
-   markersize=.2, label="Additional data\nfrom EMODnet")
+   markersize=.2, label="EMODnet")
 plot(obslon_iow[newpoints_iow], obslat_iow[newpoints_iow], "co", mfc="none",
-   markersize=.2, label="Additional data\nfrom IOW")
+   markersize=.2, label="IOW-ODIN2")
 plot(obslon_syke[newpoints_syke], obslat_syke[newpoints_syke], "yo", mfc="none",
-   markersize=.2, label="Additional data\nfrom SYKE")
-plot(obslon_shark, obslat_shark, "bo", markersize=.2, label="SHARK")
+   markersize=.2, label="SYKE")
+plot(obslon_shark, obslat_shark, "bo", markersize=.2, label="SMHI-SHARK")
 
-legend(loc=4, fontsize=4)
+leg = legend(loc=4, fontsize=6)
+for t in leg.get_texts()
+    t.set_color("white")
+end
+leg.get_frame().set_facecolor("none")
 gca().set_aspect(aspectratio)
-figname = "additional_data_SHARK_SYKE_IOW_EMOD_ICES.png"
-PyPlot.savefig(joinpath(figdir,"$(figname)"), dpi=300);
+figname = "additional_data_SHARK_SYKE_IOW_EMOD_ICES_260325.png"
+PyPlot.savefig(joinpath(figdir,"$(figname)"), dpi=300, transparent=true, bbox_inches="tight");
 PyPlot.close_figs()
 
 # Skapar en dataframe för alla data
@@ -423,7 +472,7 @@ println("\nFiltrerat data, antal rader:")
 println(nrow(filtered_data))
 
 # Skriver data till fil
-filename = "SHARK_SYKE_IOW_EMODNET_ICES_260113"
+filename = "SHARK_SYKE_IOW_EMODNET_ICES_260325"
 CSV.write(joinpath(outputdir, "$(filename).txt"), filtered_data, delim="\t", writeheader=false)
 CSV.write(joinpath(outputdir, "$(filename)_with_header.txt"), filtered_data, delim="\t", writeheader=true)
 #DIVAnd.saveobs(joinpath(outputdir, "$(filename).nc"),varname, obsval, (obslon,obslat,obsdepth,obstime),obsid)

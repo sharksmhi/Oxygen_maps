@@ -45,6 +45,7 @@ basin = args[17]
 threshold_list = JSON.parse(args[18])
 years = args[19]
 epsilon_background = JSON.parse(args[20])
+lenf_background = JSON.parse(args[21])
 
 dy = dx
 lonr = replace(lonr, "dx" => string(dx))
@@ -220,7 +221,7 @@ for year in year_list
         season = seasons[monthlist_index]
 
         #Background file for choosen season
-        bkg_filename = "Background_$(varname)_$(year)_All_$(epsilon_background)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(bath_file_name).nc"
+        bkg_filename = "Background_$(varname)_$(year)_All_$(epsilon_background)_$(lenf_background)_$(dx)_$(w_depth)_$(w_days)_$(bath_file_name).nc"
         #bkg_filepath = "$(input_dir)\\$(bkg_filename)"
         bkg_filepath = joinpath(input_dir, bkg_filename)
         cp(bkg_filepath, joinpath(results_dir, joinpath("DIVArun",bkg_filename)); force=true)
