@@ -17,6 +17,8 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("QtAgg")  # non-GUI backend (otherwise error when plotting)
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+import matplotlib.cm as cm
 import cartopy
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
@@ -25,7 +27,7 @@ from matplotlib.lines import Line2D
 
 #=================
 # years of files to read
-year = 2015
+year = 1970
 
 #choose seson of file to read
 seasons = ['Spring', 'Autumn', 'Summer', 'Winter']
@@ -33,8 +35,10 @@ seasons = ['Spring', 'Autumn', 'Summer', 'Winter']
 # paths to residual files
 # *** Change to correct files
 # /nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results/Baltic_Proper/20260114_1653/
-results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results_lena_temp/Baltic_Proper/20260305_1417/")
-
+results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results_lena_temp/Baltic_Proper/20260320_1659/")
+levels = np.array([-150, -100, -50, 0, 50, 100, 150])
+cmap = cm.get_cmap("viridis", len(levels) - 1)
+norm = mcolors.BoundaryNorm(levels, cmap.N)
 
 #=================
 # file to open
@@ -42,10 +46,6 @@ for season in seasons:
     print('Opening file for season ', season)
     # change path to correct path
     mfile = results_dir / f"DIVArun/Oxygen_{year}_{season}_residuals.nc"
-
-    #=================
-    #MAPS STARTS
-    mycmap=cm.get_cmap('coolwarm')
 
     #READ DATA
     # ds = xr.open_mfdataset(mfile, decode_times=True)
@@ -63,7 +63,7 @@ for season in seasons:
     
     # categorize depths into marker sizes:
     # create bin intervals
-    depth_bins = np.arange(40, 100, 10)
+    depth_bins = np.arange(50, 250, 50)
     # keep 10 m above 100 m, 25 below and maybe 50 below 200m
     depth_labels = [ f"{depth_bins[i]}–{depth_bins[i+1]} m" for i in range(len(depth_bins) - 1)]
     # arrange depth into its categories
@@ -78,7 +78,7 @@ for season in seasons:
     # reduce vmin and vmax so colors show better, removing too large values
 
     # Scale marker sizes (you can adjust the factor)
-    sizes = depth_cat * 10 #np.ones(len(da.values)) * 10
+    sizes = depth_cat * 20 #np.ones(len(da.values)) * 10
 
     # Create legend elements: one per depth bin
     #bin_sizes = [(i+0.5)*10 for i in range(len(depth_bins)-1)]
@@ -86,12 +86,13 @@ for season in seasons:
 
     #Create legend element
     legend_elements = [
-    Line2D([0], [0], marker='o', color='w', label=label, markerfacecolor='gray', markersize=np.sqrt(size),alpha=0.5)
-    for label, size in zip(depth_labels, bin_sizes)
-    ]
+        Line2D([0], [0], marker='o', color='w', label=label, markerfacecolor='gray', markersize=np.sqrt(size),alpha=0.5)
+        for label, size in zip(depth_labels, bin_sizes)
+        ]
 
     len(legend_elements)
-
+    #=================
+    #MAPS STARTS
     fig, ax = plt.subplots(figsize=(15, 12), subplot_kw={"projection": ccrs.PlateCarree()}, constrained_layout=True)
     ax.set_extent([9, 32, 53, 66], ccrs.PlateCarree())
     # land in gray:
@@ -109,11 +110,32 @@ for season in seasons:
     # Plot data
 
     # Because Matplotlib does not separate edge alpha from face alpha in scatter. We need two layers for the edges:
-    cs = plt.scatter(x=lon, y=lat, c = filtered_da.values, s = sizes, transform=ccrs.PlateCarree(), marker = 'o', cmap="BrBG", rasterized=True, edgecolors='none',  alpha=0.1, zorder=3, vmin=vmin, vmax=vmax)
+    cs = plt.scatter(
+        x=lon,
+        y=lat,
+        c=filtered_da.values,
+        s=sizes,
+        transform=ccrs.PlateCarree(),
+        marker='o',
+        cmap=cmap,
+        norm=norm,
+        rasterized=True,
+        edgecolors='none',
+        alpha=1,
+        zorder=3
+    )
     # cs = plt.scatter(x=lon, y=lat, c = filtered_da.values, s = sizes, transform=ccrs.PlateCarree(), marker = 'o', cmap=mycmap, facecolor='none', edgecolors='black',  linewidth = 0.1, zorder=4, vmin=vmin, vmax=vmax)
     # rasterized=true ==>  good for large grids + PDFs
 
-    cbar = fig.colorbar(cs, ax=ax, orientation="horizontal", pad=0.05, shrink=0.5)
+    cbar = fig.colorbar(
+        cs,
+        ax=ax,
+        orientation="horizontal",
+        pad=0.05,
+        shrink=0.5,
+        boundaries=levels,
+        ticks=levels
+    )
     cbar.ax.tick_params(labelsize=20)
     # what are the units: umol/l ?
     #cbar.set_label("Residuals before truncation (umol/L)", fontsize=18)
@@ -125,8 +147,8 @@ for season in seasons:
     ax.set_title('%s for year %s' %(season,year), fontsize = 24, fontweight = 'bold')
     #plt.show()
     
-    plt.savefig(f'{results_dir}/figures/Oxygen_residual_{season}.png')
-    plt.savefig(f'{results_dir}/figures/Oxygen_residual_{season}.pdf', format="pdf", bbox_inches="tight")
+    plt.savefig(f'{results_dir}/figures/residuals/DIVA_Oxygen_residual_{year}_{season}.png')
+    plt.savefig(f'{results_dir}/figures/residuals/DIVA_Oxygen_residual_{year}_{season}.pdf', format="pdf", bbox_inches="tight")
 
     plt.close()
 
