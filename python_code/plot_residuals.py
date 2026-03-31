@@ -60,19 +60,19 @@ df_clean["diva_result"] = df_clean["obs"] - df_clean["res"]
 
 ############## histogram ##################
 weights = np.ones_like(res) / len(res) * 100  # percent of total
-filtered = res[(res < -50) | (res > 50)]
+filtered = res[np.abs(res) <= 50]
 weights_filtered = np.ones_like(filtered) / len(res) * 100  # percent of total
 percent_filtered = len(filtered) / len(res) *100
 
 plt.hist(res, bins=20, weights=weights, edgecolor="grey")
 plt.ylabel("Percent of total (%)")
 plt.xlabel("Residuals, obs-interpolation (µmol/l)")
-plt.suptitle(f"Residuals {year} {season}\n{np.round(percent_filtered,1)}% of |Residuals| > 50 µmol/l")
+plt.suptitle(f"Residuals {year} {season}\n{np.round(percent_filtered,1)}% of |Residuals| <= 50 µmol/l")
 plt.savefig(f'{results_dir}/figures/residuals/DIVA_Oxygen_residual_histogram_percent_{year}_{season}.png')
 plt.close()
 
 plt.hist(filtered, bins=20, weights=weights_filtered, edgecolor="grey")
-plt.suptitle(f"{year} {season} |Residuals| > 50\n{np.round(percent_filtered,1)}% of total")
+plt.suptitle(f"{year} {season} |Residuals| <= 50\n{np.round(percent_filtered,1)}% of total")
 plt.ylabel("Percent of total (%)")
 plt.xlabel("Residuals, obs-interpolation (µmol/l)")
 plt.savefig(f'{results_dir}/figures/residuals/DIVA_Oxygen_residual_filtered_histogram_percent_{year}_{season}.png')
@@ -97,20 +97,7 @@ plt.ylabel("Density")
 plt.legend()
 plt.close()
 
-bins = np.linspace(df_clean["res"].min(), df_clean["res"].max(), 21)
-for label, dmin, dmax in depth_ranges:
-    subset = df_clean[(df_clean["depth"] >= dmin) & (df_clean["depth"] < dmax)]
-    weights = np.ones_like(subset["res"]) / len(subset) * 100
-    
-    plt.hist(subset["res"], bins=bins, weights=weights,
-             histtype='step', linewidth=2, label=label)
-
-plt.xlabel("Residuals, obs-interpolation (µmol/l)")
-plt.ylabel("Percent (%)")
-plt.legend()
-plt.close()
 threshold = 50
-
 labels = []
 percent_extreme = []
 
@@ -123,7 +110,7 @@ for label, dmin, dmax in depth_ranges:
     percent_extreme.append(pct)
 
 plt.bar(labels, percent_extreme)
-plt.ylabel("Extreme residuals (%)")
+plt.ylabel("Extreme residuals in each depth interval (%)")
 plt.title(f"Fraction of |residuals| > {threshold}\n{year}_{season}")
 plt.savefig(f'{results_dir}/figures/residuals/fraction of |res| > {threshold}_{year}_{season}_.png')
 plt.close()
@@ -154,11 +141,17 @@ axs = axs.flatten()
 for i, (label, dmin, dmax) in enumerate(depth_ranges[1:]):
     # Filtrera data
     #mask = (depth > dmin) & (depth <= dmax)
-    mask = (df_clean["depth"] >= dmin) & (df_clean["depth"] <= dmax) & (df_clean["res"].abs() > 50)
+    mask = (df_clean["depth"] >= dmin) & (df_clean["depth"] <= dmax)
     obs_sel = df_clean["obs"][mask]
+    res_sel = df_clean["res"][mask]
     interp_sel = df_clean["diva_result"][mask]
     depth_sel = df_clean["depth"][mask]
+    # Mask för residualer inom threshold, på subset
+    mask_above_threshold = res_sel.abs() <= 50
 
+    # Beräkna andel
+    fraction_residuales_above_threshold = (mask_above_threshold.sum() / len(res_sel)) * 100
+    print(fraction_residuales_above_threshold)
     # Gör scatterplot
     sc = axs[i].scatter(obs_sel, interp_sel, c=depth_sel, cmap='viridis')
     axs[i].set_title(f"{label}")
@@ -173,19 +166,20 @@ for i, (label, dmin, dmax) in enumerate(depth_ranges[1:]):
         rmse = np.sqrt(np.mean((obs_sel - interp_sel) ** 2))
         bias = np.mean(interp_sel - obs_sel)
         r2 = r2_score(obs_sel, interp_sel)
-
-        textstr = f"RMSE: {rmse:.2f}\nBias: {bias:.2f}\nR²: {r2:.2f}"
+        textstr = f"{fraction_residuales_above_threshold:.0f}%"
+        print(textstr)
+        textstr = f"|Residuals| <= 50: {fraction_residuales_above_threshold:.0f}%\nRMSE: {rmse:.2f}\nBias: {bias:.2f}\nR²: {r2:.2f}"
         axs[i].text(0.05, 0.95, textstr, transform=axs[i].transAxes,
                     fontsize=10, verticalalignment='top',
                     bbox=dict(facecolor='white', alpha=0.8))
 
     # colorbar
-    plt.colorbar(sc, ax=axs[i], label="Djup")
+    plt.colorbar(sc, ax=axs[i], label="Depth")
 
 # Layout
-plt.suptitle(f"{year}_{season}\nonly |residuals| > 50", fontsize=14)
+plt.suptitle(f"{year}_{season}", fontsize=14)
 plt.tight_layout(rect=[0, 0, 1, 0.96])
-plt.savefig(f'{results_dir}/figures/residuals/interp_vs_obs_{year}_{season}_only_worst_residuals.png')
+plt.savefig(f'{results_dir}/figures/residuals/interp_vs_obs_{year}_{season}.png')
 plt.close()
 
 #=================
