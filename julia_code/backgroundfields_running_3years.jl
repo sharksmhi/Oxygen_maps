@@ -64,7 +64,7 @@ if !isdir(figdir)
 end
 
 # ## Load data big files created by program "data_handling"
-data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_260320"
+data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_260325"
 #data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_250619"
 #data_fname = "mat_file_1960_2024_reordered"
 @time obsval,obslon,obslat,obsdepth,obstime,obsid = loadbigfile(joinpath(location, "data/$data_fname.txt"));
@@ -98,8 +98,8 @@ lonr = lonr_min:dx:lonr_max  # 14:0.05:31
 latr = latr_min:dy:latr_max
 depthr = Float64.(settings[basin]["depthr"])
 lenz_ = Float64.(settings[basin]["lenz_"])
-lenf = Float64.(settings[basin]["lenf"])
-yearlist_json = settings[basin]["yearlist_background"]
+lenf = Float64.(settings["Global"]["lenf_background"])
+#yearlist_json = settings[basin]["yearlist_background"]
 # Konvertera varje par i yearlist till ett intervall (range) i Julia
 #year_list = [year[1]:year[2] for year in yearlist_json]
 #years = settings[basin]["years"]
@@ -107,7 +107,7 @@ threshold_list = settings[basin]["threshold_list"]
 
 # Ange vilket intervall du vill ha på bakgrundfältet
 start_year = 1959
-end_year   = 2024
+end_year   = 2025
 
 # Skapa listan med rullande treårsintervall # [[1959,1960,1961],[], osv...]
 year_list = [[y-1, y, y+1] for y in start_year:end_year]  

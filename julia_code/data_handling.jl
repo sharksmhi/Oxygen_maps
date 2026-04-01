@@ -245,9 +245,9 @@ obsid_shark_syke_iow = [obsid_shark_syke; obsid_iow[newpoints_iow]];
 # Horizontal distance: 0.01 degree (about 1km)
 xy_dist = 0.01
 # Vertical separation: 0.01 m depth
-depth_dist= 0.1
+depth_dist= 5
 #Time separation: 10 minute.
-time_sep = 10
+time_sep = 60
 #obsval difference: 1 µmol/l correspond to ~pyttelite ml/l
 obsval_diff = 100
 
@@ -279,9 +279,9 @@ obsid_shark_syke_iow_emod = [obsid_shark_syke_iow; obsid_emod[newpoints_emod]];
 # Horizontal distance: 0.01 degree (about 1km)
 xy_dist = 0.05
 # Vertical separation: 0.01 m depth
-depth_dist= 1
+depth_dist= 5
 #Time separation: 10 minute.
-time_sep = 60
+time_sep = 80
 #obsval difference: 1 µmol/l correspond to ~pyttelite ml/l
 obsval_diff = 100
 
@@ -313,9 +313,10 @@ obsid_shark_syke_iow_emod_ices = [obsid_shark_syke_iow_emod; obsid_ices[newpoint
 # Horizontal distance: 0.01 degree (about 1km)
 xy_dist = 0.05
 # Vertical separation: 0.01 m depth
-depth_dist= 1
+depth_dist= 6
 #Time separation: 10 minute.
-time_sep = 60
+# 60x24, vissa stationer saknar tid 00:00
+time_sep = 1500
 #obsval difference: 1 µmol/l correspond to ~pyttelite ml/l
 obsval_diff = 100
 

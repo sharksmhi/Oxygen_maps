@@ -1,14 +1,14 @@
 {   "Global": {
             "w_depth": 5,
             "w_days": 2,
-            "lenf_background": 80000.0,
-            "epsilon_background": 2.0
+            "lenf_background": 50000.0,
+            "epsilon_background": 1.0
             },
     "Baltic_Proper": {
             "lonr": [9,31],
             "latr": [53.5,60.7],
             "lenf": 50000.0,
-            "epsilon": 0.5,
+            "epsilon": 0.2,
             "dx": 0.05,
             "dy": 0.05, 
             "threshold_list" : [0, 90, 180],

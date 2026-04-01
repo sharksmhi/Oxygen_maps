@@ -1,13 +1,13 @@
 import scipy.io
 import numpy as np
 
-data_folder = "/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/data/"
+data_folder = "/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/data/all_baltic/"
 
 # Load all variables from MATLAB file
 # mat_vars = scipy.io.loadmat(data_folder+"o2_1960_2022.mat")
 
 # Load information about variables in MATLAB file
-mat_info = scipy.io.whosmat(data_folder+"o2_1960_2025.mat")
+mat_info = scipy.io.whosmat(data_folder+"o2_1960_2025_umoll.mat")
 
 # Print information about each variable
 # Combine variables into a single array, skipping variables with different length
@@ -20,7 +20,7 @@ for var in mat_info:
     print(f"Variable data type: {var[2]}")
 
     # Load variable data from MATLAB file
-    data = scipy.io.loadmat(data_folder+"o2_1960_2025.mat", variable_names=var[0])
+    data = scipy.io.loadmat(data_folder+"o2_1960_2025_umoll.mat", variable_names=var[0])
 
     # Remove any dimensions of size 1 using np.squeeze()
     x = np.squeeze(data[var[0]])
@@ -51,20 +51,23 @@ else:
     data_reordered = np.zeros((data.shape[0], 11), dtype=object)
     data_reordered[:, 0] = data[:, 2]  # lon
     data_reordered[:, 1] = data[:, 1]  # lat
-    data_reordered[:, 2] = data[:, 4]  # value /O2
+    data_reordered[:, 2] = data[:, 7]  # value /O2
     data_reordered[:, 3] = data[:, 3]  # depth
     # columns 4-8 can contain any data, but cannot be left empty,
     # fill columns 4-6 with information from mat-file, leave colummns 7-8 with only zeros
-    data_reordered[:, 4] = data[:, 5]  # Yr, can contain any data, but cannot be left empty
-    data_reordered[:, 5] = data[:, 6]  # Month, can contain any data, but cannot be left empty
+    data_reordered[:, 4] = data[:, 4]  # Yr, can contain any data, but cannot be left empty
+    data_reordered[:, 5] = data[:, 5]  # Month, can contain any data, but cannot be left empty
     data_reordered[:, 6] = data[:, 0]  # Stno, can contain any data, but cannot be left empty
-    data_reordered[:, 9] = data[:, 7]  # date
-    data_reordered[:, 10] = data[:, 8] # id /pltf
+    data_reordered[:, 9] = data[:, 6]  # date
+    #data_reordered[:, 10] = data[:, 8] # id /pltf
+    data_reordered[:, 10] = [
+    f"mat_file_{val}" for val in data[:, 8]
+]
 
 # Save the reordered data to a file with headers. Headers have to be removed before reading the file in DIVAnd
 header_reordered = ['lon', 'lat', 'oxygen', 'depth', 'year', 'month', 'station_no', 'extra1', 'extra2', 'date', 'pltf']
 header_str = '\t'.join(var_name for var_name in header_reordered)
-np.savetxt(f"{data_folder}all_baltic/mat_BIG_file_1960_2025.txt", data_reordered, header=header_str, comments='', delimiter='\t', fmt='%s')
+np.savetxt(f"{data_folder}mat_BIG_file_1960_2025.txt", data_reordered, header=header_str, comments='', delimiter='\t', fmt='%s')
 
 # order of columns in the outputfiler have to be:
 # 0 lon
