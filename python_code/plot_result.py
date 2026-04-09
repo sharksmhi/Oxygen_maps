@@ -8,6 +8,7 @@ import pandas as pd
 import cartopy.crs as ccrs
 from cartopy.mpl.ticker import (LongitudeFormatter, LatitudeFormatter,
                                 LatitudeLocator)
+import cartopy.feature as cfeature
 from mpl_toolkits.axes_grid1 import inset_locator
 import matplotlib as mpl
 import matplotlib.patches as mpatches
@@ -50,7 +51,7 @@ def create_colorbar(axis, plot_object, levels, title = None):
         bbox_transform=axis.transAxes,
     )
     cbar = plt.colorbar(plot_object, cax=cbax, orientation='horizontal')
-    cbar.ax.tick_params(labelsize=5)
+    cbar.ax.tick_params(labelsize=5, color="k")
     cbar.set_ticks(levels)
     
     if title is not None:
@@ -69,8 +70,8 @@ def set_up_cartopy_map(axis):
     # Set map extent
     axis.set_extent(
         [
-            9,
-            29,
+            9.5,
+            30,
             53.5,
             61,
         ],
@@ -79,7 +80,8 @@ def set_up_cartopy_map(axis):
 
     # Coastlines
     axis.coastlines(resolution='10m', linewidth=0.5, color='gray')
-
+    # axis.add_feature(cfeature.OCEAN, facecolor="deepskyblue")
+    # axis.add_feature(cfeature.LAND, facecolor="lemonchiffon")
     # Gridlines (meridians/parallels)
     gl = axis.gridlines(
         crs=ccrs.PlateCarree(), 
@@ -93,8 +95,8 @@ def set_up_cartopy_map(axis):
     gl.yformatter = LatitudeFormatter()
     gl.top_labels = False
     gl.right_labels = False
-    gl.xlabel_style = {'size': 6}
-    gl.ylabel_style = {'size': 6}
+    gl.xlabel_style = {'size': 10}
+    gl.ylabel_style = {'size': 10}
 
     return axis
 
@@ -234,7 +236,7 @@ def plot_parameter_with_observations(
     add_colorbar=True
 ):
     """
-    Combines a parameter at specified depth (using sub_plot_parameter)
+    Combines a parameter at specified depth (using plot_parameter)
     with observations using overlay_observations
     """
     cmap, norm, levels = oxygen_cmap_norm(vmin, vmax)
@@ -271,7 +273,7 @@ def plot_only_observations(
     show_depth=0, observation_span=2,
     vmin=0, vmax=180,
     colorbar=True,
-    color='k', time_index=0, BG=False
+    color='snow', time_index=0, BG=False
 ):
     """
     This plots observations from a selected depth 
@@ -340,9 +342,12 @@ def plot_only_observations(
         )
 
     else:
+        df = pd.DataFrame({'lon': lon, 'lat': lat})
+        # Keep only unique combinations
+        df_unique = df.drop_duplicates()
         sc = axis.scatter(
-            lon,
-            lat,
+            df_unique["lon"],
+            df_unique["lat"],
             s=3,
             edgecolors='k',
             linewidth=0.05,
@@ -364,7 +369,7 @@ def plot_errorfield(ds, parameter, axis, show_depth=None):
     )
 
     # Add a colorbar
-    create_colorbar(axis=axis, plot_object=pcm, levels=levels)
+    create_colorbar(axis=axis, plot_object=pcm, levels=levels, title="relative error")
 
     axis.set_title(f'Errorfield at {show_depth} m', fontsize=8)
 
@@ -375,6 +380,14 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
     # https://www.nodc.noaa.gov/OC5/WOD/wod18-notes.html
     unit = 'umol/l'
 
+    """ plt.rcParams.update({
+        "text.color": "seashell",       # general text color
+        "axes.labelcolor": "seashell", # x/y axis labels
+        "xtick.color": "seashell",        # x ticks
+        "ytick.color": "seashell",        # y ticks
+        "axes.titlecolor": "seashell"    # axes title
+    })
+    """
     ############### FIRST plot, errors and min depths results #################
     # Row 1: maps with error fields for each threshold
     # Row 2: maps of the depth of the onset of each threshold
@@ -385,7 +398,7 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
         fig_name = f'threshold_result_{year}_{season}.png'
     fig_path = Path(f'{results_dir}/figures/{fig_name}')
     
-    if not fig_path.exists():   
+    if fig_path.exists():   
         print(f"thresholdplot, errors and min depths results from: {netcdf_filename}")
         n_figs = len(threshold_list)
         
@@ -446,7 +459,7 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
             fig_name = f'{name}_{year}_{season}.png'
         fig_path = Path(f'{results_dir}/figures/{fig_name}')
 
-        if not fig_path.exists():
+        if fig_path.exists():
             #print(f"plot result at different depthlayers results from: {netcdf_filename}")
             # plots of results at 4 different depths 10, 40, 50, 60
             fig, axs = plt.subplots(2, 4, subplot_kw={'projection': ccrs.Mercator()}, figsize=(10, 4.5), layout="constrained")
@@ -504,13 +517,16 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
         fig_name = f'final_result_{year}_{season}.png'
     fig_path = Path(f'{results_dir}/figures/{fig_name}')
 
-    if not fig_path.exists():
-        fig, axs = plt.subplots(1, 1, subplot_kw={'projection': ccrs.Mercator()}, figsize=(10, 4.5), layout="constrained")
+    if fig_path.exists():
+        fig, axs = plt.subplots(1, 1, subplot_kw={'projection': ccrs.Mercator()}, figsize=(10, 6), layout="constrained")
         
         # Vänder på threshold_list för att högst threshold skall hamna underst.
         threshold_list.reverse()
         color_list = ['lightgrey', 'darkgrey', 'grey']
         hatches_list = [10 * '/', 10 * "\\", 10*'|']
+        """threshold_list.pop(0)
+        color_list.pop(0)
+        hatches_list.pop(0)"""
 
         for index, threshold in enumerate(threshold_list):
             pcm = plot_parameter(
@@ -522,7 +538,7 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
                 levels=[0.5, 1.5], 
                 contourf=True
             )
-        
+        #mpl.rcParams['hatch.linewidth'] = 0.5
         for index, threshold in enumerate(threshold_list):
             # Mark areas with relative error >? with hatches
             pcm = plot_parameter(
@@ -534,39 +550,52 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
                 levels=[0.5,1.5],
                 contourf=True
             )
+            # Set hatch line color
+            """for col in pcm.collections:
+                col.set_edgecolor("red")
+                col.set_linewidth(0)"""
 
         # plot all points with observations in red
         sc = plot_only_observations(
-            ds, axis=axs, year=year, colorbar=False, color="none", observation_span=500, BG=BG
+            ds, axis=axs, year=year, colorbar=False, color="snow", observation_span=500, BG=BG
         )
 
         # Skapa handle till legenden som motsvarar observationer i plotten
         sc.set_label("Observations")
 
         # Skapa colors and hatches objects for area handles
-        area_colors = [color_list[0], color_list[1], color_list[2],'none', 'none','none']
-        error_hatches = ['', '','', hatches_list[0], hatches_list[1],hatches_list[2]]
+        n = len(threshold_list)
+        area_colors = color_list + ['none'] * n
+        error_hatches = [''] * n + hatches_list
 
         # Skapa labels till patcherna 
-        legend_labels_areas = [f'<{threshold_list[0]} µmol/l', f'<{threshold_list[1]} µmol/l', f'<{threshold_list[2]} µmol/l',
-                        f'Error field <{threshold_list[0]} µmol/l', f'Error field <{threshold_list[1]} µmol/l',
-                        f'Error field <{threshold_list[2]} µmol/l']
-        
+        legend_labels_areas = (
+            [f'<{thr} µmol/l' for thr in threshold_list] +
+            [f'Error field <{thr} µmol/l' for thr in threshold_list]
+        )
         # Skapa patch objekt till legenden
         patches = [mpatches.Patch(facecolor=color, hatch=hatch, label=label)
                     for color, hatch, label in zip(area_colors, error_hatches, legend_labels_areas)]
 
         # Lägg till en "fejk" legend om syrefritt är med
         if 0 not in threshold_list:
-            # om bottniska viken.
-            fake_labels = [f'<{threshold_list[0]} µmol/l', f'<{threshold_list[1]} µmol/l', f'<{threshold_list[2]} µmol/l',
-                        f'Error field <{threshold_list[0]} µmol/l', f'Error field <{threshold_list[1]} µmol/l', f'Error field <{threshold_list[2]} µmol/l']
-            fake_colors = [color_list[0], color_list[1], color_list[2],'none', 'none','none']
-            fake_hatches = ['', '','', hatches_list[0], hatches_list[1],hatches_list[2]]
-            # Skapa proxy-objekt för legenden
-            patches = [mpatches.Patch(facecolor=color, hatch=hatch, label=label)
-                    for color, hatch, label in zip(fake_colors, fake_hatches, fake_labels)]
+            # Labels
+            fake_labels = (
+                [f'<{thr} µmol/l' for thr in threshold_list] +
+                [f'Error field <{thr} µmol/l' for thr in threshold_list]
+            )
 
+            # Colors: first real areas, then empty (for error fields)
+            fake_colors = color_list + ['none'] * n
+
+            # Hatches: first empty, then hatch patterns
+            fake_hatches = [''] * n + hatches_list
+
+            # Skapa proxy-objekt för legenden
+            patches = [
+                mpatches.Patch(facecolor=color, hatch=hatch, label=label)
+                for color, hatch, label in zip(fake_colors, fake_hatches, fake_labels)
+            ]
             if len(threshold_list) < 3:
                 print("Bara två thresholds, ändra legenden!")
 
@@ -622,5 +651,5 @@ if __name__ == "__main__":
     print("running")
     # Result directory
     results_dir = "./resultat/Baltic_Proper/20260114_1653/"
-    results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results_lena_temp/Baltic_Proper/20260305_1417/")
+    results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results_lena_temp/Baltic_Proper/20260401_0938_eps02_corrlen50k/")
     read_processed_nc(results_dir)
