@@ -310,6 +310,33 @@ def calculate_areas(results_dir, threshold_list, save_area_data=False):
     pd.concat(df_BG_list).to_csv(f"{results_dir}/test_BG_area_data_{start_year}_{end_year}.txt", sep="\t", index=False)    
 
 
+def get_area_timeseries_from_processed_netcdf(results_dir, threshold_list,):
+    processed_files =  Path(results_dir) / "processed"
+    #List for results to txt
+    nc_files = [f for f in processed_files.glob("*.nc")]
+    print(nc_files)
+    df_list = []
+    df_BG_list = []
+    year_list = []
+    start_year = 2100
+    end_year = 0
+    for netcdf_filepath in nc_files:
+        print(f"read file {netcdf_filepath}")
+        netcdf_filename = netcdf_filepath.name
+        ds = xr.open_dataset(netcdf_filepath)
+        season = ds.attrs['season']
+        start_year = min(start_year, int(ds.attrs['start year']))
+        end_year = max(end_year, int(ds.attrs['end year']))
+        if "Background" in netcdf_filename:
+            df_BG = extract_area_data(ds, threshold_list, basin_ids=BASINIDS_SUBSET)
+            df_BG_list.append(df_BG)
+        else:            
+            df = extract_area_data(ds, threshold_list, basin_ids=BASINIDS_SUBSET)
+            df_list.append(df)
+    pd.concat(df_list).to_csv(f"{results_dir}/test_area_data_{start_year}_{end_year}.txt", sep="\t", index=False)    
+    pd.concat(df_BG_list).to_csv(f"{results_dir}/test_BG_area_data_{start_year}_{end_year}.txt", sep="\t", index=False)    
+
+
 def extract_area_data(ds, threshold_list, basin_ids=None):
     rows = []
     season = ds.attrs['season']
@@ -343,7 +370,7 @@ def extract_area_data(ds, threshold_list, basin_ids=None):
 
 if __name__ == "__main__":
     # Result directory
-    results_dir = "./resultat/Baltic_Proper/20260114_1653/"
+    results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results_lena_temp/Baltic_Proper/20260408_1932_high_res_1960_2025/")
     # Thresholds to analyse in µmol/l oxygen (0, 2, 4 ml/l)
     threshold_list = [0, 90, 180]
-    calculate_areas(results_dir, threshold_list)
+    get_area_timeseries_from_processed_netcdf(results_dir, threshold_list)

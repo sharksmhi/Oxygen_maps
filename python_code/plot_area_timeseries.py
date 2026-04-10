@@ -8,16 +8,24 @@ from datetime import datetime
 import pandas as pd
 from pathlib import Path
 
-start_year = 1960
-end_year = 2022
+def style_axis(ax, color="seashell"):
+    ax.title.set_color(color)
+    ax.xaxis.label.set_color(color)
+    ax.yaxis.label.set_color(color)
+    ax.tick_params(axis='both', colors=color)
+    for spine in ax.spines.values():
+        spine.set_edgecolor(color)
 
-date = "20260303_1535"
-freja_results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results/Baltic_Proper/{date}//")
-freja_results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results_lena_temp/Baltic_Proper/20260305_1417/")
-on_freja = False
-if Path(freja_results_dir).is_dir():
-    results_dir = freja_results_dir
-    on_freja = True
+    leg = ax.get_legend()
+    if leg:
+        leg.get_frame().set_facecolor("none")
+        for text in leg.get_texts():
+            text.set_color(color)
+
+start_year = 1960
+end_year = 2025
+
+results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results_lena_temp/Baltic_Proper/20260408_1932_high_res_1960_2025/")
 
 #results_dir = Path(f"resultat/Baltic_Proper/{date}/")
 print(results_dir)
@@ -46,6 +54,42 @@ season_order = {'Winter': 0, 'Spring': 1, 'Summer': 2, 'Autumn': 3}
 seasons = list(season_order.keys())
 n_seasons = len(seasons)
 
+for season in seasons:
+    fig, ax = plt.subplots(figsize=(10, 4))
+    plt.subplots_adjust(top=0.8)
+
+    subset = df.loc[df.season == season]
+    # set axis properties
+    if basin == "":
+        ax.set_ylim(0, 120000)
+
+    ax.yaxis.set_major_locator(ticker.MultipleLocator(20000))
+    ax.yaxis.set_minor_locator(ticker.MultipleLocator(10000))
+    ax.xaxis.set_major_locator(ticker.MultipleLocator(5))
+    ax.xaxis.set_minor_locator(ticker.MultipleLocator(1))
+    # plot bars
+    ax.bar(x=subset['year'], height=subset[f"Area_180_{basin}km2"], width=1, color='lightgrey', edgecolor='black',linewidth=0.5, label='180 umol/l')
+    ax.bar(x=subset['year'], height=subset[f'Relerr_area_180_{basin}km2'],bottom=subset[f'Area_180_{basin}km2'] - subset[f'Relerr_area_180_{basin}km2'], width=1, color='none', hatch='/////',edgecolor='black', linewidth=0.5, label="180 umol/l Relerror >0.5")
+    # plot hypoxic bars
+    ax.bar(x=subset['year'], height=subset[f"Area_90_{basin}km2"], width = 1, color = 'darkgrey', edgecolor = 'black', linewidth = 0.5, label = 'Hypoxic')
+    ax.bar(x=subset['year'], height=subset[f'Relerr_area_90_{basin}km2'], bottom = subset[f'Area_90_{basin}km2']-subset[f'Relerr_area_90_{basin}km2'], width = 1, color = 'none', hatch=5* "\\", edgecolor = 'black', linewidth = 0.5, label="Hypoxic Relerror >0.5")
+    # plot anoxic bars
+    ax.bar(x=subset['year'], height=subset[f'Area_0_{basin}km2'], width = 1, color = 'grey', edgecolor = 'black', linewidth = 0.5, label = 'Anoxic')
+    ax.bar(x=subset['year'], height=subset[f'Relerr_area_0_{basin}km2'], bottom = subset[f'Area_0_{basin}km2']-subset[f'Relerr_area_0_{basin}km2'], width = 1, color = 'none', hatch='|||||', edgecolor = 'black', linewidth = 0.5, label="Anoxic Relerror >0.5")
+    # set title, ylabel, grid on
+    ax.set_title(f"{season}")
+    ax.set_ylabel('area km$^2$') 
+    ax.grid(which = 'major', linewidth=0.1, axis="y")
+    ax.ticklabel_format(style='scientific', axis = 'y')
+
+    # turn on legend and set position
+    ax.legend(ncols=3, loc=(0.1,1.1))
+    fig.suptitle(basin.strip("_"))
+    style_axis(ax)
+    # save figure
+    # TODO: fixa filnamnet!
+    fig.savefig(f'{results_dir}/figures/timeseries/{season}_{basin}{df.year.min()}-{df.year.max()}.png', dpi = 300, transparent=True)
+
 # Timeseries one subplot for each season
 fig, ax = plt.subplots(4, 1,  figsize=(10, 8), sharey=True, sharex=True)
 fig.subplots_adjust(top=0.88, bottom=0.09, left=0.14, right=0.95, hspace=0.28)
@@ -67,7 +111,7 @@ for season, subset in df.groupby('season'):
     ax[subplot_row].bar(x=subset['year'], height=subset[f'Relerr_area_180_{basin}km2'],bottom=subset[f'Area_180_{basin}km2'] - subset[f'Relerr_area_180_{basin}km2'], width=1, color='none', hatch='/////',edgecolor='black', linewidth=0.5, label="180 umol/l Relerror >0.5")
     # plot hypoxic bars
     ax[subplot_row].bar(x=subset['year'], height=subset[f"Area_90_{basin}km2"], width = 1, color = 'darkgrey', edgecolor = 'black', linewidth = 0.5, label = 'Hypoxic')
-    ax[subplot_row].bar(x=subset['year'], height=subset[f'Relerr_area_90_{basin}km2'], bottom = subset[f'Area_90_{basin}km2']-subset[f'Relerr_area_90_{basin}km2'], width = 1, color = 'none', hatch='/////', edgecolor = 'black', linewidth = 0.5, label="Hypoxic Relerror >0.5")
+    ax[subplot_row].bar(x=subset['year'], height=subset[f'Relerr_area_90_{basin}km2'], bottom = subset[f'Area_90_{basin}km2']-subset[f'Relerr_area_90_{basin}km2'], width = 1, color = 'none', hatch=5* "\\", edgecolor = 'black', linewidth = 0.5, label="Hypoxic Relerror >0.5")
     # plot anoxic bars
     ax[subplot_row].bar(x=subset['year'], height=subset[f'Area_0_{basin}km2'], width = 1, color = 'grey', edgecolor = 'black', linewidth = 0.5, label = 'Anoxic')
     ax[subplot_row].bar(x=subset['year'], height=subset[f'Relerr_area_0_{basin}km2'], bottom = subset[f'Area_0_{basin}km2']-subset[f'Relerr_area_0_{basin}km2'], width = 1, color = 'none', hatch='|||||', edgecolor = 'black', linewidth = 0.5, label="Anoxic Relerror >0.5")
@@ -82,8 +126,7 @@ ax[0].legend(ncols=3, loc=(0.1,1.2))
 fig.suptitle(basin.strip("_"))
 # save figure
 # TODO: fixa filnamnet!
-temp_results_dir = "resultat"
-fig.savefig(f'{results_dir}/figures/{basin}{df.year.min()}-{df.year.max()}.png', dpi = 300)
+fig.savefig(f'{results_dir}/figures/timeseries/{basin}{df.year.min()}-{df.year.max()}.png', dpi = 300)
 
 # Timeseries group seasons together
 basins = ["", "SEA-007_", "SEA-009_", "SEA-010_", ]
@@ -115,17 +158,16 @@ for basin_i, basin in enumerate(basins):
         x_pos = subset['year'] + (i * width - group_offset)
 
         ax.bar(x=x_pos, height=subset[f"Area_180_{basin}km2"], width=width, color='lightgrey', edgecolor='black',linewidth=0.5, label='180 umol/l')
-        ax.bar(x=x_pos, height=subset[f'Relerr_area_180_{basin}km2'],bottom=subset[f'Area_180_{basin}km2'] - subset[f'Relerr_area_180_{basin}km2'], width=width, color='none', hatch='/////',edgecolor='black', linewidth=0.5, label="180 umol/l Relerror >0.5")
+        ax.bar(x=x_pos, height=subset[f'Relerr_area_180_{basin}km2'],bottom=subset[f'Area_180_{basin}km2'] - subset[f'Relerr_area_180_{basin}km2'], width=width, color='none', hatch=10 * '/',edgecolor='black', linewidth=0.5, label="180 umol/l Relerror >0.5")
         # plot hypoxic bars
         ax.bar(x=x_pos, height=subset[f"Area_90_{basin}km2"], width = width, color = 'darkgrey', edgecolor = 'black', linewidth = 0.5, label = 'Hypoxic')
-        ax.bar(x=x_pos, height=subset[f'Relerr_area_90_{basin}km2'], bottom = subset[f'Area_90_{basin}km2']-subset[f'Relerr_area_90_{basin}km2'], width = width, color = 'none', hatch='/////', edgecolor = 'black', linewidth = 0.5, label="Hypoxic Relerror >0.5")
+        ax.bar(x=x_pos, height=subset[f'Relerr_area_90_{basin}km2'], bottom = subset[f'Area_90_{basin}km2']-subset[f'Relerr_area_90_{basin}km2'], width = width, color = 'none', hatch=10 * "\\", edgecolor = 'black', linewidth = 0.5, label="Hypoxic Relerror >0.5")
         # plot anoxic bars
         ax.bar(x=x_pos, height=subset[f'Area_0_{basin}km2'], width = width, color = 'grey', edgecolor = 'black', linewidth = 0.5, label = 'Anoxic')
-        ax.bar(x=x_pos, height=subset[f'Relerr_area_0_{basin}km2'], bottom = subset[f'Area_0_{basin}km2']-subset[f'Relerr_area_0_{basin}km2'], width = width, color = 'none', hatch='|||||', edgecolor = 'black', linewidth = 0.5, label="Anoxic Relerror >0.5")
+        ax.bar(x=x_pos, height=subset[f'Relerr_area_0_{basin}km2'], bottom = subset[f'Area_0_{basin}km2']-subset[f'Relerr_area_0_{basin}km2'], width = width, color = 'none', hatch=10*'|', edgecolor = 'black', linewidth = 0.5, label="Anoxic Relerror >0.5")
         ax.ticklabel_format(style='scientific', axis = 'y')
         ax.set_title(basin.strip("_"))
         ax.set_ylabel('area km$^2$')
-
 
 # turn on legend and set position
 #ax.legend(ncols=3, loc=(0.1,1.2))
@@ -133,9 +175,7 @@ for basin_i, basin in enumerate(basins):
 fig.suptitle("all seasons grouped")
 # save figure
 # TODO: fixa filnamnet!
-temp_results_dir = "resultat"
-fig.savefig(f'{results_dir}/figures/many_{basin}seasons_grouped_{df.year.min()}-{df.year.max()}.png', dpi = 300)
-
+fig.savefig(f'{results_dir}/figures/timeseries/many_{basin}_seasons_grouped_{df.year.min()}-{df.year.max()}.png', dpi = 300)
 
 # Seasonal line plot
 # List of variables to plot
@@ -180,8 +220,7 @@ sm.set_array([])
 cbar = fig.colorbar(sm, ax=axes, orientation='vertical', fraction=0.03, pad=0.02)
 cbar.set_label('Year')
 
-temp_results_dir = "resultat"
-fig.savefig(f'{results_dir}/figures/{basin}seasonal_lineplot_{df.year.min()}-{df.year.max()}.png', dpi = 300)
+fig.savefig(f'{results_dir}/figures/timeseries/{basin}_seasonal_lineplot_{df.year.min()}-{df.year.max()}.png', dpi = 300)
 
 # Create figure with 3 subplots
 # List of variables to plot
@@ -213,8 +252,8 @@ sm.set_array([])
 cbar = fig.colorbar(sm, ax=axes, orientation='vertical', fraction=0.03, pad=0.02)
 cbar.set_label('Year')
 
-temp_results_dir = "resultat"
-fig.savefig(f'{results_dir}/figures/ALL_{basin}seasonal_lineplot_diff_{df.year.min()}-{df.year.max()}.png', dpi = 300)
+fig.savefig(f'{results_dir}/figures/timeseries/ALL_{basin}_seasonal_lineplot_diff_{df.year.min()}-{df.year.max()}.png', dpi = 300)
+df_merged = pd.merge(df.loc[df['season']=='Autumn'], df_matlab, on='year', how='outer', suffixes=['_DIVAnd', '_matlab'], sort=True)
 
 # create figure object
 fig, ax = plt.subplots(2, 1,  figsize=(10, 8), sharey=True, sharex=True)
@@ -228,41 +267,86 @@ ax[0].yaxis.set_major_locator(ticker.MultipleLocator(20000))
 ax[0].yaxis.set_minor_locator(ticker.MultipleLocator(10000))
 ax[0].xaxis.set_major_locator(ticker.MultipleLocator(5))
 ax[0].xaxis.set_minor_locator(ticker.MultipleLocator(1))
-
-df_merged = pd.merge(df.loc[df['season']=='Autumn'], df_matlab, on='year', how='outer', suffixes=['_DIVAnd', '_matlab'], sort=True)
 # plot hypoxic bars
-df_merged.plot.bar(ax=ax[0], x='year', y='Area_90_km2_matlab', width = 1, color = 'darkgrey', label='matlab')
-df_merged.plot.bar(ax=ax[0], x='year', y='Area_90_km2_DIVAnd', width = 1, color = 'none', hatch='...', edgecolor = 'black', linewidth = 0.5, label='DIVAnd')
+df_merged.plot.line(ax=ax[0], x='year', y='Area_90_km2_matlab', color = 'deepskyblue', label='matlab')
+df_merged.plot.line(ax=ax[0], x='year', y='Area_90_km2_DIVAnd', color = 'forestgreen', label='DIVAnd')
 
 ax[0].set_title('Hypoxia')
 ax[0].set_ylabel('area km$^2$') 
-ax[0].grid(which = 'both')
 # plot anoxic bars
-df_merged.plot.bar(ax=ax[1], x='year', y='Area_0_km2_matlab', width = 1, color = 'grey', label='matlab')
-df_merged.plot.bar(ax=ax[1], x='year', y='Area_0_km2_DIVAnd', width = 1, color = 'none', hatch='...', edgecolor = 'black', linewidth = 0.5, label='DIVAnd')
-#df_merged.plot.bar(ax=ax[1], x='year', y='Anoxic_area_km2_DIVAnd', width = 1, color = 'r', label='DIVAnd')
-#df_merged.plot.bar(ax=ax[1], x='year', y='Anoxic_area_km2_matlab', width = 1, color = 'none', hatch='/////', edgecolor = 'black', linewidth = 0.5, label='matlab')
+df_merged.plot.line(ax=ax[1], x='year', y='Area_0_km2_matlab', color = 'deepskyblue', label='matlab')
+df_merged.plot.line(ax=ax[1], x='year', y='Area_0_km2_DIVAnd', color = 'forestgreen', label='DIVAnd')
 
 # set title, ylabel, grid on
 ax[1].set_title('Anoxia')
 ax[1].set_ylabel('area km$^2$') 
-ax[1].grid(which = 'both')
 
 # turn on legend and set position
 ax[0].legend(loc=(0.8,1.1))
 
 # save figure
 # TODO: fixa filnamnet
-print(f'{results_dir}/figures/DIVAnd and matlab result.png')
-temp_results_dir = "resultat"
-fig.savefig(f'{results_dir}/figures/DIVAnd and matlab result.png', dpi = 300)
+print(f'{results_dir}/figures/timeseries/DIVAnd and matlab result.png')
+fig.savefig(f'{results_dir}/figures/timeseries/DIVAnd and matlab result.png', dpi = 300)
 
-"""
-import matplotlib.pyplot as plt
-# set the spacing between subplots
-plt.subplot_tool()
-plt.show()
-fig, ax = plt.subplots(4, 1,  figsize=(10, 8), sharey=True, sharex=True)
-plt.subplot_tool()
-plt.show()
-"""
+
+# create figure object
+# make all text white (seashell)
+print(f"{plt.rcParams.keys()=}")
+plt.rcParams.update({
+    "text.color": "seashell",       # general text color
+    "axes.labelcolor": "seashell", # x/y axis labels
+    "axes.edgecolor": "seashell", 
+    "xtick.color": "seashell",        # x ticks
+    "ytick.color": "seashell",        # y ticks
+    "axes.titlecolor": "seashell",   # axes title
+    "axes.titlesize": 16,
+    "legend.facecolor": "none"
+})
+fig, ax = plt.subplots(2, 1,  figsize=(10, 8), sharex=True)
+fig.subplots_adjust(top=0.88, bottom=0.09, left=0.14, right=0.95, hspace=0.28)
+
+# set axis properties
+if basin == "":
+    ax[0].set_ylim(0, 120000)
+
+ax[0].yaxis.set_major_locator(ticker.MultipleLocator(20000))
+ax[0].yaxis.set_minor_locator(ticker.MultipleLocator(10000))
+ax[0].xaxis.set_major_locator(ticker.MultipleLocator(5))
+ax[0].xaxis.set_minor_locator(ticker.MultipleLocator(1))
+# plot hypoxic bars
+df_merged.plot.line(ax=ax[0], x='year', y='Area_90_km2_matlab', ls="--", color = 'deepskyblue', label='Hypoxia Hansson et al 2011')
+df_merged.plot.line(ax=ax[0], x='year', y='Area_90_km2_DIVAnd', color = 'deepskyblue', label='Hypoxia This study using DIVAnd')
+df_merged.plot.line(ax=ax[0], x='year', y='Area_0_km2_matlab', ls="--", color = 'orangered', label='Anoxia Hansson et al 2011')
+df_merged.plot.line(ax=ax[0], x='year', y='Area_0_km2_DIVAnd', color = 'orangered', label='Anoxia This study using DIVAnd')
+
+# set title, ylabel, grid on
+ax[0].set_title('Results')
+ax[0].set_ylabel('area km$^2$') 
+
+# turn on legend and set position
+ax[0].legend(loc='upper left', ncol=2)
+
+ax[1].set_ylim(-20000, 20000)
+ax[1].yaxis.set_major_locator(ticker.MultipleLocator(20000))
+ax[1].yaxis.set_minor_locator(ticker.MultipleLocator(10000))
+ax[1].xaxis.set_major_locator(ticker.MultipleLocator(5))
+ax[1].xaxis.set_minor_locator(ticker.MultipleLocator(1))
+# plot hypoxic bars
+df_merged["diff_90"] = df_merged['Area_90_km2_matlab']-df_merged["Area_90_km2_DIVAnd"]
+df_merged["diff_0"] = df_merged['Area_0_km2_matlab']-df_merged["Area_0_km2_DIVAnd"]
+df_merged.plot.line(ax=ax[1], x='year', y='diff_90', color = 'deepskyblue', label='hypoxia' )
+df_merged.plot.line(ax=ax[1], x='year', y='diff_0', color = 'orangered', label='anoxia')
+ax[1].axhline(y=0, color = "seashell", lw=0.1)
+
+# set title, ylabel, grid on
+ax[1].set_title('Difference, Hansson et al 2011 - Results using DIVAnd')
+ax[1].set_ylabel('delta area km$^2$') 
+
+# turn on legend and set position
+ax[1].legend(facecolor="none")
+
+# save figure
+# TODO: fixa filnamnet
+print(f'{results_dir}/figures/timeseries/DIVAnd and matlab result.png')
+fig.savefig(f'{results_dir}/figures/timeseries/DIVAnd and matlab result_together.png', dpi = 300, transparent = True)
