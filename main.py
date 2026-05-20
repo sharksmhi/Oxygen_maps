@@ -71,6 +71,8 @@ if __name__ == "__main__":
     threshold_list = json.dumps(settings[basin]["threshold_list"])
     years = settings[basin]["years"] # utan json.dumps så det passar i bkg_filename strängen.
     #yearlist_background = json.dumps(settings[basin]["yearlist_background"])
+    w_depth = json.dumps(settings["Global"]["w_depth"])
+    w_days = json.dumps(settings["Global"]["w_days"])
 
     epsilon_background = json.dumps(settings["Global"]["epsilon_background"])
 
@@ -99,11 +101,11 @@ if __name__ == "__main__":
         json.dump(obj=settings[basin],fp=file)
  
     # Years, month and seasons to be analysed
-    year_list = json.dumps([1960, 1961, 1962, 1963, 1964, 1965, 1966, 1967, 1968, 1969, 1970, 1971, 1972, 1973, 1974, 1975, 1976, 1977, 1978,
-    1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997,
-    1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016,
-    2017, 2018, 2019, 2020, 2021, 2022, 2023])
-    year_list = json.dumps([1970, 1980, 1990, 2020, 2023, 2024, 2025])
+    #year_list = json.dumps([1960, 1961, 1962, 1963, 1964, 1965, 1966, 1967, 1968, 1969, 1970, 1971, 1972, 1973, 1974, 1975, 1976, 1977, 1978,
+    #1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997,
+    #1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016,
+    #2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025])
+    year_list = json.dumps([1990, 2009, 2025])
     #yearlist_background = year_list
     #year_list = json.dumps([2015])
     print(f"calculating for years {year_list}")
@@ -139,8 +141,8 @@ if __name__ == "__main__":
     print("Bathymetry file: ", bath_file_name)
 
     # Modify data weight
-    w_depth = json.dumps(5.)
-    w_days = json.dumps(2.)
+    #w_depth = json.dumps(5.)
+    #w_days = json.dumps(2.)
 
     #Set True if you want to save area_data to file (for time-series bar plots)
     save_area_data=True

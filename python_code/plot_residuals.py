@@ -11,9 +11,9 @@ import cartopy.feature as cfeature
 import matplotlib.cm as cm 
 import seaborn as sns
 
-year = 2020
+year = 1970
 season = "Autumn"
-results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results_lena_temp/Baltic_Proper/20260320_1659/")
+results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results/Baltic_Proper/20260407_2206_0.2_50000.0_0.05_5.0_5.0/")
 
 # Definiera djupintervall (label, lower, upper)
 depth_ranges = [
