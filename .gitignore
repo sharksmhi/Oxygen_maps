@@ -6,3 +6,5 @@ resultat/**
 python_code/test*
 python_code/_*
 results/**
+obstime_output.txt
+prepare_freja.sh

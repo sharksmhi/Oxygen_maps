@@ -56,6 +56,11 @@ if __name__ == "__main__":
     with open('settings.json', 'r') as file:
         settings = json.load(file)
    
+    #Läs in depthr och motsvarande lenz
+    layers = settings[basin]["layers"]
+    depthr = json.dumps([layer["depth"] for layer in layers])
+    lenz_ = json.dumps([layer["corrlen"] for layer in layers])
+
     lonr_range = settings[basin]["lonr"]
     latr_range = settings[basin]["latr"]
     dx = json.dumps(settings[basin]["dx"])
@@ -64,12 +69,12 @@ if __name__ == "__main__":
     lonr = f"{lonr_range[0]}:{dx}:{lonr_range[1]}"
     latr = f"{latr_range[0]}:{dy}:{latr_range[1]}"
     epsilon = json.dumps(settings[basin]["epsilon"])
-    depthr = json.dumps(settings[basin]["depthr"])
-    lenz_ = json.dumps(settings[basin]["lenz_"])
+    #depthr = json.dumps(settings[basin]["depthr"])
+    #lenz_ = json.dumps(settings[basin]["lenz_"])
     lenf = json.dumps(settings[basin]["lenf"])
-    lenf_background = json.dumps(settings["Global"]["lenf_background"])
+    lenf_background = json.dumps(settings[basin]["lenf_background"])
     threshold_list = json.dumps(settings[basin]["threshold_list"])
-    years = settings[basin]["years"] # utan json.dumps så det passar i bkg_filename strängen.
+    #years = settings[basin]["years"] # utan json.dumps så det passar i bkg_filename strängen.
     #yearlist_background = json.dumps(settings[basin]["yearlist_background"])
     w_depth = json.dumps(settings["Global"]["w_depth"])
     w_days = json.dumps(settings["Global"]["w_days"])
@@ -105,7 +110,7 @@ if __name__ == "__main__":
     #1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997,
     #1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016,
     #2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025])
-    year_list = json.dumps([1990, 2009, 2025])
+    year_list = json.dumps([2009])
     #yearlist_background = year_list
     #year_list = json.dumps([2015])
     print(f"calculating for years {year_list}")
@@ -148,7 +153,7 @@ if __name__ == "__main__":
     save_area_data=True
 
     print("running DIVAnd in Julia...")
-    args = ['julia', 'julia_code/oxygen_analysis.jl', input_dir, results_dir, data_fname, year_list, month_list, seasons, lenf, epsilon, dx, bath_file_name, w_depth, w_days, depthr, lenz_, lonr, latr, basin, threshold_list, years, epsilon_background, lenf_background]
+    args = ['julia', 'julia_code/oxygen_analysis.jl', input_dir, results_dir, data_fname, year_list, month_list, seasons, lenf, epsilon, dx, bath_file_name, w_depth, w_days, depthr, lenz_, lonr, latr, basin, threshold_list, epsilon_background, lenf_background]
 
     # Call the function and save a json-file with a file_list containing the results. That we can send to the calculate_areas function.
     try:

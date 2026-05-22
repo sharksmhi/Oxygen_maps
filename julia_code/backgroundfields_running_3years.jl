@@ -73,10 +73,10 @@ data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_260325"
 #basin = "Gulf_of_Bothnia"
 
 #Eg Östersjön o Kattegatt
-basin ="Baltic_Proper"
+#basin ="Baltic_Proper"
 
 #Kattegatt
-#basin = "Kattegat"
+basin = "Kattegat"
 
 # Läs in filens innehåll som en sträng
 json_content = read("./settings.json", String)
@@ -96,9 +96,14 @@ latr_min = latr_range[1]
 latr_max = latr_range[2]
 lonr = lonr_min:dx:lonr_max  # 14:0.05:31
 latr = latr_min:dy:latr_max
-depthr = Float64.(settings[basin]["depthr"])
-lenz_ = Float64.(settings[basin]["lenz_"])
-lenf = Float64.(settings["Global"]["lenf_background"])
+
+layers = settings[basin]["layers"]
+depthr = Float64[layer[1] for layer in layers]
+lenz_ = Float64[layer[2] for layer in layers]
+
+#depthr = Float64.(settings[basin]["depthr"])
+#lenz_ = Float64.(settings[basin]["lenz_"])
+lenf = Float64.(settings[basin]["lenf_background"])
 #yearlist_json = settings[basin]["yearlist_background"]
 # Konvertera varje par i yearlist till ett intervall (range) i Julia
 #year_list = [year[1]:year[2] for year in yearlist_json]
@@ -303,7 +308,7 @@ for year_list_index in 1:length(year_list)
         @info("$(month_list[monthlist_index:monthlist_index])")
 
         # File name based on the variable (but all spaces are replaced by _)
-        nc_filename = "Background_$(replace(varname,' '=>'_'))_$(years)_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(bath_file_name)"
+        nc_filename = "Background_$(replace(varname,' '=>'_'))_$(years)_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(basin).nc"
         nc_filepath = joinpath(outputdir, nc_filename)
  
         #Append the created files to file_list

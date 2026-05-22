@@ -43,9 +43,9 @@ lonr = args[15]
 latr = args[16]
 basin = args[17]
 threshold_list = JSON.parse(args[18])
-years = args[19]
-epsilon_background = JSON.parse(args[20])
-lenf_background = JSON.parse(args[21])
+#years = args[19]
+epsilon_background = JSON.parse(args[19])
+lenf_background = JSON.parse(args[20])
 
 dy = dx
 lonr = replace(lonr, "dx" => string(dx))
@@ -221,7 +221,8 @@ for year in year_list
         season = seasons[monthlist_index]
 
         #Background file for choosen season
-        bkg_filename = "Background_$(varname)_$(year)_All_$(epsilon_background)_$(lenf_background)_$(dx)_$(w_depth)_$(w_days)_$(bath_file_name).nc"
+        bkg_filename = "Background_$(varname)_$(year)_All_$(epsilon_background)_$(lenf_background)_$(dx)_$(w_depth)_$(w_days)_$(basin).nc"
+        @show(bkg_filename)
         #bkg_filepath = "$(input_dir)\\$(bkg_filename)"
         bkg_filepath = joinpath(input_dir, bkg_filename)
         cp(bkg_filepath, joinpath(results_dir, joinpath("DIVArun",bkg_filename)); force=true)
@@ -324,7 +325,7 @@ for year in year_list
         @show(TS)
         @show(TSbackground)
         # File name based on the variable (but all spaces are replaced by _)
-        nc_filename = "$(replace(varname,' '=>'_'))_$(year)_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(bath_file_name)_varcorrlenz.nc"
+        nc_filename = "$(replace(varname,' '=>'_'))_$(year)_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(basin)_varcorrlenz.nc"
         nc_filename_res = "$(replace(varname,' '=>'_'))_$(year)_$(season)_residuals.nc"
         nc_filepath = joinpath("$(results_dir)/DIVArun", nc_filename)
         nc_filepath_res = joinpath("$(results_dir)/DIVArun", nc_filename_res)

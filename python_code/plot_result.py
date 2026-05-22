@@ -398,56 +398,55 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
         fig_name = f'threshold_result_{year}_{season}.png'
     fig_path = Path(f'{results_dir}/figures/{fig_name}')
     
-    if fig_path.exists():   
-        print(f"thresholdplot, errors and min depths results from: {netcdf_filename}")
-        n_figs = len(threshold_list)
-        
-        fig, axs = plt.subplots(2, n_figs, subplot_kw={'projection': ccrs.Mercator()}, figsize=(10, 4.5))
-        # Adjust the spacing between subplots
-        # fig.tight_layout()
+ 
+    print(f"thresholdplot, errors and min depths results from: {netcdf_filename}")
+    n_figs = len(threshold_list)
+    
+    fig, axs = plt.subplots(2, n_figs, subplot_kw={'projection': ccrs.Mercator()}, figsize=(10, 4.5))
+    # Adjust the spacing between subplots
+    # fig.tight_layout()
 
-        for index, threshold in enumerate(threshold_list):
-            print(f"plot threshold {threshold}")
-            # Select a time index from year and depth level from show_depth
+    for index, threshold in enumerate(threshold_list):
+        print(f"plot threshold {threshold}")
+        # Select a time index from year and depth level from show_depth
 
-            # plot the relative error with a custom discrete colormap
-            plot_errorfield(
-                ds,
-                parameter=f"Relerr_per_grid_at_min_{threshold}_depth",
-                axis=axs[0, index],
-            )
-            axs[0, index].set_title(f'Error at <= {threshold} {unit} depth', fontsize=8)
-            # second row plot the whole area each threshold with a colormap showing min_depth
-            pcm = plot_parameter(ds, parameter=f"Min_depth_{threshold}",
-                axis=axs[1, index], vmin=50,
-                vmax=150,)
-            axs[1, index].set_title(f'Area <= {threshold} {unit}', fontsize=8)
-            create_colorbar(axs[1, index], pcm, levels=np.arange(50,150,20), title="depth [m]")
+        # plot the relative error with a custom discrete colormap
+        plot_errorfield(
+            ds,
+            parameter=f"Relerr_per_grid_at_min_{threshold}_depth",
+            axis=axs[0, index],
+        )
+        axs[0, index].set_title(f'Error at <= {threshold} {unit} depth', fontsize=8)
+        # second row plot the whole area each threshold with a colormap showing min_depth
+        pcm = plot_parameter(ds, parameter=f"Min_depth_{threshold}",
+            axis=axs[1, index], vmin=50,
+            vmax=150,)
+        axs[1, index].set_title(f'Area <= {threshold} {unit}', fontsize=8)
+        create_colorbar(axs[1, index], pcm, levels=np.arange(50,150,20), title="depth [m]")
 
-        # Add title and labels
-        # Set the title for the whole figure
-        if 0 in threshold_list:
-            title_start = "Hypoxia and anoxia: "
-        else:
-            title_start = ""
-        
-        if season == "Winter":
-            fig.suptitle(
-                f"{title_start}{f'BG {int(year)-1}-{int(year)+1}' if BG else f'{int(year) - 1}-{int(year)}'} {season}",
-                fontsize=10,
-            )
-        else:
-            fig.suptitle(
-                f"{title_start}{f'BG {int(year)-1}-{int(year)+1}' if BG else f'{int(year)}'} {season}",
-                fontsize=10,
-                )
-        # Save the plot
-        plt.savefig(fig_path, dpi=300,
-                        transparent=False)
-        plt.close()
-        print(f"saved {fig_name}")
+    # Add title and labels
+    # Set the title for the whole figure
+    if 0 in threshold_list:
+        title_start = "Hypoxia and anoxia: "
     else:
-        print(f"skip {fig_name} because it already exists")
+        title_start = ""
+    
+    if season == "Winter":
+        fig.suptitle(
+            f"{title_start}{f'BG {int(year)-1}-{int(year)+1}' if BG else f'{int(year) - 1}-{int(year)}'} {season}",
+            fontsize=10,
+        )
+    else:
+        fig.suptitle(
+            f"{title_start}{f'BG {int(year)-1}-{int(year)+1}' if BG else f'{int(year)}'} {season}",
+            fontsize=10,
+            )
+    # Save the plot
+    plt.savefig(fig_path, dpi=300,
+                    transparent=False)
+    plt.close()
+    print(f"saved {fig_name}")
+
         
 
     # ################### SECOND to FOURTH plot result at different depthlayers ############################
@@ -459,32 +458,33 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
             fig_name = f'{name}_{year}_{season}.png'
         fig_path = Path(f'{results_dir}/figures/{fig_name}')
 
-        if fig_path.exists():
-            #print(f"plot result at different depthlayers results from: {netcdf_filename}")
-            # plots of results at 4 different depths 10, 40, 50, 60
-            fig, axs = plt.subplots(2, 4, subplot_kw={'projection': ccrs.Mercator()}, figsize=(10, 4.5), layout="constrained")
 
-            if 0 in threshold_list:
-                vmin_o2 = -45
-                vmax_o2 = 180 + 45
-            else:
-                vmin_o2 = 90
-                vmax_o2 = 360
+        #print(f"plot result at different depthlayers results from: {netcdf_filename}")
+        # plots of results at 4 different depths 10, 40, 50, 60
+        fig, axs = plt.subplots(2, 4, subplot_kw={'projection': ccrs.Mercator()}, figsize=(10, 4.5), layout="constrained")
 
-            # on the 1st and 2nd plot we show oxygen set min and max for colorscale
-            subplot_no = 0
-            for show_depth in depths:
+        if 0 in threshold_list:
+            vmin_o2 = -45
+            vmax_o2 = 180 + 45
+        else:
+            vmin_o2 = 90
+            vmax_o2 = 360
+
+        # on the 1st and 2nd plot we show oxygen set min and max for colorscale
+        subplot_no = 0
+        for show_depth in depths:
+            try: 
                 plot_parameter_with_observations(
-                        ds,
-                        parameter="Oxygen",
-                        axis=axs[0, subplot_no],
-                        year=year,
-                        show_depth=show_depth,
-                        vmin=vmin_o2,
-                        vmax=vmax_o2,
-                        BG=BG,
-                    )
-                    
+                    ds,
+                    parameter="Oxygen",
+                    axis=axs[0, subplot_no],
+                    year=year,
+                    show_depth=show_depth,
+                    vmin=vmin_o2,
+                    vmax=vmax_o2,
+                    BG=BG,
+                )
+
                 # bottom row, plot error field at the selected depth
                 plot_errorfield(
                     ds,
@@ -492,21 +492,23 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
                     axis=axs[1, subplot_no],
                     show_depth=show_depth
                 )
-                subplot_no += 1
+            except ValueError: 
+                continue
 
-            # Add title and labels
-            # Set the title for the whole figure
-            if season == "Winter":
-                fig.suptitle(f'{int(year)-1}-{int(year)} {season}', fontsize=10,)
-            else:
-                fig.suptitle(f"{f'BG {int(year)-1}-{int(year)+1}' if BG else f'{int(year)}'} {season}", fontsize=10)
+            subplot_no += 1
 
-            # Save the plot
-            plt.savefig(fig_path, dpi=300, transparent=False)
-            plt.close()
-            print(f"saved {fig_name}")
+        # Add title and labels
+        # Set the title for the whole figure
+        if season == "Winter":
+            fig.suptitle(f'{int(year)-1}-{int(year)} {season}', fontsize=10,)
         else:
-            print(f"skip {fig_name} because it already exists")
+            fig.suptitle(f"{f'BG {int(year)-1}-{int(year)+1}' if BG else f'{int(year)}'} {season}", fontsize=10)
+
+        # Save the plot
+        plt.savefig(fig_path, dpi=300, transparent=False)
+        plt.close()
+        print(f"saved {fig_name}")
+
 
     ################# FIFTH plot final result map  ###########################
 
@@ -517,104 +519,102 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
         fig_name = f'final_result_{year}_{season}.png'
     fig_path = Path(f'{results_dir}/figures/{fig_name}')
 
-    if fig_path.exists():
-        fig, axs = plt.subplots(1, 1, subplot_kw={'projection': ccrs.Mercator()}, figsize=(10, 6), layout="constrained")
+    fig, axs = plt.subplots(1, 1, subplot_kw={'projection': ccrs.Mercator()}, figsize=(10, 6), layout="constrained")
         
-        # Vänder på threshold_list för att högst threshold skall hamna underst.
-        threshold_list.reverse()
-        color_list = ['lightgrey', 'darkgrey', 'grey']
-        hatches_list = [10 * '/', 10 * "\\", 10*'|']
-        """threshold_list.pop(0)
-        color_list.pop(0)
-        hatches_list.pop(0)"""
+    # Vänder på threshold_list för att högst threshold skall hamna underst.
+    threshold_list.reverse()
+    color_list = ['lightgrey', 'darkgrey', 'grey']
+    hatches_list = [10 * '/', 10 * "\\", 10*'|']
+    """threshold_list.pop(0)
+    color_list.pop(0)
+    hatches_list.pop(0)"""
 
-        for index, threshold in enumerate(threshold_list):
-            pcm = plot_parameter(
-                ds,
-                parameter=f"{threshold}_mask_firstlayer",
-                axis=axs,
-                colors=[color_list[index]],
-                hatches=[""], 
-                levels=[0.5, 1.5], 
-                contourf=True
-            )
-        #mpl.rcParams['hatch.linewidth'] = 0.5
-        for index, threshold in enumerate(threshold_list):
-            # Mark areas with relative error >? with hatches
-            pcm = plot_parameter(
-                ds,
-                parameter=f"Relerr_per_grid_at_min_{threshold}_depth",
-                axis=axs,
-                colors=["none"],
-                hatches=[hatches_list[index]],
-                levels=[0.5,1.5],
-                contourf=True
-            )
-            # Set hatch line color
-            """for col in pcm.collections:
-                col.set_edgecolor("red")
-                col.set_linewidth(0)"""
-
-        # plot all points with observations in red
-        sc = plot_only_observations(
-            ds, axis=axs, year=year, colorbar=False, color="snow", observation_span=500, BG=BG
+    for index, threshold in enumerate(threshold_list):
+        pcm = plot_parameter(
+            ds,
+            parameter=f"{threshold}_mask_firstlayer",
+            axis=axs,
+            colors=[color_list[index]],
+            hatches=[""], 
+            levels=[0.5, 1.5], 
+            contourf=True
         )
+    #mpl.rcParams['hatch.linewidth'] = 0.5
+    for index, threshold in enumerate(threshold_list):
+        # Mark areas with relative error >? with hatches
+        pcm = plot_parameter(
+            ds,
+            parameter=f"Relerr_per_grid_at_min_{threshold}_depth",
+            axis=axs,
+            colors=["none"],
+            hatches=[hatches_list[index]],
+            levels=[0.5,1.5],
+            contourf=True
+        )
+        # Set hatch line color
+        """for col in pcm.collections:
+            col.set_edgecolor("red")
+            col.set_linewidth(0)"""
 
-        # Skapa handle till legenden som motsvarar observationer i plotten
-        sc.set_label("Observations")
+    # plot all points with observations in red
+    sc = plot_only_observations(
+        ds, axis=axs, year=year, colorbar=False, color="snow", observation_span=500, BG=BG
+    )
 
-        # Skapa colors and hatches objects for area handles
-        n = len(threshold_list)
-        area_colors = color_list + ['none'] * n
-        error_hatches = [''] * n + hatches_list
+    # Skapa handle till legenden som motsvarar observationer i plotten
+    sc.set_label("Observations")
 
-        # Skapa labels till patcherna 
-        legend_labels_areas = (
+    # Skapa colors and hatches objects for area handles
+    n = len(threshold_list)
+    area_colors = color_list + ['none'] * n
+    error_hatches = [''] * n + hatches_list
+
+    # Skapa labels till patcherna 
+    legend_labels_areas = (
+        [f'<{thr} µmol/l' for thr in threshold_list] +
+        [f'Error field <{thr} µmol/l' for thr in threshold_list]
+    )
+    # Skapa patch objekt till legenden
+    patches = [mpatches.Patch(facecolor=color, hatch=hatch, label=label)
+                for color, hatch, label in zip(area_colors, error_hatches, legend_labels_areas)]
+
+    # Lägg till en "fejk" legend om syrefritt är med
+    if 0 not in threshold_list:
+        # Labels
+        fake_labels = (
             [f'<{thr} µmol/l' for thr in threshold_list] +
             [f'Error field <{thr} µmol/l' for thr in threshold_list]
         )
-        # Skapa patch objekt till legenden
-        patches = [mpatches.Patch(facecolor=color, hatch=hatch, label=label)
-                    for color, hatch, label in zip(area_colors, error_hatches, legend_labels_areas)]
 
-        # Lägg till en "fejk" legend om syrefritt är med
-        if 0 not in threshold_list:
-            # Labels
-            fake_labels = (
-                [f'<{thr} µmol/l' for thr in threshold_list] +
-                [f'Error field <{thr} µmol/l' for thr in threshold_list]
-            )
+        # Colors: first real areas, then empty (for error fields)
+        fake_colors = color_list + ['none'] * n
 
-            # Colors: first real areas, then empty (for error fields)
-            fake_colors = color_list + ['none'] * n
+        # Hatches: first empty, then hatch patterns
+        fake_hatches = [''] * n + hatches_list
 
-            # Hatches: first empty, then hatch patterns
-            fake_hatches = [''] * n + hatches_list
+        # Skapa proxy-objekt för legenden
+        patches = [
+            mpatches.Patch(facecolor=color, hatch=hatch, label=label)
+            for color, hatch, label in zip(fake_colors, fake_hatches, fake_labels)
+        ]
+        if len(threshold_list) < 3:
+            print("Bara två thresholds, ändra legenden!")
 
-            # Skapa proxy-objekt för legenden
-            patches = [
-                mpatches.Patch(facecolor=color, hatch=hatch, label=label)
-                for color, hatch, label in zip(fake_colors, fake_hatches, fake_labels)
-            ]
-            if len(threshold_list) < 3:
-                print("Bara två thresholds, ändra legenden!")
-
-        # Lägg till legenden
-        axs.legend(handles=patches + [sc], loc='lower right', fontsize=8)
-        add_created_stamp(axs)
-        # Add title and labels
-        # Set the title for the whole figure
-        if season == "Winter":
-            fig.suptitle(f'{int(year) - 1}-{year} {season}', fontsize=10)
-        else:
-            fig.suptitle(f'Hypoxia and anoxia: {f'BG {int(year)-1}-{int(year)+1}' if BG else f'{int(year)}'} {season}', fontsize=10)
-
-        # Save the plot
-        plt.savefig(fig_path, dpi=300, transparent=False)
-        plt.close()
-        print(f"saved {fig_name}")
+    # Lägg till legenden
+    axs.legend(handles=patches + [sc], loc='lower right', fontsize=8)
+    add_created_stamp(axs)
+    # Add title and labels
+    # Set the title for the whole figure
+    if season == "Winter":
+        fig.suptitle(f'{int(year) - 1}-{year} {season}', fontsize=10)
     else:
-        print(f"skip {fig_name} because it already exists")
+        fig.suptitle(f'Hypoxia and anoxia: {f'BG {int(year)-1}-{int(year)+1}' if BG else f'{int(year)}'} {season}', fontsize=10)
+
+    # Save the plot
+    plt.savefig(fig_path, dpi=300, transparent=False)
+    plt.close()
+    print(f"saved {fig_name}")
+
 
 ## extract values that are within our limits, save to a new variable and nc-file. ####
 
@@ -651,5 +651,5 @@ if __name__ == "__main__":
     print("running")
     # Result directory
     results_dir = "./resultat/Baltic_Proper/20260114_1653/"
-    results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results_lena_temp/Baltic_Proper/20260401_0938_eps02_corrlen50k/")
+    results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results/Kattegat/20260522_0906/")
     read_processed_nc(results_dir)
