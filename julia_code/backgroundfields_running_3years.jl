@@ -73,10 +73,10 @@ data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_260325"
 #basin = "Gulf_of_Bothnia"
 
 #Eg Östersjön o Kattegatt
-#basin ="Baltic_Proper"
+basin ="Baltic_Proper"
 
 #Kattegatt
-basin = "Kattegat"
+#basin = "Kattegat"
 
 # Läs in filens innehåll som en sträng
 json_content = read("./settings.json", String)
