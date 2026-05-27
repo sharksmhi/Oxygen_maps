@@ -1,0 +1,25 @@
+{
+
+  "remove_se_baltic": {
+    "type": "remove_area",
+    "lonmin": 18.0,
+    "lonmax": 25.0,
+    "latmin": 54.0,
+    "latmax": 58.0
+  },
+
+  "remove_gulf_of_finland": {
+    "type": "remove_area",
+    "lonmin": 22.0,
+    "lonmax": 31.0,
+    "latmin": 59.0,
+    "latmax": 61.0
+  },
+
+  "standard_stations": {
+    "type": "keep_selected_stations",
+    "station_file": "standard_stations.txt",
+    "match_tolerance_deg": 0.2
+  }
+
+}

@@ -625,6 +625,10 @@ def read_processed_nc(results_dir):
     processed_files = Path(results_dir) / "processed"
     for netcdf_filepath in list(processed_files.glob('*.nc')):#file_list:
         netcdf_filename = netcdf_filepath.name
+        """if not ("Autumn" in netcdf_filename and
+            "2025" in netcdf_filename and
+            "Background" not in netcdf_filename):
+            continue"""
         BG = False
         if 'Background' in netcdf_filename:
             BG = True
@@ -651,5 +655,5 @@ if __name__ == "__main__":
     print("running")
     # Result directory
     results_dir = "./resultat/Baltic_Proper/20260114_1653/"
-    results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results/Kattegat/20260522_0906/")
+    results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results/Baltic_Proper/20260527_1514")
     read_processed_nc(results_dir)

@@ -11,9 +11,9 @@ import cartopy.feature as cfeature
 import matplotlib.cm as cm 
 import seaborn as sns
 
-year = 1970
+year = 1998
 season = "Autumn"
-results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results/Baltic_Proper/20260407_2206_0.2_50000.0_0.05_5.0_5.0/")
+results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results_lena_temp/Baltic_Proper/20260408_1932_high_res_1960_2025/")
 
 # Definiera djupintervall (label, lower, upper)
 depth_ranges = [
@@ -171,7 +171,7 @@ for i, (label, dmin, dmax) in enumerate(depth_ranges[1:]):
         textstr = f"|Residuals| <= 50: {fraction_residuales_above_threshold:.0f}%\nRMSE: {rmse:.2f}\nBias: {bias:.2f}\nR²: {r2:.2f}"
         axs[i].text(0.05, 0.95, textstr, transform=axs[i].transAxes,
                     fontsize=10, verticalalignment='top',
-                    bbox=dict(facecolor='white', alpha=0.8))
+                    bbox=dict(facecolor='none', alpha=0.8))
 
     # colorbar
     plt.colorbar(sc, ax=axs[i], label="Depth")

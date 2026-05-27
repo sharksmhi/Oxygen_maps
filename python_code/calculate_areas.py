@@ -226,7 +226,7 @@ def calculate_areas(results_dir, threshold_list, save_area_data=False):
     print("calculating areas...")
     #List for results to txt
     raw_files = Path(results_dir) / "DIVArun"
-    nc_files = [f for f in raw_files.glob("*.nc") if "residuals" not in f.name]
+    nc_files = [f for f in raw_files.glob("*.nc") if "residuals" not in f.name and "_removed" not in f.name]
     df_list = []
     df_BG_list = []
     for netcdf_filepath in nc_files:
@@ -370,7 +370,8 @@ def extract_area_data(ds, threshold_list, basin_ids=None):
 
 if __name__ == "__main__":
     # Result directory
-    results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results_lena_temp/Baltic_Proper/20260408_1932_high_res_1960_2025/")
+    results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results/Baltic_Proper/20260527_1514")
     # Thresholds to analyse in µmol/l oxygen (0, 2, 4 ml/l)
     threshold_list = [0, 90, 180]
+    calculate_areas(results_dir, threshold_list)
     get_area_timeseries_from_processed_netcdf(results_dir, threshold_list)

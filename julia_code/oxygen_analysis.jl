@@ -8,8 +8,9 @@
 # run DIVAnd and save to netcdf.
 
 # #### Add necessary packages
-#using Pkg
-#Pkg.add("PyCall")
+# using Pkg
+# Pkg.add("CSV")
+# Pkg.add("DataFrames")
 
 using DIVAnd
 using PyPlot
@@ -23,6 +24,51 @@ using Missings
 using JLD
 using JSON
 using PyCall
+using CSV
+using DataFrames
+
+function apply_cv_scenario(
+    scenario,
+    obslon,
+    obslat,
+    obsdepth,
+    obsid
+)
+    nobs = length(obsid)
+    keep_mask = trues(nobs)
+    scenario_type = scenario["type"]
+
+    if scenario_type == "remove_area"
+        remove_mask =
+            (obslon .>= scenario["lonmin"]) .&
+            (obslon .<= scenario["lonmax"]) .&
+            (obslat .>= scenario["latmin"]) .&
+            (obslat .<= scenario["latmax"])
+        keep_mask[remove_mask] .= false
+
+    elseif scenario_type == "keep_selected_stations"
+
+        keep_mask .= false
+        stations = CSV.read(
+            "standard_stations.txt",
+            DataFrame;
+            delim = '\t'
+        )
+        @show stations
+        tol = scenario["match_tolerance_deg"]
+
+        for station in eachrow(stations)
+            station_mask =
+                (abs.(obslon .- station.lon) .< tol) .&
+                (abs.(obslat .- station.lat) .< tol)
+            keep_mask[station_mask] .= true
+        end
+    else
+        error("Unknown scenario type: $scenario_type")
+    end
+    @info "Keeping $(sum(keep_mask)) / $(length(keep_mask)) observations"
+    return keep_mask
+end
 
 args= ARGS
 input_dir = args[1]
@@ -43,9 +89,11 @@ lonr = args[15]
 latr = args[16]
 basin = args[17]
 threshold_list = JSON.parse(args[18])
-#years = args[19]
 epsilon_background = JSON.parse(args[19])
 lenf_background = JSON.parse(args[20])
+cv_mode = JSON.parse(args[21])
+
+@show "read all arguments from python in julia"
 
 dy = dx
 lonr = replace(lonr, "dx" => string(dx))
@@ -164,6 +212,38 @@ for i in eachindex(obstime)
     end
 end
 
+# För att köra cross-validation filtrera bort en del av data
+# Filtrera bort data innan viktningen av data så att viktningen görs på data som är kvar
+# Det betyder en ny rdiag fil för varje validering.
+if cv_mode
+    @show "run sensitivity mode"
+    cv_settings = JSON.parse(read("cv_settings.json", String))
+    @show  cv_settings["standard_stations"]
+    keep_mask = apply_cv_scenario(
+        cv_settings["standard_stations"],
+        obslon,
+        obslat,
+        obsdepth,
+        obsid
+    )
+    @show length(keep_mask)
+    removed_mask = .!keep_mask
+    obsval_removed   = obsval[removed_mask]
+    obslon_removed   = obslon[removed_mask]
+    obslat_removed   = obslat[removed_mask]
+    obsdepth_removed = obsdepth[removed_mask]
+    obstime_shifted_removed  = obstime_shifted[removed_mask]
+    obsid_removed    = obsid[removed_mask]
+
+    obsval   = obsval[keep_mask]
+    obslon   = obslon[keep_mask]
+    obslat   = obslat[keep_mask]
+    obsdepth = obsdepth[keep_mask]
+    obstime_shifted  = obstime_shifted[keep_mask]
+    obsid    = obsid[keep_mask]
+
+end
+
 # Settings for DIVAnd-------------------------------------------------------------------------------
 error_thresholds = [("L1", 0.3), ("L2", 0.5)];
 
@@ -190,13 +270,17 @@ error_thresholds = [("L1", 0.3), ("L2", 0.5)];
 @show split(data_fname,".")[1]
 rdiag_jldfile = joinpath(input_dir, "$(split(data_fname,".")[1])_weighted_$(w_depth)_$(w_days).jld")
 
-if isfile(rdiag_jldfile)
+if isfile(rdiag_jldfile) && !cv_mode
     @load rdiag_jldfile rdiag
     @info "Loading saved rdiag file with w_depth = $(w_depth) and w_days = $(w_days)"
 else
     @info "Calculating rdiag with w_depth = $(w_depth) and w_days = $(w_days)!"
     @time rdiag = 1 ./ DIVAnd.weight_RtimesOne((obslon,obslat,obsdepth,float.(Dates.dayofyear.(obstime_shifted))),(0.10,0.10,w_depth,w_days));
-    @save rdiag_jldfile rdiag
+    # only save for normal runs
+    if !cv_mode
+        @info "saving new rdiag file"
+        @save rdiag_jldfile rdiag
+    end
 end
 
 @show maximum(rdiag),mean(rdiag)
@@ -327,8 +411,10 @@ for year in year_list
         # File name based on the variable (but all spaces are replaced by _)
         nc_filename = "$(replace(varname,' '=>'_'))_$(year)_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(basin)_varcorrlenz.nc"
         nc_filename_res = "$(replace(varname,' '=>'_'))_$(year)_$(season)_residuals.nc"
+        nc_filename_removed = "$(replace(varname,' '=>'_'))_$(year)_$(season)_removed.nc"
         nc_filepath = joinpath("$(results_dir)/DIVArun", nc_filename)
         nc_filepath_res = joinpath("$(results_dir)/DIVArun", nc_filename_res)
+        nc_filepath_removed = joinpath("$(results_dir)/DIVArun", nc_filename_removed)
 
         #Append the created files to file_list
         push!(file_list, nc_filename)
@@ -371,23 +457,23 @@ for year in year_list
         );
 
         #residuals = dbinfo[:residuals]
-        res = get(dbinfo, :residuals, 0)
+        residuals = get(dbinfo, :residuals, 0)
         @show(keys(dbinfo))
-        #Residuals with NaNs removed
-        sel = .!isnan.(res)
-        #res2 = res[sel]
+        # Residuals with NaNs removed
+        sel = .!isnan.(residuals)
+        #res2 = residuals[sel]
         #obsid2=obsid[sel]
-        @show(length(res))
+        @show(length(residuals))
         @show(length(obsval))
 
         #@show extrema(res2);
         #@show quantile(res2, [0.01, 0.99]);
         @info("Lowest and highest redisuals might be a error sample...>250 and <-250")
-        indices = findall(x -> x > 250 || x < -250, res)
+        indices = findall(x -> x > 250 || x < -250, residuals)
         println("Number of possible data errors: $length(indices)")
         # Visa både index och värde
         for i in indices
-            println("Residual: $(res[i]), obsval: $(obsval[i]), DIVAnd: $(obsval[i]-res[i]), obsdepth:$(obsdepth[i]), obsid: $(obsid[i])")
+            println("Residual: $(residuals[i]), obsval: $(obsval[i]), DIVAnd: $(obsval[i]-residuals[i]), obsdepth:$(obsdepth[i]), obsid: $(obsid[i])")
         end
 
     #     @info("Get the residuals...")
@@ -404,12 +490,17 @@ for year in year_list
 
         # Save the observation metadata in the NetCDF file
         DIVAnd.saveobs(nc_filepath,"Oxygen_data", obsval, (obslon,obslat,obsdepth,obstime_shifted),obsid, used = dbinfo[:used])
-        DIVAnd.saveobs(nc_filepath_res,"$(varname)_residual",res[sel], (obslon[sel], obslat[sel], obsdepth[sel], obstime_shifted[sel]),obsid[sel])
+        DIVAnd.saveobs(nc_filepath_res,"$(varname)_residual",residuals[sel], (obslon[sel], obslat[sel], obsdepth[sel], obstime_shifted[sel]),obsid[sel])
+
+        if cv_mode
+            DIVAnd.saveobs(nc_filepath_removed, "Oxygen_data", obsval_removed, 
+            (obslon_removed, obslat_removed, obsdepth_removed, obstime_shifted_removed), obsid_removed)
+        end
 
         # Sparar undan alla indata, Divananlays och residualer i varje indata punkt.
         res_filepath = joinpath("$(results_dir)/DIVArun", "$(varname)_$(year)_$(season)_residual.txt")
-        diva_result = obsval[sel] .- res[sel]
-        res_data = [obsval[sel] diva_result res[sel] obslon[sel]  obslat[sel]  obsdepth[sel]  obstime_shifted[sel]  obsid[sel]]
+        diva_result = obsval[sel] .- residuals[sel]
+        res_data = [obsval[sel] diva_result residuals[sel] obslon[sel]  obslat[sel]  obsdepth[sel]  obstime_shifted[sel]  obsid[sel]]
         
         # Definiera header som en sträng med tab-separerade kolumnnamn
         #obsval	diva	residual	lat	long	obsdepth	time	id

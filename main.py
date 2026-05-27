@@ -112,7 +112,7 @@ if __name__ == "__main__":
     2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025])
     #year_list = json.dumps([2009])
     #yearlist_background = year_list
-    #year_list = json.dumps([2015])
+    year_list = json.dumps([2015])
     print(f"calculating for years {year_list}")
 
     seasons_dict = {
@@ -149,11 +149,18 @@ if __name__ == "__main__":
     #w_depth = json.dumps(5.)
     #w_days = json.dumps(2.)
 
-    #Set True if you want to save area_data to file (for time-series bar plots)
-    save_area_data=True
+    #Set True if you want to run a cross validation/sensitivity analysis
+    cv_mode = json.dumps(True)
 
     print("running DIVAnd in Julia...")
-    args = ['julia', 'julia_code/oxygen_analysis.jl', input_dir, results_dir, data_fname, year_list, month_list, seasons, lenf, epsilon, dx, bath_file_name, w_depth, w_days, depthr, lenz_, lonr, latr, basin, threshold_list, epsilon_background, lenf_background]
+    args = ['julia', 'julia_code/oxygen_analysis.jl', 
+        input_dir, results_dir, data_fname, 
+        year_list, month_list, seasons, 
+        lenf, epsilon, dx, bath_file_name, 
+        w_depth, w_days, depthr, lenz_, 
+        lonr, latr, basin, threshold_list, 
+        epsilon_background, lenf_background,
+        cv_mode]
 
     # Call the function and save a json-file with a file_list containing the results. That we can send to the calculate_areas function.
     try:
@@ -186,7 +193,7 @@ if __name__ == "__main__":
     print(f"now calculate areas")
 
     # Calculate areas from DIVA-results and save in a new nc-file. Results in file_list
-    calculate_areas.calculate_areas(results_dir, json.loads(threshold_list), save_area_data)
+    calculate_areas.calculate_areas(results_dir, json.loads(threshold_list))
 
     # Read and plot areas in file_list
     plot_result.read_processed_nc(results_dir)
