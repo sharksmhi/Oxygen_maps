@@ -350,7 +350,7 @@ def plot_only_observations(
             df_unique["lat"],
             s=3,
             edgecolors='k',
-            linewidth=0.05,
+            linewidth=0.1,
             facecolor=color,
             transform=ccrs.PlateCarree()
         )
@@ -539,9 +539,10 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
             levels=[0.5, 1.5], 
             contourf=True
         )
-    #mpl.rcParams['hatch.linewidth'] = 0.5
-    for index, threshold in enumerate(threshold_list):
+        # hatches och färg för en högre threshold kommer 
+        # att täckas av en lägre threshold när de överlapper
         # Mark areas with relative error >? with hatches
+        #mpl.rcParams['hatch.linewidth'] = 0.5
         pcm = plot_parameter(
             ds,
             parameter=f"Relerr_per_grid_at_min_{threshold}_depth",
@@ -655,5 +656,5 @@ if __name__ == "__main__":
     print("running")
     # Result directory
     results_dir = "./resultat/Baltic_Proper/20260114_1653/"
-    results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results/Baltic_Proper/20260527_1514")
+    results_dir = "/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results/Baltic_Proper/20260601_2334/full/DIVArun"
     read_processed_nc(results_dir)

@@ -370,8 +370,8 @@ def extract_area_data(ds, threshold_list, basin_ids=None):
 
 if __name__ == "__main__":
     # Result directory
-    results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results/Baltic_Proper/20260527_1514")
+    results_dir = "/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results/Baltic_Proper/20260601_2334/full/DIVArun"
     # Thresholds to analyse in µmol/l oxygen (0, 2, 4 ml/l)
     threshold_list = [0, 90, 180]
     calculate_areas(results_dir, threshold_list)
-    get_area_timeseries_from_processed_netcdf(results_dir, threshold_list)
+    # get_area_timeseries_from_processed_netcdf(results_dir, threshold_list)

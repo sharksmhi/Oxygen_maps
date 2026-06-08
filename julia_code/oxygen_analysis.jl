@@ -27,6 +27,52 @@ using PyCall
 using CSV
 using DataFrames
 
+
+function rdiag_stats(
+    year,
+    season,
+    obsid,
+    obslon,
+    obslat,
+    obsdepth,
+    obstime,
+    rdiag,
+    epsilon_weighted
+)
+
+    return DataFrame(
+        year = [year],
+        season = [season],
+
+        nobs = [length(obsid)],
+        nstations = [length(unique(obsid))],
+
+        nlon_unique = [length(unique(obslon))],
+        nlat_unique = [length(unique(obslat))],
+        ndepth_unique = [length(unique(obsdepth))],
+
+        depth_min = [minimum(obsdepth)],
+        depth_max = [maximum(obsdepth)],
+
+        ndates = [length(unique(Date.(obstime)))],
+
+        rdiag_min = [minimum(rdiag)],
+        rdiag_mean = [mean(rdiag)],
+        rdiag_median = [median(rdiag)],
+        rdiag_p95 = [quantile(rdiag, 0.95)],
+        rdiag_max = [maximum(rdiag)],
+
+        eps_min = [minimum(epsilon_weighted)],
+        eps_mean = [mean(epsilon_weighted)],
+        eps_max = [maximum(epsilon_weighted)]
+    )
+end
+
+function subset_year_month_mask(years, months, year_subset, month_subset)
+
+    return (years .== year_subset) .& in.(months, Ref(month_subset))
+end
+
 function apply_cv_scenario(
     scenario,
     obslon,
@@ -54,7 +100,6 @@ function apply_cv_scenario(
             DataFrame;
             delim = '\t'
         )
-        @show stations
         tol = scenario["match_tolerance_deg"]
 
         for station in eachrow(stations)
@@ -92,8 +137,18 @@ threshold_list = JSON.parse(args[18])
 epsilon_background = JSON.parse(args[19])
 lenf_background = JSON.parse(args[20])
 cv_mode = JSON.parse(args[21])
+scenario_name = JSON.parse(args[22])
 
 @show "read all arguments from python in julia"
+
+weighting_dir = joinpath(input_dir, "weighting", data_fname)
+if !isdir(weighting_dir)
+    @info "$(weighting) is not a directory"
+end
+background_dir = joinpath(input_dir, "background_fields", data_fname)
+if !isdir(background_dir)
+    @info "$(background_dir) is not a directory"
+end
 
 dy = dx
 lonr = replace(lonr, "dx" => string(dx))
@@ -124,7 +179,7 @@ end
 
 # ## Load data big files created by program "syrekartor_data_proc"
 #data_fname = "EMODNET_SHARK_ICES"
-@time obsval,obslon,obslat,obsdepth,obstime,obsid = loadbigfile(joinpath(input_dir, "$(data_fname)"))
+@time obsval,obslon,obslat,obsdepth,obstime,obsid = loadbigfile(joinpath(input_dir, "$(data_fname).txt"))
 
 # Sätt horisontell uppplösning i grader
 # 0.05 motsvarra ca 5km
@@ -140,9 +195,9 @@ aspect_ratio = 1/cos(mean(latr) * pi/180);
 #bath_file_name = "bat_elevation_Baltic_Sea_masked"
 #bath_file_name = "gebco_30sec_4"
 bathname = joinpath(input_dir, "$(bath_file_name).nc")
-@show(bathname)
+@show("extract bathymetry from $(bathname)")
 bathisglobal = true;
-bx,by,b = DIVAnd.extract_bath(bathname,bathisglobal,lonr,latr);
+@time bx,by,b = DIVAnd.extract_bath(bathname,bathisglobal,lonr,latr);
 
 basin = replace(basin,' '=>'_')
 
@@ -218,9 +273,9 @@ end
 if cv_mode
     @show "run sensitivity mode"
     cv_settings = JSON.parse(read("cv_settings.json", String))
-    @show  cv_settings["standard_stations"]
+    @show  cv_settings[scenario_name]
     keep_mask = apply_cv_scenario(
-        cv_settings["standard_stations"],
+        cv_settings[scenario_name],
         obslon,
         obslat,
         obsdepth,
@@ -244,6 +299,9 @@ if cv_mode
 
 end
 
+years  = Dates.year.(obstime_shifted)
+months = Dates.month.(obstime_shifted)
+
 # Settings for DIVAnd-------------------------------------------------------------------------------
 error_thresholds = [("L1", 0.3), ("L2", 0.5)];
 
@@ -263,55 +321,95 @@ error_thresholds = [("L1", 0.3), ("L2", 0.5)];
 # 2.5m och 2 dagar
 # 2.5m och 30 dagar
 
-#w_depth = 5.
-#w_days = 2.
+# @show data_fname
+# @show split(data_fname,".")[1]
+# rdiag_jldfile = joinpath(input_dir, "$(split(data_fname,".")[1])_weighted_$(w_depth)_$(w_days).jld")
 
-@show data_fname
-@show split(data_fname,".")[1]
-rdiag_jldfile = joinpath(input_dir, "$(split(data_fname,".")[1])_weighted_$(w_depth)_$(w_days).jld")
+# if isfile(rdiag_jldfile) && !cv_mode
+#     @load rdiag_jldfile rdiag
+#     @info "Loading saved rdiag file with w_depth = $(w_depth) and w_days = $(w_days)"
+# else
+#     @info "Calculating rdiag with w_depth = $(w_depth) and w_days = $(w_days)!"
+#     @time rdiag = 1 ./ DIVAnd.weight_RtimesOne((obslon,obslat,obsdepth,float.(Dates.dayofyear.(obstime_shifted))),(0.10,0.10,w_depth,w_days));
+#     # only save for normal runs
+#     if !cv_mode
+#         @info "saving new rdiag file"
+#         @save rdiag_jldfile rdiag
+#     end
+# end
 
-if isfile(rdiag_jldfile) && !cv_mode
-    @load rdiag_jldfile rdiag
-    @info "Loading saved rdiag file with w_depth = $(w_depth) and w_days = $(w_days)"
-else
-    @info "Calculating rdiag with w_depth = $(w_depth) and w_days = $(w_days)!"
-    @time rdiag = 1 ./ DIVAnd.weight_RtimesOne((obslon,obslat,obsdepth,float.(Dates.dayofyear.(obstime_shifted))),(0.10,0.10,w_depth,w_days));
-    # only save for normal runs
-    if !cv_mode
-        @info "saving new rdiag file"
-        @save rdiag_jldfile rdiag
-    end
-end
-
-@show maximum(rdiag),mean(rdiag)
-epsilon_weighted = epsilon * rdiag;
+# @show maximum(rdiag),mean(rdiag)
+# epsilon_weighted = epsilon * rdiag;
 #@show epsilon_weighted
 
 # One metadata set up per season
 metadata=Array{DataStructures.OrderedDict{String,Any}}(undef,4) ;
-
-#A list of created files
-file_list = []
 
 # Ange vilket intervall du vill ha på bakgrundfältet
 start_year = 1960
 end_year   = 2024
 
 month_list_background = [[1,2,3,4,5,6,7,8,9,10,11,12]];  # 3 whole years climatology
+stats_file = joinpath(weighting_dir, "rdiag_statistics.txt")
 
 for year in year_list
     @show(year)
+    #Background file for choosen year
+    bkg_filename = "Background_$(varname)_$(year)_All_$(epsilon_background)_$(lenf_background)_$(dx)_$(w_depth)_$(w_days)_$(basin).nc"
+    @show(bkg_filename)
+    bkg_filepath = joinpath(input_dir, bkg_filename)
+    cp(bkg_filepath, joinpath(results_dir, joinpath("DIVArun", bkg_filename)); force=true)
+    TSbackground = DIVAnd.TimeSelectorYearListMonthList([year],month_list_background);
+    @show(TSbackground)
+    diva_background_arg = DIVAnd.backgroundfile(bkg_filepath,varname,TSbackground)
+    # Lägg in subsetting av data här så vi bara använder de tre åren i fönstret för bakgrundsfältet
+
     for monthlist_index in 1:length(month_list)
         season = seasons[monthlist_index]
-
-        #Background file for choosen season
-        bkg_filename = "Background_$(varname)_$(year)_All_$(epsilon_background)_$(lenf_background)_$(dx)_$(w_depth)_$(w_days)_$(basin).nc"
-        @show(bkg_filename)
-        #bkg_filepath = "$(input_dir)\\$(bkg_filename)"
-        bkg_filepath = joinpath(input_dir, bkg_filename)
-        cp(bkg_filepath, joinpath(results_dir, joinpath("DIVArun",bkg_filename)); force=true)
+        @show(season)
+        # räkna rdiag för endast den år-säsong vi kör och vikta med endast de data
+        # spara rdiag filen, behövs en per år-säsong till istället för en för hela perioden
+        year_month_mask = subset_year_month_mask(years, months, year, month_list[monthlist_index])
+        obsval_sub   = obsval[year_month_mask]
+        obslon_sub   = obslon[year_month_mask]
+        obslat_sub   = obslat[year_month_mask]
+        obsdepth_sub = obsdepth[year_month_mask]
+        obstime_shifted_sub  = obstime_shifted[year_month_mask]
+        obsid_sub    = obsid[year_month_mask]
+        rdiag_jldfile = joinpath(weighting_dir, "$(data_fname)_$(year)_$(season)_weighted_$(w_depth)_$(w_days).jld")
+        if isfile(rdiag_jldfile) && !cv_mode
+            @load rdiag_jldfile rdiag
+            @info "Loading saved rdiag file with w_depth = $(w_depth) and w_days = $(w_days)"
+        else
+            @info "Calculating rdiag with w_depth = $(w_depth) and w_days = $(w_days)!"
+            @time rdiag = 1 ./ DIVAnd.weight_RtimesOne((obslon_sub,obslat_sub,obsdepth_sub,float.(Dates.dayofyear.(obstime_shifted_sub))),(0.10,0.10,w_depth,w_days));
+            # only save for normal runs
+            if !cv_mode
+                @info "saving new rdiag file"
+                @save rdiag_jldfile rdiag
+            end
+        end
         
-        @info("Creating metadata dicitonary for the season $(season)")
+        epsilon_weighted = epsilon * rdiag;
+
+        stats_df = rdiag_stats(
+            year,
+            season,
+            obsid_sub,
+            obslon_sub,
+            obslat_sub,
+            obsdepth_sub,
+            obstime_shifted_sub,
+            rdiag,
+            epsilon_weighted
+        )
+        if isfile(stats_file)
+            CSV.write(stats_file, stats_df; append=true)
+        else
+            CSV.write(stats_file, stats_df)
+        end
+        
+        @info("Creating metadata dicitionary for the season $(season)")
         metadata_season = OrderedDict(
             # set attributes for DVIA run from our settings
             "threshold_list" => "$threshold_list",
@@ -399,38 +497,30 @@ for year in year_list
             "long_name" => "$varname",
             "units" => "$unit")
               
-        @info("starting DIVAnd computations for $(year) and $(seasons[monthlist_index])")
-        @info(Dates.now())
+        @info("$(Dates.now()) starting DIVAnd computations for $(year) $(seasons[monthlist_index])")
 
         # Time selection for the analyse. This was already defined together with yearlist, month_list, seasons
         TS = DIVAnd.TimeSelectorYearListMonthList([year],month_list[monthlist_index:monthlist_index])
-        TSbackground = DIVAnd.TimeSelectorYearListMonthList([year],month_list_background);
-
         @show(TS)
-        @show(TSbackground)
+
         # File name based on the variable (but all spaces are replaced by _)
         nc_filename = "$(replace(varname,' '=>'_'))_$(year)_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(basin)_varcorrlenz.nc"
         nc_filename_res = "$(replace(varname,' '=>'_'))_$(year)_$(season)_residuals.nc"
-        nc_filename_removed = "$(replace(varname,' '=>'_'))_$(year)_$(season)_removed.nc"
         nc_filepath = joinpath("$(results_dir)/DIVArun", nc_filename)
         nc_filepath_res = joinpath("$(results_dir)/DIVArun", nc_filename_res)
-        nc_filepath_removed = joinpath("$(results_dir)/DIVArun", nc_filename_removed)
-
-        #Append the created files to file_list
-        push!(file_list, nc_filename)
-        push!(file_list, bkg_filename)
 
         if isfile(nc_filepath)
-        rm(nc_filepath) # delete the previous analysis
+            continue
+            # rm(nc_filepath) # delete the previous analysis
         end
 
         @info("Will write results in $nc_filepath")
         # create attributes for the netcdf file (need an internet connexion) and does sometimes not work. We fixed this by doing our own attributes.
         #ncglobalattrib,ncvarattrib = SDNMetadata(metadata_season,nc_filepath,varname,lonr,latr)
         @show(bkg_filename)
-        @time dbinfo = diva3d((lonr,latr,depthr,TS),
-                (obslon,obslat,obsdepth,obstime_shifted),
-                obsval,
+        @time dbinfo = diva3d((lonr, latr, depthr, TS),
+                (obslon_sub, obslat_sub, obsdepth_sub, obstime_shifted_sub),
+                obsval_sub,
                 len,
                 epsilon_weighted, # error variance of the observations (normalized by the error variance of the background field)
                 nc_filepath,
@@ -441,6 +531,7 @@ for year in year_list
                 ncglobalattrib = ncglobalattrib, # dictionary of the netcdf global attributes
                 timeorigin = timeorigin,
                 # Nedan anges epsilon inte epsilon2: Dvs ngt litet. Det är här Karin och Örjan använt en annan epsilon än den ovan
+                # vi har döpt om epsilon2 till epsilon_weighted för att förtydliga vad för ett epsilon det är
                 #transform = Anam.loglin(0.01),
                 minfield = 0.44662,  # Keep the results within min-max field
                 maxfield = 600,
@@ -448,7 +539,7 @@ for year in year_list
                 mask = new_mask,
                 solver = :direct,
                 niter_e = 1,
-                background = DIVAnd.backgroundfile(bkg_filepath,varname,TSbackground),
+                background = diva_background_arg,
                 error_thresholds = error_thresholds,
                 surfextend = true,
                 alphabc = 0,
@@ -464,16 +555,16 @@ for year in year_list
         #res2 = residuals[sel]
         #obsid2=obsid[sel]
         @show(length(residuals))
-        @show(length(obsval))
+        @show(length(obsval_sub))
 
         #@show extrema(res2);
         #@show quantile(res2, [0.01, 0.99]);
-        @info("Lowest and highest redisuals might be a error sample...>250 and <-250")
+        @info("Lowest and highest residuals might be a error sample...>250 and <-250")
         indices = findall(x -> x > 250 || x < -250, residuals)
         println("Number of possible data errors: $length(indices)")
         # Visa både index och värde
         for i in indices
-            println("Residual: $(residuals[i]), obsval: $(obsval[i]), DIVAnd: $(obsval[i]-residuals[i]), obsdepth:$(obsdepth[i]), obsid: $(obsid[i])")
+            println("Residual: $(residuals[i]), obsval: $(obsval_sub[i]), DIVAnd: $(obsval_sub[i]-residuals[i]), obsdepth:$(obsdepth_sub[i]), obsid: $(obsid_sub[i])")
         end
 
     #     @info("Get the residuals...")
@@ -489,18 +580,32 @@ for year in year_list
     #     @show(max_residuals)
 
         # Save the observation metadata in the NetCDF file
-        DIVAnd.saveobs(nc_filepath,"Oxygen_data", obsval, (obslon,obslat,obsdepth,obstime_shifted),obsid, used = dbinfo[:used])
-        DIVAnd.saveobs(nc_filepath_res,"$(varname)_residual",residuals[sel], (obslon[sel], obslat[sel], obsdepth[sel], obstime_shifted[sel]),obsid[sel])
+        DIVAnd.saveobs(nc_filepath,"Oxygen_data", obsval_sub, (obslon_sub, obslat_sub, obsdepth_sub, obstime_shifted_sub),obsid_sub, used = dbinfo[:used])
+        DIVAnd.saveobs(nc_filepath_res,"$(varname)_residual",residuals[sel], (obslon_sub[sel], obslat_sub[sel], obsdepth_sub[sel], obstime_shifted_sub[sel]),obsid_sub[sel])
 
         if cv_mode
+            ds = NCDataset(nc_filepath)
+            @show size(ds[varname])
+            field = ds[varname]
+            nc_filename_removed = "$(replace(varname,' '=>'_'))_$(year)_$(season)_removed.nc"
+            nc_filename_residuals_removed = "$(replace(varname,' '=>'_'))_$(year)_$(season)_residuals_removed.nc"
+            nc_filepath_removed = joinpath("$(results_dir)/DIVArun", nc_filename_removed)
+            nc_filepath_residuals_removed = joinpath("$(results_dir)/DIVArun", nc_filename_residuals_removed)
+            # pred_removed = DIVAnd.interp(
+            #     field,
+            #     (obslon_removed, obslat_removed, obsdepth_removed, obstime_removed)
+            # )
+            # res_removed = obsval_removed .- pred_removed
+            # DIVAnd.saveobs(nc_filepath_residuals_removed, "$(varname)_residual" res_removed, 
+            # (obslon_removed, obslat_removed, obsdepth_removed, obstime_shifted_removed), obsid_removed)
             DIVAnd.saveobs(nc_filepath_removed, "Oxygen_data", obsval_removed, 
             (obslon_removed, obslat_removed, obsdepth_removed, obstime_shifted_removed), obsid_removed)
         end
 
         # Sparar undan alla indata, Divananlays och residualer i varje indata punkt.
         res_filepath = joinpath("$(results_dir)/DIVArun", "$(varname)_$(year)_$(season)_residual.txt")
-        diva_result = obsval[sel] .- residuals[sel]
-        res_data = [obsval[sel] diva_result residuals[sel] obslon[sel]  obslat[sel]  obsdepth[sel]  obstime_shifted[sel]  obsid[sel]]
+        diva_result = obsval_sub[sel] .- residuals[sel]
+        res_data = [obsval_sub[sel] diva_result residuals[sel] obslon_sub[sel]  obslat_sub[sel]  obsdepth_sub[sel]  obstime_shifted_sub[sel]  obsid_sub[sel]]
         
         # Definiera header som en sträng med tab-separerade kolumnnamn
         #obsval	diva	residual	lat	long	obsdepth	time	id
@@ -510,16 +615,10 @@ for year in year_list
         open(res_filepath, "w") do io
             write(io, header * "\n")
             writedlm(io, res_data, '\t')
-        end
+        end 
         
         # Spara till fil
         #writedlm(res_filepath, res_data, '\t')
 
-    end
-end    
-# Serialize the list of filenames to JSON and print it
-json_string = JSON.json(file_list)
-# Write the JSON string to a file
-open(joinpath(results_dir, "file_list.json"), "w") do file
-    write(file, json_string)
-end
+    end # end of season loop
+end # end of year loop   

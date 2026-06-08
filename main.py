@@ -45,7 +45,7 @@ if __name__ == "__main__":
     print(f"{on_freja=}, {input_dir=}")
     # Input data filename
     #data_fname = "mat_file_1960_2024_reordered.txt"
-    data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_260325.txt"
+    data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_260325"
 
     # Definiera basins
     #basin = "Kattegat"
@@ -94,13 +94,11 @@ if __name__ == "__main__":
 
     #Samlar ihop resultaten:
     today = dt.datetime.now().strftime("%Y%m%d_%H%M")
+    today = "20260601_2334"
     results_dir = Path(f"results/{basin.replace(' ', '_')}/{today}/")
     if on_freja:
         results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results/{basin.replace(' ', '_')}/{today}/")
     results_dir.mkdir(parents=True, exist_ok=True)
-    Path(results_dir, "figures/").mkdir(parents=True, exist_ok=True)
-    Path(results_dir, "DIVArun/").mkdir(parents=True, exist_ok=True)
-    Path(results_dir, "processed/").mkdir(parents=True, exist_ok=True)
     print(f"saving results to {results_dir=}")
     with open(Path(results_dir, 'settings.json'), 'w') as file:
         json.dump(obj=settings[basin],fp=file)
@@ -112,7 +110,8 @@ if __name__ == "__main__":
     2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025])
     #year_list = json.dumps([2009])
     #yearlist_background = year_list
-    year_list = json.dumps([2015])
+    year_list = json.dumps([2016,
+    2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025])
     print(f"calculating for years {year_list}")
 
     seasons_dict = {
@@ -135,9 +134,11 @@ if __name__ == "__main__":
     #lenf = json.dumps(80000)    #Km
     # Resolution
     #dx = json.dumps(0.05)       #deg
-    # Signal to noise ratio
-    # low epsilon means higher noise in data and result is more smoothed
-    # high epsilon means lower noise in data and result is less smoothed and each observation is seen more
+    # In DIVAnd, epsilon2 is the noise variance divided by the signal variance
+    # Small epsilon2 → observations are trusted strongly.
+    # Large epsilon2 → observations are trusted less and the background/smoothness constraints dominate more.
+    # if epsilon2 is 0.1: noise variance = 10% of signal variance, and observations are considered relatively accurate.
+    # so increasing ε² means less confidence in the observations
     #epsilon = json.dumps(0.2)
     #Bathymetry file
     bath_file_name = "bat_elevation_Baltic_Sea_masked"
@@ -149,57 +150,70 @@ if __name__ == "__main__":
     #w_depth = json.dumps(5.)
     #w_days = json.dumps(2.)
 
-    #Set True if you want to run a cross validation/sensitivity analysis
-    cv_mode = json.dumps(True)
+    scenarios = [
+        {"name": "full", "cv_mode": False},
+        #{"name": "standard_stations", "cv_mode": True},
+    ]
 
-    print("running DIVAnd in Julia...")
-    args = ['julia', 'julia_code/oxygen_analysis.jl', 
-        input_dir, results_dir, data_fname, 
+    for scenario in scenarios:
+        print(f"running {scenario["name"]}")
+        scenario_results_dir = results_dir / scenario["name"]
+        #Samlar ihop resultaten:
+        Path(scenario_results_dir, "figures/").mkdir(parents=True, exist_ok=True)
+        Path(scenario_results_dir, "DIVArun/").mkdir(parents=True, exist_ok=True)
+        Path(scenario_results_dir, "processed/").mkdir(parents=True, exist_ok=True)
+
+        print(f"saving results to {results_dir=}")
+        with open(Path(results_dir, 'settings.json'), 'w') as file:
+            json.dump(obj=settings[basin],fp=file)
+
+        args = ['julia', 'julia_code/oxygen_analysis.jl', 
+        input_dir, scenario_results_dir, data_fname, 
         year_list, month_list, seasons, 
         lenf, epsilon, dx, bath_file_name, 
         w_depth, w_days, depthr, lenz_, 
         lonr, latr, basin, threshold_list, 
-        epsilon_background, lenf_background,
-        cv_mode]
-
-    # Call the function and save a json-file with a file_list containing the results. That we can send to the calculate_areas function.
-    try:
-        run_julia_function(args)
-        # print("skipping julia run")
-    except Exception as e:
-        # If exception occurs, prompt user
-        print(e)
-        user_input = input(f"An error occurred. Do you want to remove the path resultat/{basin.replace(' ', '_')}/{today}/? (y/n): ")
-        
-        if user_input.lower() == 'y':
-            path_to_remove = Path(f"results/{basin.replace(' ', '_')}/{today}/")
+        epsilon_background, lenf_background, 
+        json.dumps(scenario["cv_mode"]), json.dumps(scenario["name"])
+        ]
+        try:
+            run_julia_function(args)
+        except Exception as e:
+            # If exception occurs, prompt user
+            print(e)
+            user_input = input(f"An error occurred. Do you want to remove the path resultat/{results_dir}/? (y/n): ")
             
-            # Check if the path exists before trying to remove it
-            if results_dir.exists() and results_dir.is_dir():
-                shutil.rmtree(results_dir)
-                print(f"Path {results_dir} has been removed.")
-                exit()
+            if user_input.lower() == 'y':
+                path_to_remove = Path(f"results/{results_dir}/")
+                
+                # Check if the path exists before trying to remove it
+                if results_dir.exists() and results_dir.is_dir():
+                    shutil.rmtree(results_dir)
+                    print(f"Path {results_dir} has been removed.")
+                    exit()
+                else:
+                    print(f"Path {results_dir} does not exist.")
+                    exit()
             else:
-                print(f"Path {results_dir} does not exist.")
+                print("No path was removed.")
                 exit()
-        else:
-            print("No path was removed.")
-            exit()
 
-    #results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results//{basin.replace(' ', '_')}/20260114_1653")
-    print("DIVAnd is done with its stuff...")
-    t1 = time.perf_counter()
-    print(f"finished in ({t1/60 - t0/60:.0f} min)")
-    print(f"now calculate areas")
+        #results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results//{basin.replace(' ', '_')}/20260114_1653")
+        print("DIVAnd is done with its stuff...")
+        t1 = time.perf_counter()
+        print(f"finished in ({t1/60 - t0/60:.0f} min)")
+        print(f"now calculate areas")
 
-    # Calculate areas from DIVA-results and save in a new nc-file. Results in file_list
-    calculate_areas.calculate_areas(results_dir, json.loads(threshold_list))
+        # Calculate areas from DIVA-results and save in a new nc-file. 
+        calculate_areas.calculate_areas(scenario_results_dir, json.loads(threshold_list))
 
-    # Read and plot areas in file_list
-    plot_result.read_processed_nc(results_dir)
+        # Read and plot areas in file_list
+        plot_result.read_processed_nc(scenario_results_dir)
 
-    #print("plotting area...")
-    #plot_area.area_bar_plot(results_dir,year_list)
+        print(f"areas and plots are done for scenario {scenario["name"]}")
+
+        #print("plotting area...")
+        #plot_area.area_bar_plot(results_dir,year_list)
 
 print (f"Done!")
 ### extract values that are within our limits, save to a new variable and nc-file. ####

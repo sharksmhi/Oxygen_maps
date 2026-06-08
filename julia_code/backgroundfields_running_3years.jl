@@ -21,6 +21,56 @@ using Printf
 using Missings
 using JLD
 using JSON
+using DataFrames
+using CSV
+
+function rdiag_stats(
+    year,
+    obsid,
+    obslon,
+    obslat,
+    obsdepth,
+    obstime,
+    rdiag,
+    epsilon_weighted
+)
+
+    return DataFrame(
+        year = [year],
+
+        nobs = [length(obsid)],
+        nstations = [length(unique(obsid))],
+
+        nlon_unique = [length(unique(obslon))],
+        nlat_unique = [length(unique(obslat))],
+        ndepth_unique = [length(unique(obsdepth))],
+
+        depth_min = [minimum(obsdepth)],
+        depth_max = [maximum(obsdepth)],
+
+        ndates = [length(unique(Date.(obstime)))],
+
+        rdiag_min = [minimum(rdiag)],
+        rdiag_mean = [mean(rdiag)],
+        rdiag_median = [median(rdiag)],
+        rdiag_p95 = [quantile(rdiag, 0.95)],
+        rdiag_max = [maximum(rdiag)],
+
+        eps_min = [minimum(epsilon_weighted)],
+        eps_mean = [mean(epsilon_weighted)],
+        eps_max = [maximum(epsilon_weighted)]
+    )
+end
+
+function get_weights(year)
+    if year < 1980
+        return (0.1, 0.1, 50.0, 7.0)
+    elseif year < 2000
+        return (0.1, 0.1, 20.0, 5.0)
+    else
+        return (0.1, 0.1, 5.0, 2.0)
+    end
+end
 
 # ## Configuration
 # * Define variabel and set horizontal, vertical and temporal resolutions.
@@ -53,21 +103,18 @@ outputdir = joinpath(location, "data/");
 if !isdir(outputdir)
     @info("directory path for data does not exist $(outputdir)")
 end
-# Figures
-figdir = "./resultat/figures/$(savevar)/";
-if on_freja
-    figdir = joinpath(outputdir, "resultat/figures")
-end
-if !isdir(figdir)
-    mkpath(figdir)
-    mkpath(joinpath(figdir, "test"))
-end
 
 # ## Load data big files created by program "data_handling"
 data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_260325"
 #data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_250619"
 #data_fname = "mat_file_1960_2024_reordered"
 @time obsval,obslon,obslat,obsdepth,obstime,obsid = loadbigfile(joinpath(location, "data/$data_fname.txt"));
+
+weighting_dir = joinpath(outputdir, "weighting", "background_fields", data_fname)
+mkpath(weighting_dir)
+
+background_dir = joinpath(outputdir, "background_fields", data_fname)
+mkpath(background_dir)
 
 #Bottniska viken
 #basin = "Gulf_of_Bothnia"
@@ -133,13 +180,13 @@ timeorigin = DateTime(1900,1,1,0,0,0);
 aspect_ratio = 1/cos(mean(latr) * pi/180);
 
 "BATHYMETRY"
-bathname = joinpath(location, "data/bat_elevation_Baltic_Sea_masked.nc")
+bathname = joinpath(location, "data", "bat_elevation_Baltic_Sea_masked.nc")
 bath_file_name = split(bathname,"/")[end]
 bathisglobal = true;
-bx,by,b = DIVAnd.extract_bath(bathname,bathisglobal,lonr,latr);
+@time bx,by,b = DIVAnd.extract_bath(bathname,bathisglobal,lonr,latr);
 
 # ## MASK
-xmask,ymask,mmask = load_mask(bathname,true,lonr,latr,depthr);
+@time xmask,ymask,mmask = load_mask(bathname,true,lonr,latr,depthr);
 
 label = DIVAnd.floodfill(mmask);
 new_mask = (label .== 1);
@@ -177,40 +224,78 @@ epsilon = Float64.(settings["Global"]["epsilon_background"])
 
 w_depth = 5.
 w_days = 2.
-
-rdiag_jldfile = joinpath(location, "data/$(data_fname)_weighted_$(w_depth)_$(w_days).jld")
-@show rdiag_jldfile
-if isfile(rdiag_jldfile)
-    @load rdiag_jldfile rdiag
-    @info "Loading saved rdiag file with w_depth = $(w_depth) and w_days = $(w_days)"
-else
-    @info "Calculating rdiag with w_depth = $(w_depth) and w_days = $(w_days)!"
-    @time rdiag = 1 ./ DIVAnd.weight_RtimesOne((obslon,obslat,obsdepth,float.(Dates.dayofyear.(obstime))),(0.10,0.10,w_depth,w_days));
-    @save rdiag_jldfile rdiag
-end
-
-@show maximum(rdiag),mean(rdiag)
-epsilon_weighted = epsilon * rdiag;
-@show minimum(epsilon_weighted), maximum(epsilon_weighted),mean(epsilon_weighted)
-#obstime_shiftet removed! No need for that since we make BG-fields for a whole year
+w_lon = 0.1
+w_lat = 0.1
 
 # Settings for DIVAnd-------------------------------------------------------------------------------
 error_thresholds = [("L1", 0.3), ("L2", 0.5)];
 
 # One metadata set up per season
-metadata=Array{DataStructures.OrderedDict{String,Any}}(undef,4) ;
-file_list = []
+metadata=Array{DataStructures.OrderedDict{String,Any}}(undef,length(seasons));
+stats_file = joinpath(weighting_dir, "rdiag_statistics_background.txt")
 
 # Loop over the 3 years and make a BG-field for those years to be used for the analysis of the mid year
 # BG field for [1960,1961,1962] [All month] to be used for year 1961 in analysis. 
 # BG field for [1961,1962,1963] [All month] to be used for year 1962 in analysis. 
 for year_list_index in 1:length(year_list)
+    window_years = year_list[year_list_index]
+    year = year_list[year_list_index][2] # Year to the analysis +/- 1 år
+    @show(year, window_years)    # Lägg in subsetting av data här så vi bara använder de tre åren i fönstret
+    year_mask = in.(Dates.year.(obstime), Ref(window_years))
+    obsval_sub   = obsval[year_mask]
+    obslon_sub   = obslon[year_mask]
+    obslat_sub   = obslat[year_mask]
+    obsdepth_sub = obsdepth[year_mask]
+    obstime_sub  = obstime[year_mask]
+    obsid_sub    = obsid[year_mask]
+    @info "nobs = $(length(obslon_sub))"
+    @info "unique lons = $(length(unique(obslon_sub)))"
+    @info "unique lats = $(length(unique(obslat_sub)))"
+    @info "unique depth = $(length(unique(obsdepth_sub)))"
+    # räkna rdiag för treårsperioden och vikta med endast de data
+    # w_lon, w_lat, w_depth, w_days = get_weights(year)
+    rdiag_jldfile = joinpath(weighting_dir, "$(data_fname)_$(year)_weighted_$(w_depth)_$(w_days).jld")
+    if isfile(rdiag_jldfile)
+        @load rdiag_jldfile rdiag
+        @info "Loading saved rdiag file for $(year) with w_depth = $(w_depth) and w_days = $(w_days)"
+    else
+        @info "Calculating rdiag for $(year) with w_depth = $(w_depth) and w_days = $(w_days)!"
+        @time rdiag = 1 ./ DIVAnd.weight_RtimesOne((obslon_sub, obslat_sub, obsdepth_sub, float.(Dates.dayofyear.(obstime_sub))), (w_lon, w_lat, w_depth, w_days));
+        @save rdiag_jldfile rdiag
+    end
+    # spara rdiag filen, behövs en per år till bg istället för en för hela perioden
+    @show maximum(rdiag),mean(rdiag)
+    epsilon_weighted = epsilon * rdiag;
+    @show minimum(epsilon_weighted), maximum(epsilon_weighted),mean(epsilon_weighted)
 
-    years = string(year_list[year_list_index][2]) # Year to the analysis +/- 1 år
+    stats_df = rdiag_stats(
+        year,
+        obsid_sub,
+        obslon_sub,
+        obslat_sub,
+        obsdepth_sub,
+        obstime_sub,
+        rdiag,
+        epsilon_weighted
+    )
+    if isfile(stats_file)
+        CSV.write(stats_file, stats_df; append=true)
+    else
+        CSV.write(stats_file, stats_df)
+    end
 
     for monthlist_index in 1:length(month_list)
         season = seasons[monthlist_index]
+        # File name based on the variable (but all spaces are replaced by _)
+        nc_filename = "Background_$(replace(varname,' '=>'_'))_$(year)_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(basin).nc"
+        nc_filepath = joinpath(background_dir, nc_filename)
 
+        if isfile(nc_filepath)
+            @info "Backgroundfield already exists. Skip to next year"
+            continue
+            # rm(nc_filepath) # delete the previous analysis
+        end
+        
         @info("Creating metadata dicitonary for the season $(season)")
         metadata_season = OrderedDict(
             # set attributes for DVIA run from our settings
@@ -307,24 +392,13 @@ for year_list_index in 1:length(year_list)
         @show(TS)
         @info("$(month_list[monthlist_index:monthlist_index])")
 
-        # File name based on the variable (but all spaces are replaced by _)
-        nc_filename = "Background_$(replace(varname,' '=>'_'))_$(years)_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(basin).nc"
-        nc_filepath = joinpath(outputdir, nc_filename)
- 
-        #Append the created files to file_list
-        push!(file_list, nc_filename)
-
-        if isfile(nc_filepath)
-        rm(nc_filepath) # delete the previous analysis
-        end
-
-        @info("Will write results in $nc_filepath")
+        @info("Calling diva3d. Save background field in $nc_filepath")
         # create attributes for the netcdf file (need an internet connexion) and does sometimes not work. We fixed this by doing our own attributes.
         #ncglobalattrib,ncvarattrib = SDNMetadata(metadata_season,nc_filepath,varname,lonr,latr)
 
         dbinfo = @time diva3d((lonr,latr,depthr,TS),
-            (obslon,obslat,obsdepth,obstime),
-            obsval,
+            (obslon_sub,obslat_sub,obsdepth_sub,obstime_sub),
+            obsval_sub,
             len,
             epsilon_weighted,
             nc_filepath, varname,
@@ -347,6 +421,6 @@ for year_list_index in 1:length(year_list)
         );
 
         # Save the observation metadata in the NetCDF file
-        DIVAnd.saveobs(nc_filepath,"Oxygen_data", obsval, (obslon,obslat,obsdepth,obstime),obsid, used = dbinfo[:used])
+        DIVAnd.saveobs(nc_filepath, "Oxygen_data", obsval_sub, (obslon_sub, obslat_sub, obsdepth_sub, obstime_sub), obsid_sub, used = dbinfo[:used])
     end    
 end
