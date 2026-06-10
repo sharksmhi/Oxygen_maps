@@ -94,7 +94,6 @@ if __name__ == "__main__":
 
     #Samlar ihop resultaten:
     today = dt.datetime.now().strftime("%Y%m%d_%H%M")
-    today = "20260601_2334"
     results_dir = Path(f"results/{basin.replace(' ', '_')}/{today}/")
     if on_freja:
         results_dir = Path(f"/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results/{basin.replace(' ', '_')}/{today}/")

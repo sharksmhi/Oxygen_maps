@@ -311,7 +311,7 @@ error_thresholds = [("L1", 0.3), ("L2", 0.5)];
 # The maximal and mean values provide an indication of the spatial proximity between the data.
 # If you apply this technique, you need to adapt epsilon2:
 
-#Make a test with different values for depth and days.
+# Make a test with different values for depth and days for rdiag.
 # 60m och 30 dagar - funkar ej
 # 5m och 7 dagar - funkar ej
 # 20m och 7 dagar - funkar ej
@@ -321,26 +321,6 @@ error_thresholds = [("L1", 0.3), ("L2", 0.5)];
 # 2.5m och 2 dagar
 # 2.5m och 30 dagar
 
-# @show data_fname
-# @show split(data_fname,".")[1]
-# rdiag_jldfile = joinpath(input_dir, "$(split(data_fname,".")[1])_weighted_$(w_depth)_$(w_days).jld")
-
-# if isfile(rdiag_jldfile) && !cv_mode
-#     @load rdiag_jldfile rdiag
-#     @info "Loading saved rdiag file with w_depth = $(w_depth) and w_days = $(w_days)"
-# else
-#     @info "Calculating rdiag with w_depth = $(w_depth) and w_days = $(w_days)!"
-#     @time rdiag = 1 ./ DIVAnd.weight_RtimesOne((obslon,obslat,obsdepth,float.(Dates.dayofyear.(obstime_shifted))),(0.10,0.10,w_depth,w_days));
-#     # only save for normal runs
-#     if !cv_mode
-#         @info "saving new rdiag file"
-#         @save rdiag_jldfile rdiag
-#     end
-# end
-
-# @show maximum(rdiag),mean(rdiag)
-# epsilon_weighted = epsilon * rdiag;
-#@show epsilon_weighted
 
 # One metadata set up per season
 metadata=Array{DataStructures.OrderedDict{String,Any}}(undef,4) ;
@@ -350,7 +330,7 @@ start_year = 1960
 end_year   = 2024
 
 month_list_background = [[1,2,3,4,5,6,7,8,9,10,11,12]];  # 3 whole years climatology
-stats_file = joinpath(weighting_dir, "rdiag_statistics.txt")
+stats_file = joinpath(results_dir, "rdiag_statistics.txt")
 
 for year in year_list
     @show(year)
@@ -552,8 +532,6 @@ for year in year_list
         @show(keys(dbinfo))
         # Residuals with NaNs removed
         sel = .!isnan.(residuals)
-        #res2 = residuals[sel]
-        #obsid2=obsid[sel]
         @show(length(residuals))
         @show(length(obsval_sub))
 
@@ -566,7 +544,20 @@ for year in year_list
         for i in indices
             println("Residual: $(residuals[i]), obsval: $(obsval_sub[i]), DIVAnd: $(obsval_sub[i]-residuals[i]), obsdepth:$(obsdepth_sub[i]), obsid: $(obsid_sub[i])")
         end
-
+        # large_residuals_df = DataFrame(
+        #     Residual = residuals[indices],
+        #     obsval = obsval[indices],
+        #     DIVAnd = obsval_sub[indices]-obsval[indices],
+        #     obsdepth = obsdepth_sub[indices],
+        #     obsid = obsid_sub[indices],
+        #     Residual = residuals[indices],
+        #     Residual = residuals[indices],
+        #     )
+        # if isfile(large_residuals_file)
+        #     CSV.write(large_residuals_file, large_residuals_df; append=true)
+        # else
+        #     CSV.write(large_residuals_file, large_residuals_df)
+        # end
     #     @info("Get the residuals...")
     #     selection_per_timeslice = dbinfo[:selection_per_timeslice]
     #     residuals_per_timeslice = dbinfo[:residuals_per_timeslice]
