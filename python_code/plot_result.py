@@ -70,7 +70,7 @@ def set_up_cartopy_map(axis):
     # Set map extent
     axis.set_extent(
         [
-            9.5,
+            9.3,
             30,
             53.5,
             61,
@@ -620,7 +620,8 @@ def plot(results_dir, netcdf_filename, year, season, ds, threshold_list, interva
 ## extract values that are within our limits, save to a new variable and nc-file. ####
 
 def read_processed_nc(results_dir):
-    if not results_dir.is_dir:
+     
+    if not results_dir.is_dir():
         print(f"results dir is not a directory")
     
     processed_files = Path(results_dir) / "processed"
@@ -656,5 +657,5 @@ if __name__ == "__main__":
     print("running")
     # Result directory
     results_dir = "./resultat/Baltic_Proper/20260114_1653/"
-    results_dir = "/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results/Baltic_Proper/20260601_2334/full/DIVArun"
+    results_dir = Path("/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/results/Baltic_Proper/20260616_1703/full/")
     read_processed_nc(results_dir)

@@ -61,13 +61,15 @@ else:
     data_reordered[:, 9] = data[:, 6]  # date
     #data_reordered[:, 10] = data[:, 8] # id /pltf
     data_reordered[:, 10] = [
+            
     f"mat_file_{val}" for val in data[:, 8]
 ]
 
 # Save the reordered data to a file with headers. Headers have to be removed before reading the file in DIVAnd
 header_reordered = ['lon', 'lat', 'oxygen', 'depth', 'year', 'month', 'station_no', 'extra1', 'extra2', 'date', 'pltf']
 header_str = '\t'.join(var_name for var_name in header_reordered)
-np.savetxt(f"{data_folder}mat_BIG_file_1960_2025.txt", data_reordered, header=header_str, comments='', delimiter='\t', fmt='%s')
+np.savetxt(f"{data_folder}mat_BIG_file_1960_2025_header.txt", data_reordered, header=header_str, comments='', delimiter='\t', fmt='%s')
+np.savetxt(f"{data_folder}mat_BIG_file_1960_2025.txt", data_reordered, comments='', delimiter='\t', fmt='%s')
 
 # order of columns in the outputfiler have to be:
 # 0 lon

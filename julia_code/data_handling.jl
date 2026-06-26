@@ -343,7 +343,26 @@ obsval = [obsval_shark_syke_iow_emod_ices; obsval_mat[newpoints_mat]];
 obsid = [obsid_shark_syke_iow_emod_ices; obsid_mat[newpoints_mat]];
 
 
+# ## Ta bort data utanför analysområdet
+lon_min = 9.0
+lon_max = 31.0
+lat_min = 53.0
+lat_max = 66.5
 
+inside_area = (
+    (obslon .>= lon_min) .&
+    (obslon .<= lon_max) .&
+    (obslat .>= lat_min) .&
+    (obslat .<= lat_max)
+)
+
+# Filtrera alla arrayer
+obslon = obslon[inside_area]
+obslat = obslat[inside_area]
+obsdepth = obsdepth[inside_area]
+obstime = obstime[inside_area]
+obsval = obsval[inside_area]
+obsid = obsid[inside_area]
 
 # # ## Remove SYKE data when EMODnet_SHARK_ICES data is available.
 # # Remove true duplicates, hence when exactly the same data is found in both datasets.
@@ -473,7 +492,7 @@ println("\nFiltrerat data, antal rader:")
 println(nrow(filtered_data))
 
 # Skriver data till fil
-filename = "SHARK_SYKE_IOW_EMODNET_ICES_260325"
+filename = "SHARK_SYKE_IOW_EMODNET_ICES_260624"
 CSV.write(joinpath(outputdir, "$(filename).txt"), filtered_data, delim="\t", writeheader=false)
 CSV.write(joinpath(outputdir, "$(filename)_with_header.txt"), filtered_data, delim="\t", writeheader=true)
 #DIVAnd.saveobs(joinpath(outputdir, "$(filename).nc"),varname, obsval, (obslon,obslat,obsdepth,obstime),obsid)

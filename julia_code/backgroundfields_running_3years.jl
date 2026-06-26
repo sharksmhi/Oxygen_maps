@@ -8,7 +8,7 @@
 
 # #### Add necessary packages
 #using Pkg
-#Pkg.add("JLD")
+#Pkg.add("Plots")
 
 using DIVAnd
 using PyPlot
@@ -23,6 +23,7 @@ using JLD
 using JSON
 using DataFrames
 using CSV
+
 
 function rdiag_stats(
     year,
@@ -64,9 +65,11 @@ end
 
 function get_weights(year)
     if year < 1980
-        return (0.1, 0.1, 50.0, 7.0)
+        #return (0.1, 0.1, 50.0, 7.0)
+        return (0.1, 0.1, 5.0, 2.0)
     elseif year < 2000
-        return (0.1, 0.1, 20.0, 5.0)
+        #return (0.1, 0.1, 20.0, 5.0)
+        return (0.1, 0.1, 5.0, 2.0)
     else
         return (0.1, 0.1, 5.0, 2.0)
     end
@@ -105,12 +108,11 @@ if !isdir(outputdir)
 end
 
 # ## Load data big files created by program "data_handling"
-data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_260325"
-#data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_250619"
-#data_fname = "mat_file_1960_2024_reordered"
+data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_260624_cleaned"
+
 @time obsval,obslon,obslat,obsdepth,obstime,obsid = loadbigfile(joinpath(location, "data/$data_fname.txt"));
 
-weighting_dir = joinpath(outputdir, "weighting", "background_fields", data_fname)
+weighting_dir = joinpath(outputdir, "weighting", data_fname, "background_fields")
 mkpath(weighting_dir)
 
 background_dir = joinpath(outputdir, "background_fields", data_fname)
@@ -150,7 +152,7 @@ lenz_ = Float64[layer[2] for layer in layers]
 
 #depthr = Float64.(settings[basin]["depthr"])
 #lenz_ = Float64.(settings[basin]["lenz_"])
-lenf = Float64.(settings[basin]["lenf_background"])
+lenf = Float64.(settings[basin]["lenf"])
 #yearlist_json = settings[basin]["yearlist_background"]
 # Konvertera varje par i yearlist till ett intervall (range) i Julia
 #year_list = [year[1]:year[2] for year in yearlist_json]
@@ -158,8 +160,8 @@ lenf = Float64.(settings[basin]["lenf_background"])
 threshold_list = settings[basin]["threshold_list"]
 
 # Ange vilket intervall du vill ha på bakgrundfältet
-start_year = 1959
-end_year   = 2025
+start_year = 1968
+end_year   = 1968
 
 # Skapa listan med rullande treårsintervall # [[1959,1960,1961],[], osv...]
 year_list = [[y-1, y, y+1] for y in start_year:end_year]  
@@ -179,15 +181,16 @@ months=["(Jan-Dec)"];
 timeorigin = DateTime(1900,1,1,0,0,0);
 aspect_ratio = 1/cos(mean(latr) * pi/180);
 
-"BATHYMETRY"
-bathname = joinpath(location, "data", "bat_elevation_Baltic_Sea_masked.nc")
+#BATHYMETRY
+#bathname = joinpath(location, "data", "bat_elevation_Baltic_Sea_masked.nc")
+bathname = joinpath(location, "data", "bathymetry", "emodnet_bathymetry_merged.nc")
 bath_file_name = split(bathname,"/")[end]
 bathisglobal = true;
-@time bx,by,b = DIVAnd.extract_bath(bathname,bathisglobal,lonr,latr);
 
 # ## MASK
-@time xmask,ymask,mmask = load_mask(bathname,true,lonr,latr,depthr);
+@time xmask,ymask,mmask = load_mask(bathname,bathisglobal,lonr,latr,depthr);
 
+# Floodfill ser till att små isolerade områden tas bort från analysen. 
 label = DIVAnd.floodfill(mmask);
 new_mask = (label .== 1);
 
@@ -210,15 +213,66 @@ elseif basin == "Kattegat"
 end
 new_mask = mask_edit .* .!sel_mask1 .* .!sel_mask2 .* .!sel_mask3 .* .!sel_mask4;
 
-# ## Analysis parameters
-sz = (length(lonr), length(latr), length(depthr));
-lenx = fill(lenf,sz)   # 200 km
-leny = fill(lenf,sz)   # 200 km
-lenz =  [lenz_[k] for i = 1:sz[1], j = 1:sz[2], k = 1:sz[3]];
+
+if length(lenf) > 1
+    #Dela upp, finns två lenf
+    lenx = [
+        lonr[i] <= 14 ? lenf[1] :
+        lonr[i] >= 16 ? lenf[2] :
+        lenf[1] + (lonr[i] - 14)/(16 - 14) * (lenf[2] - lenf[1])
+        for i=1:length(lonr), j=1:length(latr), k=1:length(depthr)
+    ]
+
+    lenf_str = "$(lenf[1])_$(lenf[2])" 
+else
+    #Dela inte upp, finns bara en lenf
+    lenx = fill(lenf,(length(lonr), length(latr), length(depthr)))
+    lenf_str = "$(lenf[1])" 
+end
+leny = copy(lenx)
+
+lenz = [lenz_[k]
+        for i=1:length(lonr), j=1:length(latr), k=1:length(depthr)]
+
 len = (lenx, leny, lenz);
 
-lx = lenf
-ly = lenf
+ds = Dataset("correlation_length.nc", "c")
+
+# Dimensioner
+defDim(ds, "lon", length(lonr))
+defDim(ds, "lat", length(latr))
+defDim(ds, "depth", length(depthr))
+
+# Koordinater
+vlon = defVar(ds, "lon", Float64, ("lon",))
+vlat = defVar(ds, "lat", Float64, ("lat",))
+vdepth = defVar(ds, "depth", Float64, ("depth",))
+
+vlon[:] = lonr
+vlat[:] = latr
+vdepth[:] = depthr
+
+# Korrelationslängder
+vlenx = defVar(ds, "lenx", Float64, ("lon", "lat", "depth"))
+vleny = defVar(ds, "leny", Float64, ("lon", "lat", "depth"))
+vlenz = defVar(ds, "lenz", Float64, ("lon", "lat", "depth"))
+
+vlenx[:, :, :] = lenx
+vleny[:, :, :] = leny
+vlenz[:, :, :] = lenz
+
+# Metadata
+vlenx.attrib["units"] = "m"
+vleny.attrib["units"] = "m"
+vlenz.attrib["units"] = "m"
+
+vlenx.attrib["long_name"] = "Horizontal correlation length x-direction"
+vleny.attrib["long_name"] = "Horizontal correlation length y-direction"
+vlenz.attrib["long_name"] = "Vertical correlation length"
+
+close(ds)
+
+println("Saved correlation_length.nc")
 
 epsilon = Float64.(settings["Global"]["epsilon_background"])
 
@@ -257,7 +311,7 @@ for year_list_index in 1:length(year_list)
     rdiag_jldfile = joinpath(weighting_dir, "$(data_fname)_$(year)_weighted_$(w_depth)_$(w_days).jld")
     if isfile(rdiag_jldfile)
         @load rdiag_jldfile rdiag
-        @info "Loading saved rdiag file for $(year) with w_depth = $(w_depth) and w_days = $(w_days)"
+        @info "Loading saved rdiag file $(rdiag_jldfile) for $(year) with w_depth = $(w_depth) and w_days = $(w_days)"
     else
         @info "Calculating rdiag for $(year) with w_depth = $(w_depth) and w_days = $(w_days)!"
         @time rdiag = 1 ./ DIVAnd.weight_RtimesOne((obslon_sub, obslat_sub, obsdepth_sub, float.(Dates.dayofyear.(obstime_sub))), (w_lon, w_lat, w_depth, w_days));
@@ -287,14 +341,14 @@ for year_list_index in 1:length(year_list)
     for monthlist_index in 1:length(month_list)
         season = seasons[monthlist_index]
         # File name based on the variable (but all spaces are replaced by _)
-        nc_filename = "Background_$(replace(varname,' '=>'_'))_$(year)_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(basin).nc"
+        nc_filename = "Background_$(replace(varname,' '=>'_'))_$(year)_$(season)_$(epsilon)_$(lenf_str)_$(dx)_$(w_depth)_$(w_days)_$(basin).nc"
         nc_filepath = joinpath(background_dir, nc_filename)
 
-        if isfile(nc_filepath)
-            @info "Backgroundfield already exists. Skip to next year"
-            continue
-            # rm(nc_filepath) # delete the previous analysis
-        end
+        # #if isfile(nc_filepath)
+        #     @info "Backgroundfield already exists. Skip to next year"
+        #     continue
+        #     # rm(nc_filepath) # delete the previous analysis
+        # end
         
         @info("Creating metadata dicitonary for the season $(season)")
         metadata_season = OrderedDict(
@@ -302,7 +356,7 @@ for year_list_index in 1:length(year_list)
             "threshold_list" => "$threshold_list",
             "season" => season,
             "epsilon" => "$epsilon",
-            "horizontal correlation length m" => "$lx",
+            "horizontal correlation length m" => lenf_str,
             "start year" => string(year_list[year_list_index][1]), 
             "end year" => string(year_list[year_list_index][3]),
             # Name of the project (SeaDataCloud, SeaDataNet, EMODNET-chemistry, ...)
@@ -390,6 +444,7 @@ for year_list_index in 1:length(year_list)
         # Time selection for the analyse. This was already defined together with yearlist, month_list, seasons
         TS = DIVAnd.TimeSelectorYearListMonthList([year_list[year_list_index]],month_list[monthlist_index:monthlist_index])
         @show(TS)
+        @info("$(year_list[year_list_index])")
         @info("$(month_list[monthlist_index:monthlist_index])")
 
         @info("Calling diva3d. Save background field in $nc_filepath")

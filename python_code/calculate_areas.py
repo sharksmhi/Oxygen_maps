@@ -235,7 +235,7 @@ def calculate_areas(results_dir, threshold_list, save_area_data=False):
         ds = xr.open_dataset(netcdf_filepath)
         ds = ds.rio.set_spatial_dims(x_dim="lon", y_dim="lat", inplace=False)
         ds = ds.rio.write_crs("EPSG:4326", inplace=False)
-        print(ds.attrs)
+        #print(ds.attrs)
         season = ds.attrs['season']
         start_year = ds.attrs['start year']
         end_year = ds.attrs['end year']

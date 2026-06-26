@@ -135,9 +135,8 @@ latr = args[16]
 basin = args[17]
 threshold_list = JSON.parse(args[18])
 epsilon_background = JSON.parse(args[19])
-lenf_background = JSON.parse(args[20])
-cv_mode = JSON.parse(args[21])
-scenario_name = JSON.parse(args[22])
+cv_mode = JSON.parse(args[20])
+scenario_name = JSON.parse(args[21])
 
 @show "read all arguments from python in julia"
 
@@ -194,10 +193,10 @@ aspect_ratio = 1/cos(mean(latr) * pi/180);
 # Bathymetry needs to be namned "bat"
 #bath_file_name = "bat_elevation_Baltic_Sea_masked"
 #bath_file_name = "gebco_30sec_4"
-bathname = joinpath(input_dir, "$(bath_file_name).nc")
+bathname = joinpath(input_dir, "bathymetry", "$(bath_file_name).nc")
 @show("extract bathymetry from $(bathname)")
 bathisglobal = true;
-@time bx,by,b = DIVAnd.extract_bath(bathname,bathisglobal,lonr,latr);
+#@time bx,by,b = DIVAnd.extract_bath(bathname,bathisglobal,lonr,latr);
 
 basin = replace(basin,' '=>'_')
 
@@ -242,17 +241,29 @@ elseif basin == "Kattegat"
 end
 new_mask = mask_edit .* .!sel_mask1 .* .!sel_mask2 .* .!sel_mask3 .* .!sel_mask4;
 
-# Ökas slen så minskas avståndet från kusten där len är mindre.
-sz = (length(lonr),length(latr),length(depthr));
-lenx = fill(lenf,sz)
-leny = fill(lenf,sz)
-#Horisontell korrelationslängd
-lenz =  [lenz_[k] for i = 1:sz[1], j = 1:sz[2], k = 1:sz[3]];
-#lenz = fill(10,sz);      # 10m 25 m
+if length(lenf) > 1
+    #Dela upp, finns två lenf
+    lenx = [
+        lonr[i] <= 14 ? lenf[1] :
+        lonr[i] >= 16 ? lenf[2] :
+        lenf[1] + (lonr[i] - 14)/(16 - 14) * (lenf[2] - lenf[1])
+        for i=1:length(lonr), j=1:length(latr), k=1:length(depthr)
+    ]
+
+    lenf_str = "$(lenf[1])_$(lenf[2])" 
+else
+    #Dela inte upp, finns bara en lenf
+    lenx = fill(lenf,(length(lonr), length(latr), length(depthr)))
+    lenf_str = "$(lenf[1])" 
+end
+
+leny = copy(lenx)
+
+lenz = [lenz_[k]
+        for i=1:length(lonr), j=1:length(latr), k=1:length(depthr)]
 
 len = (lenx, leny, lenz);
-lx = lenf
-ly = lenf
+
 
 # To include December from previous year in the analyse
 obstime_shifted = copy(obstime)
@@ -335,9 +346,9 @@ stats_file = joinpath(results_dir, "rdiag_statistics.txt")
 for year in year_list
     @show(year)
     #Background file for choosen year
-    bkg_filename = "Background_$(varname)_$(year)_All_$(epsilon_background)_$(lenf_background)_$(dx)_$(w_depth)_$(w_days)_$(basin).nc"
-    @show(bkg_filename)
-    bkg_filepath = joinpath(input_dir, bkg_filename)
+    bkg_filename = "Background_$(varname)_$(year)_All_$(epsilon_background)_$(lenf_str)_$(dx)_$(w_depth)_$(w_days)_$(basin).nc"
+    bkg_filepath = joinpath(background_dir, bkg_filename)
+    @show(bkg_filepath)
     cp(bkg_filepath, joinpath(results_dir, joinpath("DIVArun", bkg_filename)); force=true)
     TSbackground = DIVAnd.TimeSelectorYearListMonthList([year],month_list_background);
     @show(TSbackground)
@@ -395,7 +406,7 @@ for year in year_list
             "threshold_list" => "$threshold_list",
             "season" => season,
             "epsilon" => "$epsilon",
-            "horizontal correlation length m" => "$lx",
+            "horizontal correlation length m" => "$(lenf_str)",
             "start year" => string(year_list[1]),
             "end year" => string(year_list[end]),
             # Name of the project (SeaDataCloud, SeaDataNet, EMODNET-chemistry, ...)
@@ -484,7 +495,7 @@ for year in year_list
         @show(TS)
 
         # File name based on the variable (but all spaces are replaced by _)
-        nc_filename = "$(replace(varname,' '=>'_'))_$(year)_$(season)_$(epsilon)_$(lx)_$(dx)_$(w_depth)_$(w_days)_$(basin)_varcorrlenz.nc"
+        nc_filename = "$(replace(varname,' '=>'_'))_$(year)_$(season)_$(epsilon)_$(lenf_str)_$(dx)_$(w_depth)_$(w_days)_$(basin)_varcorrlenz.nc"
         nc_filename_res = "$(replace(varname,' '=>'_'))_$(year)_$(season)_residuals.nc"
         nc_filepath = joinpath("$(results_dir)/DIVArun", nc_filename)
         nc_filepath_res = joinpath("$(results_dir)/DIVArun", nc_filename_res)
