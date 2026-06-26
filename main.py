@@ -45,7 +45,7 @@ if __name__ == "__main__":
     print(f"{on_freja=}, {input_dir=}")
     # Input data filename
     #data_fname = "mat_file_1960_2024_reordered.txt"
-    data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_260325"
+    data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_260624_cleaned"
 
     # Definiera basins
     #basin = "Kattegat"
@@ -72,7 +72,6 @@ if __name__ == "__main__":
     #depthr = json.dumps(settings[basin]["depthr"])
     #lenz_ = json.dumps(settings[basin]["lenz_"])
     lenf = json.dumps(settings[basin]["lenf"])
-    lenf_background = json.dumps(settings[basin]["lenf_background"])
     threshold_list = json.dumps(settings[basin]["threshold_list"])
     #years = settings[basin]["years"] # utan json.dumps så det passar i bkg_filename strängen.
     #yearlist_background = json.dumps(settings[basin]["yearlist_background"])
@@ -109,8 +108,8 @@ if __name__ == "__main__":
     2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025])
     #year_list = json.dumps([2009])
     #yearlist_background = year_list
-    year_list = json.dumps([2016,
-    2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025])
+    year_list = json.dumps([1968])
+    #2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025])
     print(f"calculating for years {year_list}")
 
     seasons_dict = {
@@ -140,7 +139,8 @@ if __name__ == "__main__":
     # so increasing ε² means less confidence in the observations
     #epsilon = json.dumps(0.2)
     #Bathymetry file
-    bath_file_name = "bat_elevation_Baltic_Sea_masked"
+    #bath_file_name = "bat_elevation_Baltic_Sea_masked"
+    bath_file_name = "emodnet_bathymetry_merged"
     varname = "Oxygen"
 
     print("Bathymetry file: ", bath_file_name)
@@ -172,7 +172,7 @@ if __name__ == "__main__":
         lenf, epsilon, dx, bath_file_name, 
         w_depth, w_days, depthr, lenz_, 
         lonr, latr, basin, threshold_list, 
-        epsilon_background, lenf_background, 
+        epsilon_background,  
         json.dumps(scenario["cv_mode"]), json.dumps(scenario["name"])
         ]
         try:
@@ -214,7 +214,9 @@ if __name__ == "__main__":
         #print("plotting area...")
         #plot_area.area_bar_plot(results_dir,year_list)
 
-print (f"Done!")
+t2 = time.perf_counter()
+print(f"finished in ({t2/60 - t0/60:.0f} min)")
+print (f"Completely done!")
 ### extract values that are within our limits, save to a new variable and nc-file. ####
 # 1 ml/l of O2 is approximately 43.570 µmol/kg
 # (assumes a molar volume of O2 of 22.392 l/mole and
