@@ -1,15 +1,19 @@
+#To do:
+# Olika tidsperioder, data innan 2000 har diskreta djup och efter kan innehålla CTD. 
+# Inför även djupintervall. 
+
 import xarray as xr
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
 freja_input_dir = "/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/data/"
-data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_260624.txt"
+data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_260701.txt"
 bath_fname = "bathymetry/emodnet_bathymetry_merged.nc"
 
 out_flagged_fname = "measurements_probably_wrong_position.txt"
 out_nominal_fname = "measurements_possible_nominal_position.txt"
-out_clean_all_fname = "SHARK_SYKE_IOW_EMODNET_ICES_260624_cleaned_all.txt"
+out_clean_all_fname = "SHARK_SYKE_IOW_EMODNET_ICES_260701_cleaned_all.txt"
 
 search_radius_m = 1000.0
 
@@ -240,8 +244,8 @@ df_clean_original_format = df_clean_original_format.rename(
     columns={"sampling_depth_corrected": "depth"}
 )
 
-out_clean_original_no_header = "SHARK_SYKE_IOW_EMODNET_ICES_260624_cleaned.txt"
-out_clean_original_with_header = "SHARK_SYKE_IOW_EMODNET_ICES_260624_cleaned_with_header.txt"
+out_clean_original_no_header = "SHARK_SYKE_IOW_EMODNET_ICES_260701_cleaned.txt"
+out_clean_original_with_header = "SHARK_SYKE_IOW_EMODNET_ICES_260701_cleaned_with_header.txt"
 
 df_clean_original_format.to_csv(
     freja_input_dir + out_clean_original_no_header,

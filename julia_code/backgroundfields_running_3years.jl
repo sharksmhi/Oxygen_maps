@@ -108,9 +108,16 @@ if !isdir(outputdir)
 end
 
 # ## Load data big files created by program "data_handling"
-data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_260624_cleaned"
+data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_260701_cleaned"
 
 @time obsval,obslon,obslat,obsdepth,obstime,obsid = loadbigfile(joinpath(location, "data/$data_fname.txt"));
+
+@show length(obsval)
+@show length(obslon)
+@show length(obslat)
+@show length(obsdepth)
+@show length(obstime)
+@show length(obsid)
 
 weighting_dir = joinpath(outputdir, "weighting", data_fname, "background_fields")
 mkpath(weighting_dir)
@@ -160,8 +167,9 @@ lenf = Float64.(settings[basin]["lenf"])
 threshold_list = settings[basin]["threshold_list"]
 
 # Ange vilket intervall du vill ha på bakgrundfältet
-start_year = 1968
-end_year   = 1968
+start_year = 1960
+end_year   = 2024
+
 
 # Skapa listan med rullande treårsintervall # [[1959,1960,1961],[], osv...]
 year_list = [[y-1, y, y+1] for y in start_year:end_year]  
