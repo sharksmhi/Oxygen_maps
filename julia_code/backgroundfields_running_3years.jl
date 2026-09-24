@@ -122,7 +122,8 @@ data_fname = "SHARK_SYKE_IOW_EMODNET_ICES_260701_cleaned"
 weighting_dir = joinpath(outputdir, "weighting", data_fname, "background_fields")
 mkpath(weighting_dir)
 
-background_dir = joinpath(outputdir, "background_fields", data_fname)
+background_type = "3_year_before"
+background_dir = joinpath(outputdir, "background_fields", data_fname, background_type)
 mkpath(background_dir)
 
 #Bottniska viken
@@ -168,12 +169,12 @@ threshold_list = settings[basin]["threshold_list"]
 
 # Ange vilket intervall du vill ha på bakgrundfältet
 start_year = 1960
-end_year   = 2024
+end_year   = 1970
 
 
 # Skapa listan med rullande treårsintervall # [[1959,1960,1961],[], osv...]
 year_list = [[y-1, y, y+1] for y in start_year:end_year]  
-
+#year_list = [[y] for y in start_year:end_year]  
 @show(year_list)
 
 #BACKGROUND
@@ -349,8 +350,8 @@ for year_list_index in 1:length(year_list)
     for monthlist_index in 1:length(month_list)
         season = seasons[monthlist_index]
         # File name based on the variable (but all spaces are replaced by _)
-        nc_filename = "Background_$(replace(varname,' '=>'_'))_$(year)_$(season)_$(epsilon)_$(lenf_str)_$(dx)_$(w_depth)_$(w_days)_$(basin).nc"
-        nc_filepath = joinpath(background_dir, nc_filename)
+        nc_filename = "Background_$(replace(varname,' '=>'_'))_$(year+1)_$(season)_$(epsilon)_$(lenf_str)_$(dx)_$(w_depth)_$(w_days)_$(basin).nc"
+        nc_filepath = joinpath(background_dir,  nc_filename)
 
         # #if isfile(nc_filepath)
         #     @info "Backgroundfield already exists. Skip to next year"

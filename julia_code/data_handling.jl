@@ -116,7 +116,7 @@ obsid_ices = string.("ICES-", obsid_ices)
 @show(obsid_ices[1])
 
 @show("Loading SYKE data...")
-datafile_syke_btlctd = joinpath(location, "data/all_baltic/syke_data_no_header_241107.txt")
+datafile_syke_btlctd = joinpath(location, "data/all_baltic/syke_data_no_header_260924.txt")
 @time obsval_syke,obslon_syke,obslat_syke,obsdepth_syke,obstime_syke,obsid_syke = loadbigfile(datafile_syke_btlctd);
 @show(obsid_syke[1])
 
@@ -492,7 +492,7 @@ println("\nFiltrerat data, antal rader:")
 println(nrow(filtered_data))
 
 # Skriver data till fil
-filename = "SHARK_SYKE_IOW_EMODNET_ICES_260701"
+filename = "SHARK_SYKE_IOW_EMODNET_ICES_260924"
 CSV.write(joinpath(outputdir, "$(filename).txt"), filtered_data, delim="\t", writeheader=false)
 CSV.write(joinpath(outputdir, "$(filename)_with_header.txt"), filtered_data, delim="\t", writeheader=true)
 #DIVAnd.saveobs(joinpath(outputdir, "$(filename).nc"),varname, obsval, (obslon,obslat,obsdepth,obstime),obsid)

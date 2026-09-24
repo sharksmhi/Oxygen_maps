@@ -1,0 +1,257 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from pathlib import Path
+
+
+# ============================================================
+# INSTÄLLNINGAR
+# ============================================================
+freja_input_dir = Path("/nobackup/smhid20/proj/fouo/oxygen_indicator_2024/Oxygen_maps/data/")
+filename = freja_input_dir / "SHARK_SYKE_IOW_EMODNET_ICES_260701_cleaned_with_header.txt"
+
+# Endast låga syrevärden visas i histogrammet
+max_oxygen = 50.0  # µmol/l
+
+# Fin binning för att kunna se toppar/spikar
+bin_width = 0.25  # µmol/l
+
+bins = np.arange(
+    0,
+    max_oxygen + bin_width,
+    bin_width
+)
+
+# 10-årsperioder
+periods = [
+    (1960, 1969),
+    (1970, 1979),
+    (1980, 1989),
+    (1990, 1999),
+    (2000, 2009),
+    (2010, 2019),
+    (2020, 2026),
+]
+
+# ============================================================
+# LÄS DATA
+# ============================================================
+
+df = pd.read_csv(
+    filename,
+    sep="\t"
+)
+
+# Gör obstime till datum
+df["obstime"] = pd.to_datetime(
+    df["obstime"],
+    errors="coerce"
+)
+
+# Skapa årskolumn
+df["year"] = df["obstime"].dt.year
+
+# Säkerställ att obsval är numerisk
+df["obsval"] = pd.to_numeric(
+    df["obsval"],
+    errors="coerce"
+)
+
+# Ta bort ogiltiga värden
+df = df[
+    df["obsval"].notna()
+    & df["year"].notna()
+    & (df["obsval"] >= 0)
+].copy()
+
+# ============================================================
+# HISTOGRAM PER 10-ÅRSPERIOD
+# ============================================================
+
+fig, axes = plt.subplots(
+    len(periods),
+    1,
+    figsize=(12, 16),
+    sharex=True
+)
+
+for ax, (start_year, end_year) in zip(axes, periods):
+
+    subset = df[
+        (df["year"] >= start_year)
+        & (df["year"] <= end_year)
+        & (df["obsval"] <= max_oxygen)
+    ].copy()
+
+    ax.hist(
+        subset["obsval"],
+        bins=bins,
+        edgecolor="black",
+        linewidth=0.3
+    )
+
+    # Viktiga syrenivåer
+    ax.axvline(
+        9,
+        linestyle="--",
+        linewidth=1.2,
+        label="9 µmol/l"
+    )
+
+    ax.axvline(
+        22.33,
+        linestyle=":",
+        linewidth=1.2,
+        label="0.5 ml/l ≈ 22.33 µmol/l"
+    )
+
+    ax.set_ylabel("Antal")
+
+    ax.set_title(
+        f"{start_year}–{end_year} "
+        f"(n = {len(subset):,})"
+    )
+
+    ax.grid(
+        axis="y",
+        alpha=0.25
+    )
+
+axes[0].legend()
+
+axes[-1].set_xlabel(
+    "Syrehalt (µmol/l)"
+)
+
+fig.suptitle(
+    "Låga observerade syrehalter per 10-årsperiod",
+    fontsize=15
+)
+
+plt.tight_layout()
+
+plt.savefig(
+    "oxygen_low_values_histogram_decades.png",
+    dpi=300,
+    bbox_inches="tight"
+)
+
+plt.show()
+
+# ============================================================
+# VANLIGASTE EXAKTA LÅGA VÄRDENA – HELA PERIODEN
+# ============================================================
+
+low = df[
+    df["obsval"] <= max_oxygen
+].copy()
+
+counts_all = (
+    low.groupby("obsval")
+    .size()
+    .reset_index(name="count")
+    .sort_values(
+        "count",
+        ascending=False
+    )
+)
+
+print()
+print("=" * 60)
+print("Vanligaste exakta obsval-värdena, alla år")
+print("=" * 60)
+
+print(
+    counts_all.head(100).to_string(index=False)
+)
+
+# ============================================================
+# VANLIGASTE VÄRDENA PER 10-ÅRSPERIOD
+# ============================================================
+
+for start_year, end_year in periods:
+
+    subset = df[
+        (df["year"] >= start_year)
+        & (df["year"] <= end_year)
+        & (df["obsval"] <= max_oxygen)
+    ].copy()
+
+    counts = (
+        subset.groupby("obsval")
+        .size()
+        .reset_index(name="count")
+        .sort_values(
+            "count",
+            ascending=False
+        )
+    )
+
+    print()
+    print("=" * 60)
+    print(
+        f"Vanligaste obsval-värdena "
+        f"{start_year}–{end_year}"
+    )
+    print("=" * 60)
+
+    print(
+        counts.head(30).to_string(index=False)
+    )
+
+# ============================================================
+# AVRUNDAD FREKVENSTABELL
+# ============================================================
+
+# Ibland skiljer sig värden minimalt pga floating point.
+# Därför kan det vara bra att också avrunda innan frekvensräkning.
+
+low["obsval_round_2"] = low["obsval"].round(2)
+
+counts_round = (
+    low.groupby("obsval_round_2")
+    .size()
+    .reset_index(name="count")
+    .sort_values(
+        "count",
+        ascending=False
+    )
+)
+
+print()
+print("=" * 60)
+print("Vanligaste värden avrundade till 0.01 µmol/l")
+print("=" * 60)
+
+print(
+    counts_round.head(100).to_string(index=False)
+)
+
+# ============================================================
+# SPARA FREKVENSTABELLER
+# ============================================================
+
+counts_all.to_csv(
+    "oxygen_exact_values_counts.csv",
+    index=False
+)
+
+counts_round.to_csv(
+    "oxygen_rounded_values_counts.csv",
+    index=False
+)
+
+print()
+print("Klart.")
+print(
+    "Figur sparad som: "
+    "oxygen_low_values_histogram_decades.png"
+)
+print(
+    "Frekvenstabell sparad som: "
+    "oxygen_exact_values_counts.csv"
+)
+print(
+    "Avrundad frekvenstabell sparad som: "
+    "oxygen_rounded_values_counts.csv"
+)

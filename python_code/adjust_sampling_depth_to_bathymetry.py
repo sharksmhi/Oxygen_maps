@@ -216,7 +216,7 @@ df_clean = df.loc[~mask_remove].copy()
 
 df_clean = df_clean.drop(columns=["lon_group", "lat_group"])
 
-
+#Allt cleaned men i fel format?
 df_clean.to_csv(
     freja_input_dir + out_clean_all_fname,
     sep="\t",

@@ -137,6 +137,7 @@ threshold_list = JSON.parse(args[18])
 epsilon_background = JSON.parse(args[19])
 cv_mode = JSON.parse(args[20])
 scenario_name = JSON.parse(args[21])
+background_type = JSON.parse(args[22])
 
 @show "read all arguments from python in julia"
 
@@ -144,7 +145,7 @@ weighting_dir = joinpath(input_dir, "weighting", data_fname)
 if !isdir(weighting_dir)
     @info "$(weighting) is not a directory"
 end
-background_dir = joinpath(input_dir, "background_fields", data_fname)
+background_dir = joinpath(input_dir, "background_fields", data_fname, background_type)
 if !isdir(background_dir)
     @info "$(background_dir) is not a directory"
 end
